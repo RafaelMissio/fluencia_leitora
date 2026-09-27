@@ -247,9 +247,9 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `existsByAno` e `findBySituacao` retornam o esperado contra MySQL real
-- [ ] `./mvnw verify` passa
-- [ ] 3 testes: `existsByAno` true/false, `findBySituacao(ATIVO)` com 0 e com 1 resultado
+- [x] `existsByAno` e `findBySituacao` retornam o esperado contra MySQL real
+- [x] `./mvnw verify` passa
+- [x] 3 testes: `existsByAno` true/false, `findBySituacao(ATIVO)` com 0 e com 1 resultado
 
 **Tests**: integration
 **Gate**: full
