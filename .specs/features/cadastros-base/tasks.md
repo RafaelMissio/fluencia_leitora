@@ -505,11 +505,11 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `POST /turmas` cria (201), rejeita duplicidade (409) e referência inválida (422)
-- [ ] `PUT /{id}` troca o professor e não altera avaliações (não há avaliações nesta feature; o teste confirma que só a turma é alterada)
-- [ ] `DELETE /{id}` retorna 204 sem excluir a linha
-- [ ] `./mvnw verify` passa
-- [ ] 4 testes cobrindo os pontos acima
+- [x] `POST /turmas` cria (201), rejeita duplicidade (409) e referência inválida (422)
+- [x] `PUT /{id}` troca o professor e não altera avaliações (não há avaliações nesta feature; o teste confirma que só a turma é alterada)
+- [x] `DELETE /{id}` retorna 204 sem excluir a linha
+- [x] `./mvnw verify` passa
+- [x] 5 testes cobrindo os pontos acima
 
 **Tests**: integration
 **Gate**: full
