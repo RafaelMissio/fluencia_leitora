@@ -4,6 +4,10 @@ import com.missio.fluencia_leitora.cadastros.anoletivo.SituacaoAnoLetivo;
 import com.missio.fluencia_leitora.cadastros.turma.Turma;
 import com.missio.fluencia_leitora.cadastros.turma.TurmaRepository;
 import com.missio.fluencia_leitora.common.error.BusinessException;
+import com.missio.fluencia_leitora.common.security.ContextoUsuarioPort;
+import com.missio.fluencia_leitora.common.security.Perfil;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +49,34 @@ public class AlunoService {
         return new AlunoComMatricula(aluno, matricula);
     }
 
+    private static final int TERMO_MINIMO = 2;
+
+    /**
+     * CAD-16: busca por nome, restrita aos alunos com matrícula no ano
+     * letivo ATIVO cujo professor é o do contexto quando o perfil autenticado
+     * é PROFESSOR; sem restrição para COORDENADOR.
+     */
+    @Transactional(readOnly = true)
+    public Page<AlunoBusca> buscar(String termo, Pageable pageable, ContextoUsuarioPort contexto) {
+        if (termo == null || termo.length() < TERMO_MINIMO) {
+            throw new BusinessException(
+                    HttpStatus.UNPROCESSABLE_ENTITY, "TERMO_INVALIDO", "O termo de busca deve ter ao menos 2 caracteres");
+        }
+
+        Page<Aluno> pagina = contexto.perfilAtual() == Perfil.PROFESSOR
+                ? alunoRepository.buscarPorNomeEProfessor(termo, contexto.professorIdAtual(), pageable)
+                : alunoRepository.buscarPorNome(termo, pageable);
+
+        return pagina.map(aluno -> new AlunoBusca(aluno, matriculaAtivaDe(aluno.getId())));
+    }
+
+    private Matricula matriculaAtivaDe(Long alunoId) {
+        return matriculaRepository.findByAlunoId(alunoId).stream()
+                .filter(matricula -> matricula.getAnoLetivo().getSituacao() == SituacaoAnoLetivo.ATIVO)
+                .findFirst()
+                .orElse(null);
+    }
+
     /**
      * CAD-11/CAD-12: uma turma só serve para matricular um aluno (novo ou já
      * existente) quando ela está ativa e seu ano letivo não está
@@ -70,5 +102,12 @@ public class AlunoService {
 
     /** CAD-11: par aluno + matrícula criados por {@link #criarComMatricula}. */
     public record AlunoComMatricula(Aluno aluno, Matricula matricula) {
+    }
+
+    /**
+     * CAD-16: item de resultado de {@link #buscar}. {@code matriculaAtiva} é
+     * {@code null} quando o aluno não tem matrícula no ano letivo ATIVO.
+     */
+    public record AlunoBusca(Aluno aluno, Matricula matriculaAtiva) {
     }
 }

@@ -645,11 +645,11 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] Termo com menos de 2 caracteres → 422
-- [ ] Perfil `COORDENADOR` não tem filtro por professor
-- [ ] Perfil `PROFESSOR` só recebe os próprios alunos (mock do port com dois `professorId` diferentes)
-- [ ] `./mvnw test` passa
-- [ ] 3 testes cobrindo os pontos acima
+- [x] Termo com menos de 2 caracteres → 422
+- [x] Perfil `COORDENADOR` não tem filtro por professor
+- [x] Perfil `PROFESSOR` só recebe os próprios alunos (mock do port com dois `professorId` diferentes)
+- [x] `./mvnw test` passa
+- [x] 3 testes cobrindo os pontos acima
 
 **Tests**: unit
 **Gate**: quick
