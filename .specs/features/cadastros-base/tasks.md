@@ -181,8 +181,8 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] Migração roda sem erro (`./mvnw compile` + Flyway validate na próxima task que sobe o contexto)
-- [ ] Seed tem exatamente os 3 ciclos e os 3 tipos de leitura, na ordem do SDD
+- [x] Migração roda sem erro (`./mvnw compile` + Flyway validate na próxima task que sobe o contexto)
+- [x] Seed tem exatamente os 3 ciclos e os 3 tipos de leitura, na ordem do SDD
 
 **Tests**: none
 **Gate**: build
