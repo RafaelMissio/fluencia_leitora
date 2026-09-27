@@ -622,10 +622,10 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] Sucesso cria aluno + matrícula com `serie`/`professorId` copiados da turma
-- [ ] Turma inativa ou ano letivo `ENCERRADO` → 422, nada é persistido
-- [ ] `./mvnw test` passa
-- [ ] 3 testes cobrindo os pontos acima
+- [x] Sucesso cria aluno + matrícula com `serie`/`professorId` copiados da turma
+- [x] Turma inativa ou ano letivo `ENCERRADO` → 422, nada é persistido
+- [x] `./mvnw test` passa
+- [x] 3 testes cobrindo os pontos acima
 
 **Tests**: unit
 **Gate**: quick
