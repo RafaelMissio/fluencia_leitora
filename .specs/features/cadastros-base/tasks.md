@@ -600,9 +600,9 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `HistoricoAvaliacaoPortStub.existeAvaliacaoNaoCancelada` retorna `false` para qualquer `alunoId`
-- [ ] `./mvnw test` passa
-- [ ] 1 teste confirmando o contrato do stub
+- [x] `HistoricoAvaliacaoPortStub.existeAvaliacaoNaoCancelada` retorna `false` para qualquer `alunoId`
+- [x] `./mvnw test` passa
+- [x] 1 teste confirmando o contrato do stub
 
 **Tests**: unit
 **Gate**: quick
