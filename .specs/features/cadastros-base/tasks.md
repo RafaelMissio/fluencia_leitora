@@ -226,8 +226,8 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] Migração cria as duas tabelas com as constraints acima
-- [ ] `chk_config_quantidade` (`quantidade_minima <= quantidade_maxima`) presente
+- [x] Migração cria as duas tabelas com as constraints acima
+- [x] `chk_config_quantidade` (`quantidade_minima <= quantidade_maxima`) presente
 
 **Tests**: none
 **Gate**: build
