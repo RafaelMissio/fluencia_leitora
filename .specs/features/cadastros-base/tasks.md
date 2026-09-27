@@ -719,11 +719,11 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] Troca de professor grava o novo `professorId`
-- [ ] Transferência de turma no mesmo ano letivo atualiza `turma`/`serie`
-- [ ] `anoFinalizado=true` é gravado
-- [ ] `./mvnw test` passa
-- [ ] 3 testes cobrindo os pontos acima
+- [x] Troca de professor grava o novo `professorId`
+- [x] Transferência de turma no mesmo ano letivo atualiza `turma`/`serie`
+- [x] `anoFinalizado=true` é gravado
+- [x] `./mvnw test` passa
+- [x] 3 testes cobrindo os pontos acima
 
 **Tests**: unit
 **Gate**: quick

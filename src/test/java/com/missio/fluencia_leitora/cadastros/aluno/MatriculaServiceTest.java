@@ -3,6 +3,7 @@ package com.missio.fluencia_leitora.cadastros.aluno;
 import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivo;
 import com.missio.fluencia_leitora.cadastros.anoletivo.SituacaoAnoLetivo;
 import com.missio.fluencia_leitora.cadastros.professor.Professor;
+import com.missio.fluencia_leitora.cadastros.professor.ProfessorRepository;
 import com.missio.fluencia_leitora.cadastros.turma.Turma;
 import com.missio.fluencia_leitora.cadastros.turma.TurmaRepository;
 import com.missio.fluencia_leitora.common.error.BusinessException;
@@ -39,8 +40,11 @@ class MatriculaServiceTest {
     @Mock
     private AlunoRepository alunoRepository;
 
+    @Mock
+    private ProfessorRepository professorRepository;
+
     private MatriculaService service() {
-        return new MatriculaService(matriculaRepository, turmaRepository, alunoRepository);
+        return new MatriculaService(matriculaRepository, turmaRepository, alunoRepository, professorRepository);
     }
 
     private AnoLetivo anoLetivo(int ano, SituacaoAnoLetivo situacao) {
@@ -114,5 +118,49 @@ class MatriculaServiceTest {
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
         assertEquals("ANO_LETIVO_ENCERRADO", exception.getCode());
         verify(matriculaRepository, never()).save(any());
+    }
+
+    @Test
+    void atualizarTrocaProfessorGravaONovoProfessorId() {
+        AnoLetivo anoLetivo = anoLetivo(2026, SituacaoAnoLetivo.ATIVO);
+        Turma turma = new Turma("Turma A", 3, anoLetivo, null);
+        Matricula matricula = new Matricula(new Aluno("Aluno"), anoLetivo, turma, 3, null);
+        Professor novoProfessor = new Professor("Novo Professor");
+        when(matriculaRepository.findById(10L)).thenReturn(Optional.of(matricula));
+        when(professorRepository.findById(5L)).thenReturn(Optional.of(novoProfessor));
+        when(matriculaRepository.save(matricula)).thenReturn(matricula);
+
+        Matricula atualizada = service().atualizar(10L, 5L, null, null);
+
+        assertEquals(novoProfessor, atualizada.getProfessor());
+    }
+
+    @Test
+    void atualizarTransfereTurmaNoMesmoAnoLetivoAtualizaTurmaESerie() {
+        AnoLetivo anoLetivo = anoLetivo(2026, SituacaoAnoLetivo.ATIVO);
+        Turma turmaOriginal = new Turma("Turma A", 3, anoLetivo, null);
+        Turma novaTurma = new Turma("Turma B", 4, anoLetivo, null);
+        Matricula matricula = new Matricula(new Aluno("Aluno"), anoLetivo, turmaOriginal, 3, null);
+        when(matriculaRepository.findById(10L)).thenReturn(Optional.of(matricula));
+        when(turmaRepository.findById(20L)).thenReturn(Optional.of(novaTurma));
+        when(matriculaRepository.save(matricula)).thenReturn(matricula);
+
+        Matricula atualizada = service().atualizar(10L, null, 20L, null);
+
+        assertEquals(novaTurma, atualizada.getTurma());
+        assertEquals(4, atualizada.getSerie());
+    }
+
+    @Test
+    void atualizarMarcaAnoFinalizadoTrueEGrava() {
+        AnoLetivo anoLetivo = anoLetivo(2026, SituacaoAnoLetivo.ATIVO);
+        Turma turma = new Turma("Turma A", 3, anoLetivo, null);
+        Matricula matricula = new Matricula(new Aluno("Aluno"), anoLetivo, turma, 3, null);
+        when(matriculaRepository.findById(10L)).thenReturn(Optional.of(matricula));
+        when(matriculaRepository.save(matricula)).thenReturn(matricula);
+
+        Matricula atualizada = service().atualizar(10L, null, null, true);
+
+        assertEquals(true, atualizada.isAnoFinalizado());
     }
 }
