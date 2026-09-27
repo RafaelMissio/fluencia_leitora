@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "promote_threshold": 2,
+  "window_days": 45,
+  "quarantine_threshold": 2,
+  "next_id": 5,
+  "lessons": [
+    {
+      "id": "L-001",
+      "key": "ac_gap::for a read only endpoint that relies on the framework default 405 add a test for every write verb on every path not just one verb on one path",
+      "text": "For a read-only endpoint that relies on the framework default 405, add a test for every write verb on every path, not just one verb on one path.",
+      "signal": "ac_gap",
+      "scope": "controller-tests",
+      "status": "candidate",
+      "features": [
+        "cadastros-base"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/test/java/com/missio/fluencia_leitora/cadastros/dominio/DominioFixoControllerIT.java:51-55 (controller-tests)"
+      ],
+      "created": "2026-09-27T19:41:55Z",
+      "last_seen": "2026-09-27T19:41:55Z"
+    },
+    {
+      "id": "L-002",
+      "key": "ac_gap::when a spec edge case names an http status explicitly add a controller integration level test for it even if the same behavior is already covered at the repository layer",
+      "text": "When a spec edge case names an HTTP status explicitly, add a controller/integration-level test for it even if the same behavior is already covered at the repository layer.",
+      "signal": "ac_gap",
+      "scope": "controller-tests",
+      "status": "candidate",
+      "features": [
+        "cadastros-base"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md edge case: busca vazia -> 200 (no AlunoControllerIT coverage) (controller-tests)"
+      ],
+      "created": "2026-09-27T19:41:55Z",
+      "last_seen": "2026-09-27T19:41:55Z"
+    },
+    {
+      "id": "L-003",
+      "key": "ac_gap::assert every literal default value stated in an ac s outcome not just the fields that come directly from user input",
+      "text": "Assert every literal default value stated in an AC's outcome, not just the fields that come directly from user input.",
+      "signal": "ac_gap",
+      "scope": "service-tests",
+      "status": "candidate",
+      "features": [
+        "cadastros-base"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/main/java/com/missio/fluencia_leitora/cadastros/aluno/Matricula.java:45 (CAD-11 AC1) (service-tests)"
+      ],
+      "created": "2026-09-27T19:41:55Z",
+      "last_seen": "2026-09-27T19:41:55Z"
+    },
+    {
+      "id": "L-004",
+      "key": "spec_precision_gap::when a dto field s exact values or format are not defined by the spec document the chosen values inline in the dto javadoc as a spec precision gap so a later feature can align instead of silently redefining it",
+      "text": "When a DTO field's exact values or format are not defined by the spec, document the chosen values inline in the DTO javadoc as a spec-precision gap so a later feature can align instead of silently redefining it.",
+      "signal": "spec_precision_gap",
+      "scope": "dto",
+      "status": "candidate",
+      "features": [
+        "cadastros-base"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/main/java/com/missio/fluencia_leitora/cadastros/aluno/dto/AlunoBuscaItemResponse.java:12-18 (CAD-16 AC4) (dto)"
+      ],
+      "created": "2026-09-27T19:41:55Z",
+      "last_seen": "2026-09-27T19:41:55Z"
+    }
+  ]
+}

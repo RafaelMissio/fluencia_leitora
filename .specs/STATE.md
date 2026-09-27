@@ -60,11 +60,11 @@
 
 ## Handoff
 
-- **Feature**: nenhuma em execução, apenas specs geradas
-- **Phase / Task**: Specify concluído para as 8 features; próximo passo é Design de `cadastros-base`
-- **Completed**: none
+- **Feature**: `cadastros-base` - **Done** (Specify → Design → Tasks → Execute → Validate, PASS). Próxima feature: `autenticacao-perfis`.
+- **Phase / Task**: `cadastros-base` T1-T29 todas `[x]`, Verifier PASS (`.specs/features/cadastros-base/validation.md`). Specify já concluído para as outras 7 features; falta Design de `autenticacao-perfis`.
+- **Completed**: `cadastros-base` (29/29 tasks, 90 testes, JaCoCo ≥85%, `./mvnw verify` verde). Ordem de dependência definida para o restante do backend: `autenticacao-perfis` → `banco-palavras` → `regras-classificacao` → `audio-avaliacao` → `avaliacao` → `historico-evolucao`; `frontend-web` fica por último (decisão do usuário, 2026-09-27).
 - **In-progress** (file:line): none
-- **Next step**: Revisar e aprovar as specs em `.specs/features/*/spec.md`, depois iniciar o Design de `cadastros-base`
+- **Next step**: Design de `autenticacao-perfis` (resolve o adapter provisório `common.security.ContextoUsuarioHeaderAdapter` criado em `cadastros-base`/T3 - ver AD abaixo se uma nova decisão de arquitetura for registrada)
 - **Blockers**: none
-- **Uncommitted files**: .specs/ (repositório ainda não é git)
-- **Branch**: n/a
+- **Uncommitted files**: none
+- **Branch**: `master` (repo git local, sem remoto; 33 commits, o mais recente `b150c6e`)
