@@ -577,10 +577,10 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `existsByAlunoIdAndAnoLetivoId` detecta duplicidade
-- [ ] Inserir duas matrículas do mesmo aluno no mesmo ano letivo viola `uk_matricula_aluno_ano`
-- [ ] `./mvnw verify` passa
-- [ ] 2 testes cobrindo os pontos acima
+- [x] `existsByAlunoIdAndAnoLetivoId` detecta duplicidade
+- [x] Inserir duas matrículas do mesmo aluno no mesmo ano letivo viola `uk_matricula_aluno_ano`
+- [x] `./mvnw verify` passa
+- [x] 2 testes cobrindo os pontos acima
 
 **Tests**: integration
 **Gate**: full
