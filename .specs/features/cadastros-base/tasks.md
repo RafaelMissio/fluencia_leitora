@@ -551,11 +551,13 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] Buscar "joao" encontra "João Silva" mas não "Joana" incorretamente incluído/excluído por acento/maiúscula (confirma contra MySQL real que a collation `utf8mb4_0900_ai_ci` resolve o caso do design.md - risco de collation)
-- [ ] Paginação de 20 itens por página e ordenação por nome funcionam
-- [ ] Filtro por `professorId` retorna só os alunos daquele professor
-- [ ] `./mvnw verify` passa
-- [ ] 4 testes cobrindo os pontos acima
+- [x] Buscar "joao" encontra "João Silva" mas não "Joana" incorretamente incluído/excluído por acento/maiúscula (confirma contra MySQL real que a collation `utf8mb4_0900_ai_ci` resolve o caso do design.md - risco de collation)
+- [x] Paginação de 20 itens por página e ordenação por nome funcionam
+- [x] Filtro por `professorId` retorna só os alunos daquele professor
+- [x] `./mvnw verify` passa
+- [x] 4 testes cobrindo os pontos acima
+
+**Confirmado**: risco de collation do design.md resolvido - `buscarPorNome("joao")` contra MySQL real (Testcontainers) encontra "João Silva" e não inclui "Joana" (`AlunoRepositoryIT.buscarPorNomeEncontraComAcentoECaseInsensitiveSemIncluirNomeDiferente`). O filtro por professor (`buscarPorNomeEProfessor`) usa `nativeQuery` com JOIN direto nas tabelas `matricula`/`ano_letivo` (a entidade `Matricula` só existe a partir da T21) e já reproduz CAD-16 por completo (professorId + ano letivo `ATIVO`).
 
 **Tests**: integration
 **Gate**: full
