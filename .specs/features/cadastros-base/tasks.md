@@ -315,10 +315,10 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] Atualização válida grava os novos limites
-- [ ] `quantidadeMinima > quantidadeMaxima`, `quantidadeMinima < 1`, `quantidadeMaxima > 200` e `serie` fora de 1-5 retornam 422 sem alterar o registro
-- [ ] `./mvnw test` passa
-- [ ] 5 testes (1 sucesso + 4 violações acima)
+- [x] Atualização válida grava os novos limites
+- [x] `quantidadeMinima > quantidadeMaxima`, `quantidadeMinima < 1`, `quantidadeMaxima > 200` e `serie` fora de 1-5 retornam 422 sem alterar o registro
+- [x] `./mvnw test` passa
+- [x] 5 testes (1 sucesso + 4 violações acima)
 
 **Tests**: unit
 **Gate**: quick
