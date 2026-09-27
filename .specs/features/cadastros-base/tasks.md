@@ -136,10 +136,10 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `BusinessException` carrega status HTTP + código + mensagem
-- [ ] `GlobalExceptionHandler` devolve 422 em erro de validação (`@Valid`), 409 em `BusinessException`/lock otimista, com `code` no `ProblemDetail`
-- [ ] `./mvnw test` passa
-- [ ] 3 testes (um por tipo de exceção mapeada) usando `MockMvcBuilders.standaloneSetup(...)` com um `@RestController` de teste que dispara cada exceção
+- [x] `BusinessException` carrega status HTTP + código + mensagem
+- [x] `GlobalExceptionHandler` devolve 422 em erro de validação (`@Valid`), 409 em `BusinessException`/lock otimista, com `code` no `ProblemDetail`
+- [x] `./mvnw test` passa
+- [x] 3 testes (um por tipo de exceção mapeada) usando `MockMvcBuilders.standaloneSetup(...)` com um `@RestController` de teste que dispara cada exceção
 
 **Tests**: unit
 **Gate**: quick
