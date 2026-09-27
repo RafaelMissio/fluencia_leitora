@@ -386,8 +386,8 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] Entidade mapeia todas as colunas da migração T12
-- [ ] `./mvnw compile` passa (cobertura de persistência vem da T17, que exercita o repositório via Testcontainers)
+- [x] Entidade mapeia todas as colunas da migração T12
+- [x] `./mvnw compile` passa (cobertura de persistência vem da T17, que exercita o repositório via Testcontainers)
 
 **Tests**: none
 **Gate**: build
