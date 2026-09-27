@@ -60,11 +60,11 @@
 
 ## Handoff
 
-- **Feature**: `cadastros-base` - **Done** (Specify → Design → Tasks → Execute → Validate, PASS). Próxima feature: `autenticacao-perfis`.
-- **Phase / Task**: `cadastros-base` T1-T29 todas `[x]`, Verifier PASS (`.specs/features/cadastros-base/validation.md`). Specify já concluído para as outras 7 features; falta Design de `autenticacao-perfis`.
-- **Completed**: `cadastros-base` (29/29 tasks, 90 testes, JaCoCo ≥85%, `./mvnw verify` verde). Ordem de dependência definida para o restante do backend: `autenticacao-perfis` → `banco-palavras` → `regras-classificacao` → `audio-avaliacao` → `avaliacao` → `historico-evolucao`; `frontend-web` fica por último (decisão do usuário, 2026-09-27).
-- **In-progress** (file:line): none
-- **Next step**: Design de `autenticacao-perfis` (resolve o adapter provisório `common.security.ContextoUsuarioHeaderAdapter` criado em `cadastros-base`/T3 - ver AD abaixo se uma nova decisão de arquitetura for registrada)
-- **Blockers**: none
+- **Feature**: `cadastros-base` - **Done**. `autenticacao-perfis` - Specify → Design → Tasks concluídos e aprovados; Execute **em andamento, pausado para reinício da máquina** (2026-09-27).
+- **Phase / Task**: `autenticacao-perfis/tasks.md` tem 16 tasks (T1-T16) em 3 fases, nenhuma marcada `[x]` ainda - um batch sub-agent tinha sido disparado para T1-T7 (Phase 1: infra de segurança JWT) mas **não chegou a comitar nada** antes da pausa (git estava limpo). Retomar do zero em T1.
+- **Completed**: `cadastros-base` (29/29 tasks, Verifier PASS). Ordem de dependência do restante do backend: `autenticacao-perfis` → `banco-palavras` → `regras-classificacao` → `audio-avaliacao` → `avaliacao` → `historico-evolucao`; `frontend-web` por último (decisão do usuário, 2026-09-27).
+- **In-progress** (file:line): none - nenhum código de `autenticacao-perfis` foi escrito ainda, só os specs (`spec.md`, `design.md`, `tasks.md`, todos committed em `da4f034`)
+- **Next step**: Re-disparar a execução de `autenticacao-perfis` a partir de T1 (Phase 1), seguindo o plano de lotes já definido em `tasks.md` (Lote 1 = T1-T7, Lote 2 = T8-T16, sub-agentes em lote - já confirmado pelo usuário)
+- **Blockers**: none - pausa foi só por reinício da máquina do usuário, não por erro
 - **Uncommitted files**: none
-- **Branch**: `master` (repo git local, sem remoto; 33 commits, o mais recente `b150c6e`)
+- **Branch**: `master` (repo git local, sem remoto; 34 commits, o mais recente `da4f034`)
