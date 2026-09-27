@@ -454,10 +454,12 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `criar` grava com sucesso; rejeita duplicidade (409) e referência inválida/inativa (422)
-- [ ] `atualizarProfessor` grava o novo professor
-- [ ] `./mvnw test` passa
-- [ ] 4 testes cobrindo os pontos acima
+- [x] `criar` grava com sucesso; rejeita duplicidade (409) e referência inválida/inativa (422)
+- [x] `atualizarProfessor` grava o novo professor
+- [x] `./mvnw test` passa
+- [x] 6 testes cobrindo os pontos acima (criar com/sem professor, duplicidade, ano inativo, professor inativo, atualizarProfessor)
+
+**Deviation:** adicionado `TurmaService.inativar(Long id)` (soft-delete, seta `ativo=false`), fora do texto original da task mas exigido pelo design.md (seção `cadastros.turma`) e pela T18 (`DELETE /turmas/{id}`). Mesmo padrão de `AnoLetivoService.inativar` (T11); sem teste unitário dedicado, consistente com o precedente (exercitado via `*ControllerIT` na T18).
 
 **Tests**: unit
 **Gate**: quick
