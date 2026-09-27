@@ -430,11 +430,11 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `criar` valida `nome` 3-150 e grava
-- [ ] `buscarComTurmas` traz a lista de turmas ativas (0..n)
-- [ ] `inativar` bloqueia com 409 quando há turma ativa vinculada
-- [ ] `./mvnw test` passa
-- [ ] 4 testes cobrindo os pontos acima
+- [x] `criar` valida `nome` 3-150 e grava
+- [x] `buscarComTurmas` traz a lista de turmas ativas (0..n)
+- [x] `inativar` bloqueia com 409 quando há turma ativa vinculada
+- [x] `./mvnw test` passa
+- [x] 6 testes cobrindo os pontos acima (criar sucesso/422, buscarComTurmas 0/n, inativar bloqueado/gravado - a dupla cobertura de cada guarda evita um mutante "sempre lança"/"nunca lança")
 
 **Tests**: unit
 **Gate**: quick
