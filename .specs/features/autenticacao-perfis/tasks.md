@@ -135,12 +135,14 @@ T17
 - Skill: NONE
 
 **Done when**:
-- [ ] `emitir` produz um token que `validarERetornarUsuarioId` decodifica de volta para o mesmo `usuarioId`
-- [ ] Token com assinatura adulterada → `Optional.empty()`
-- [ ] Token expirado → `Optional.empty()`
-- [ ] `APP_JWT_SECRET` com menos de 32 bytes → o contexto Spring falha ao subir (`ApplicationContextRunner` ou similar, sem precisar de Docker)
-- [ ] `./mvnw test` passa
-- [ ] 4 testes cobrindo os pontos acima
+- [x] `emitir` produz um token que `validarERetornarUsuarioId` decodifica de volta para o mesmo `usuarioId`
+- [x] Token com assinatura adulterada → `Optional.empty()`
+- [x] Token expirado → `Optional.empty()`
+- [x] `APP_JWT_SECRET` com menos de 32 bytes → o contexto Spring falha ao subir (`ApplicationContextRunner` ou similar, sem precisar de Docker)
+- [x] `./mvnw test` passa
+- [x] 4 testes cobrindo os pontos acima (+1 para token malformado, previsto na Test Coverage Matrix)
+
+> SPEC_DEVIATION: `IntegrationTestBase` e `FluenciaLeitoraApplicationIT` passam a registrar um `APP_JWT_SECRET` de teste. Motivo: com o fail-fast do `JwtService`, nenhum contexto `@SpringBootTest` subiria sem o segredo.
 
 **Tests**: unit
 **Gate**: quick

@@ -29,6 +29,7 @@ class FluenciaLeitoraApplicationIT {
         registry.add("spring.datasource.url", mysql::getJdbcUrl);
         registry.add("spring.datasource.username", mysql::getUsername);
         registry.add("spring.datasource.password", mysql::getPassword);
+        registry.add("APP_JWT_SECRET", () -> "segredo-de-integracao-com-mais-de-32-bytes");
     }
 
     @Test
