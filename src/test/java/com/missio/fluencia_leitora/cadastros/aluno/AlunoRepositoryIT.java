@@ -61,13 +61,17 @@ class AlunoRepositoryIT extends IntegrationTestBase {
 
     @Test
     void buscarPorNomeEncontraComAcentoECaseInsensitiveSemIncluirNomeDiferente() {
-        alunoRepository.save(new Aluno("João Silva"));
-        alunoRepository.save(new Aluno("Joana"));
+        // Nomes com um sufixo exclusivo deste teste (RepoColacao) para não
+        // colidir com dados de outras classes de IT que não fazem rollback
+        // (ex.: AlunoControllerIT), já que o banco do Testcontainers é
+        // compartilhado por toda a suíte.
+        alunoRepository.save(new Aluno("João RepoColacao Silva"));
+        alunoRepository.save(new Aluno("Joana RepoColacao"));
 
-        Page<Aluno> resultado = alunoRepository.buscarPorNome("joao", PageRequest.of(0, 20));
+        Page<Aluno> resultado = alunoRepository.buscarPorNome("joao repocolacao", PageRequest.of(0, 20));
 
         assertEquals(1, resultado.getTotalElements());
-        assertEquals("João Silva", resultado.getContent().get(0).getNome());
+        assertEquals("João RepoColacao Silva", resultado.getContent().get(0).getNome());
     }
 
     @Test

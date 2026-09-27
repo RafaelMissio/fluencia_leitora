@@ -743,13 +743,15 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `POST /alunos` cria aluno + matrícula (201, `alunoId` + `matriculaId`)
-- [ ] `GET /alunos?nome=joao` encontra "João Silva" sem achar "Joana" indevidamente; termo curto → 422
-- [ ] `GET /alunos?nome=` com header `X-Perfil: PROFESSOR` + `X-Professor-Id` só retorna os alunos daquele professor (professor B não vê os alunos do professor A)
-- [ ] `PUT /alunos/{id}` altera nome com sucesso e retorna 409 quando bloqueado (mock/estado sem avaliação, já que a tabela `avaliacao` não existe)
-- [ ] `DELETE /alunos/{id}` retorna 204 sem excluir a linha
-- [ ] `./mvnw verify` passa
-- [ ] 7 testes cobrindo os pontos acima
+- [x] `POST /alunos` cria aluno + matrícula (201, `alunoId` + `matriculaId`)
+- [x] `GET /alunos?nome=joao` encontra "João Silva" sem achar "Joana" indevidamente; termo curto → 422
+- [x] `GET /alunos?nome=` com header `X-Perfil: PROFESSOR` + `X-Professor-Id` só retorna os alunos daquele professor (professor B não vê os alunos do professor A)
+- [x] `PUT /alunos/{id}` altera nome com sucesso e retorna 409 quando bloqueado (mock/estado sem avaliação, já que a tabela `avaliacao` não existe)
+- [x] `DELETE /alunos/{id}` retorna 204 sem excluir a linha
+- [x] `./mvnw verify` passa
+- [x] 7 testes cobrindo os pontos acima
+
+**Nota**: o item de busca (`AlunoBuscaItemResponse`) também cobre CAD-16 AC4 (turma/serie/professor/anoLetivo/situação da matrícula ativa), usando `@MockitoBean` (Spring Framework 7 - `@MockBean` foi removido) para simular `HistoricoAvaliacaoPort` no teste de bloqueio de 409. Dois spec-precision gaps documentados no javadoc de `AlunoBuscaItemResponse`: os valores exatos de `situacao` (derivados de `anoFinalizado`, já que o modelo não tem enum próprio) e o formato de `anoLetivo` (int = ano) não são definidos pela spec.
 
 **Tests**: integration
 **Gate**: full
