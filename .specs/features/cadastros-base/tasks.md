@@ -366,7 +366,7 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] Migração cria as duas tabelas com as FKs e a unicidade case-insensitive de `turma.nome` por `ano_letivo_id`
+- [x] Migração cria as duas tabelas com as FKs e a unicidade case-insensitive de `turma.nome` por `ano_letivo_id`
 
 **Tests**: none
 **Gate**: build
