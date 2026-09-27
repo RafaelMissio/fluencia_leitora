@@ -407,10 +407,10 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `existsByNomeIgnoreCaseAndAnoLetivoId` ignora maiúsculas/minúsculas de fato contra MySQL real
-- [ ] `findByProfessorIdAndAtivoTrue` retorna só as turmas ativas
-- [ ] `./mvnw verify` passa
-- [ ] 3 testes: duplicidade case-insensitive, busca por professor com 0/N turmas ativas
+- [x] `existsByNomeIgnoreCaseAndAnoLetivoId` ignora maiúsculas/minúsculas de fato contra MySQL real
+- [x] `findByProfessorIdAndAtivoTrue` retorna só as turmas ativas
+- [x] `./mvnw verify` passa
+- [x] 3 testes: duplicidade case-insensitive, busca por professor com 0/N turmas ativas
 
 **Tests**: integration
 **Gate**: full
