@@ -202,11 +202,11 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `GET /api/v1/ciclos` retorna os 3 ciclos na ordem do seed
-- [ ] `GET /api/v1/tipos-leitura` retorna os 3 tipos na ordem do seed
-- [ ] `POST`/`PUT`/`DELETE` nesses paths retornam 405
-- [ ] `./mvnw verify` passa (Testcontainers MySQL sobe e aplica `V1__dominios_fixos.sql`)
-- [ ] 3 testes: `GET /ciclos`, `GET /tipos-leitura`, `POST /ciclos` → 405
+- [x] `GET /api/v1/ciclos` retorna os 3 ciclos na ordem do seed
+- [x] `GET /api/v1/tipos-leitura` retorna os 3 tipos na ordem do seed
+- [x] `POST`/`PUT`/`DELETE` nesses paths retornam 405
+- [x] `./mvnw verify` passa (Testcontainers MySQL sobe e aplica `V1__dominios_fixos.sql`)
+- [x] 3 testes: `GET /ciclos`, `GET /tipos-leitura`, `POST /ciclos` → 405
 
 **Tests**: integration
 **Gate**: full
