@@ -89,7 +89,7 @@ T16
 - Skill: NONE
 
 **Done when**:
-- [ ] `./mvnw compile` passa com as novas dependências
+- [x] `./mvnw compile` passa com as novas dependências
 
 **Tests**: none
 **Gate**: build
