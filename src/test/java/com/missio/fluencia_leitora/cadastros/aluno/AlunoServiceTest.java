@@ -51,8 +51,11 @@ class AlunoServiceTest {
     @Mock
     private ContextoUsuarioPort contexto;
 
+    @Mock
+    private HistoricoAvaliacaoPort historicoAvaliacaoPort;
+
     private AlunoService service() {
-        return new AlunoService(alunoRepository, matriculaRepository, turmaRepository);
+        return new AlunoService(alunoRepository, matriculaRepository, turmaRepository, historicoAvaliacaoPort);
     }
 
     private AnoLetivo anoLetivo(SituacaoAnoLetivo situacao) {
@@ -150,5 +153,44 @@ class AlunoServiceTest {
         assertEquals(1, resultado.getTotalElements());
         assertEquals(alunoDoProfessor, resultado.getContent().get(0).aluno());
         verify(alunoRepository, never()).buscarPorNome(any(), any());
+    }
+
+    @Test
+    void atualizarNomeGravaQuandoPortRetornaFalse() {
+        Aluno aluno = new Aluno("Nome Antigo");
+        when(alunoRepository.findById(1L)).thenReturn(Optional.of(aluno));
+        when(historicoAvaliacaoPort.existeAvaliacaoNaoCancelada(1L)).thenReturn(false);
+        when(alunoRepository.save(aluno)).thenReturn(aluno);
+
+        Aluno atualizado = service().atualizarNome(1L, "Nome Novo");
+
+        assertEquals("Nome Novo", atualizado.getNome());
+    }
+
+    @Test
+    void atualizarNomeRetorna409QuandoPortRetornaTrueSemAlterarNome() {
+        Aluno aluno = new Aluno("Nome Antigo");
+        when(alunoRepository.findById(1L)).thenReturn(Optional.of(aluno));
+        when(historicoAvaliacaoPort.existeAvaliacaoNaoCancelada(1L)).thenReturn(true);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class, () -> service().atualizarNome(1L, "Nome Novo"));
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals("ALUNO_COM_AVALIACAO", exception.getCode());
+        assertEquals("Nome Antigo", aluno.getNome());
+        verify(alunoRepository, never()).save(any());
+    }
+
+    @Test
+    void inativarSetaAtivoFalseSemExcluirALinha() {
+        Aluno aluno = new Aluno("Aluno Ativo");
+        when(alunoRepository.findById(1L)).thenReturn(Optional.of(aluno));
+
+        service().inativar(1L);
+
+        assertEquals(false, aluno.isAtivo());
+        verify(alunoRepository).save(aluno);
+        verify(alunoRepository, never()).delete(any());
     }
 }

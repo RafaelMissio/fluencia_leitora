@@ -28,14 +28,17 @@ public class AlunoService {
     private final AlunoRepository alunoRepository;
     private final MatriculaRepository matriculaRepository;
     private final TurmaRepository turmaRepository;
+    private final HistoricoAvaliacaoPort historicoAvaliacaoPort;
 
     public AlunoService(
             AlunoRepository alunoRepository,
             MatriculaRepository matriculaRepository,
-            TurmaRepository turmaRepository) {
+            TurmaRepository turmaRepository,
+            HistoricoAvaliacaoPort historicoAvaliacaoPort) {
         this.alunoRepository = alunoRepository;
         this.matriculaRepository = matriculaRepository;
         this.turmaRepository = turmaRepository;
+        this.historicoAvaliacaoPort = historicoAvaliacaoPort;
     }
 
     @Transactional
@@ -98,6 +101,36 @@ public class AlunoService {
                     "Não é possível matricular em turma de ano letivo encerrado");
         }
         return turma;
+    }
+
+    /**
+     * CAD-15: bloqueia a troca de nome quando o aluno tem pelo menos uma
+     * avaliação com status diferente de CANCELADA.
+     */
+    @Transactional
+    public Aluno atualizarNome(Long id, String novoNome) {
+        Aluno aluno = buscarAlunoExistente(id);
+
+        if (historicoAvaliacaoPort.existeAvaliacaoNaoCancelada(id)) {
+            throw new BusinessException(
+                    HttpStatus.CONFLICT, "ALUNO_COM_AVALIACAO", "Aluno possui avaliação não cancelada");
+        }
+
+        aluno.setNome(novoNome);
+        return alunoRepository.save(aluno);
+    }
+
+    /** CAD-19/RNF006: soft-delete - seta {@code ativo=false}, nunca exclui a linha. */
+    @Transactional
+    public void inativar(Long id) {
+        Aluno aluno = buscarAlunoExistente(id);
+        aluno.setAtivo(false);
+        alunoRepository.save(aluno);
+    }
+
+    private Aluno buscarAlunoExistente(Long id) {
+        return alunoRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "ALUNO_NAO_ENCONTRADO", "Aluno não encontrado"));
     }
 
     /** CAD-11: par aluno + matrícula criados por {@link #criarComMatricula}. */

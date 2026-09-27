@@ -669,11 +669,11 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `atualizarNome` grava quando o port (mock) retorna `false`
-- [ ] `atualizarNome` retorna 409 quando o port (mock) retorna `true`, sem alterar o nome
-- [ ] `inativar` seta `ativo=false` sem excluir a linha
-- [ ] `./mvnw test` passa
-- [ ] 3 testes cobrindo os pontos acima
+- [x] `atualizarNome` grava quando o port (mock) retorna `false`
+- [x] `atualizarNome` retorna 409 quando o port (mock) retorna `true`, sem alterar o nome
+- [x] `inativar` seta `ativo=false` sem excluir a linha
+- [x] `./mvnw test` passa
+- [x] 3 testes cobrindo os pontos acima
 
 **Tests**: unit
 **Gate**: quick
