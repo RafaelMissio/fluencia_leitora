@@ -161,28 +161,28 @@ Toda avaliação depende de um aluno vinculado a uma turma, a um professor e a u
 
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
-| CAD-01 | P1: Ano letivo - criação com seed de configuração | - | Pending |
-| CAD-02 | P1: Ano letivo - unicidade | - | Pending |
-| CAD-03 | P1: Ano letivo - validação de datas e ano | - | Pending |
-| CAD-04 | P1: Ano letivo - único ATIVO | - | Pending |
-| CAD-05 | P1: Configuração de mín./máx. por série | - | Pending |
-| CAD-06 | P1: Validação de limites e série | - | Pending |
-| CAD-07 | P1: Professores e turmas - CRUD e unicidade | - | Pending |
-| CAD-08 | P1: Professor com várias turmas | - | Pending |
-| CAD-09 | P1: Bloqueio de inativação de professor com turma ativa | - | Pending |
-| CAD-10 | P1: Troca de professor da turma sem afetar histórico | - | Pending |
-| CAD-11 | P1: Criação de aluno + matrícula | - | Pending |
-| CAD-12 | P1: Nova matrícula no ano seguinte com o mesmo aluno | - | Pending |
-| CAD-13 | P1: Unicidade de matrícula por ano | - | Pending |
-| CAD-14 | P1: Troca de professor ou turma da matrícula sem afetar histórico | - | Pending |
-| CAD-15 | P1: Nome do aluno imutável após avaliação | - | Pending |
-| CAD-16 | P1: Busca de aluno (termo, acentos, paginação, escopo do professor) | - | Pending |
-| CAD-17 | P1: Indicador de ano finalizado | - | Pending |
-| CAD-18 | P2: Domínios fixos (ciclos e tipos de leitura) | - | Pending |
-| CAD-19 | P1: Sem exclusão física (RNF006) | - | Pending |
-| CAD-20 | P1: Lock otimista | - | Pending |
+| CAD-01 | P1: Ano letivo - criação com seed de configuração | Phase 2 (T9, T11) | Done |
+| CAD-02 | P1: Ano letivo - unicidade | Phase 2 (T7, T9, T11) | Done |
+| CAD-03 | P1: Ano letivo - validação de datas e ano | Phase 2 (T11) | Done |
+| CAD-04 | P1: Ano letivo - único ATIVO | Phase 2 (T7, T9, T11) | Done |
+| CAD-05 | P1: Configuração de mín./máx. por série | Phase 2 (T8, T9) | Done |
+| CAD-06 | P1: Validação de limites e série | Phase 2 (T8, T10, T11) | Done |
+| CAD-07 | P1: Professores e turmas - CRUD e unicidade | Phase 3 | Pending |
+| CAD-08 | P1: Professor com várias turmas | Phase 3 | Pending |
+| CAD-09 | P1: Bloqueio de inativação de professor com turma ativa | Phase 3 | Pending |
+| CAD-10 | P1: Troca de professor da turma sem afetar histórico | Phase 3 | Pending |
+| CAD-11 | P1: Criação de aluno + matrícula | Phase 4/5 | Pending |
+| CAD-12 | P1: Nova matrícula no ano seguinte com o mesmo aluno | Phase 4/5 | Pending |
+| CAD-13 | P1: Unicidade de matrícula por ano | Phase 4/5 | Pending |
+| CAD-14 | P1: Troca de professor ou turma da matrícula sem afetar histórico | Phase 4/5 | Pending |
+| CAD-15 | P1: Nome do aluno imutável após avaliação | Phase 4/5 | Pending |
+| CAD-16 | P1: Busca de aluno (termo, acentos, paginação, escopo do professor) | Phase 4/5 | Pending |
+| CAD-17 | P1: Indicador de ano finalizado | Phase 4/5 | Pending |
+| CAD-18 | P2: Domínios fixos (ciclos e tipos de leitura) | Phase 1 (T4, T5) | Done |
+| CAD-19 | P1: Sem exclusão física (RNF006) | Phase 2 (T11, ano letivo); turma/professor/aluno pendentes | Partial |
+| CAD-20 | P1: Lock otimista | Phase 1/2 (T2, T11) | Done |
 
-**Coverage:** 20 total, 0 mapped to tasks, 20 unmapped ⚠️
+**Coverage:** 20 total, 20 mapped to tasks, 0 unmapped
 
 ---
 

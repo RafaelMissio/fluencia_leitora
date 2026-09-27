@@ -338,13 +338,13 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `POST /anos-letivos` cria com sucesso (201 + 5 configs), duplicado (409), datas/ano inválidos (422)
-- [ ] `POST /{id}/ativar` encerra o `ATIVO` anterior
-- [ ] `PUT /{id}/configuracoes/{serie}` atualiza (200) e rejeita inválido (422)
-- [ ] `DELETE /{id}` retorna 204 e a linha continua no banco com `ativo=false` (nunca `DELETE FROM`)
-- [ ] Duas requisições `PUT` concorrentes na mesma configuração: a segunda recebe 409 `CONFLITO_DE_VERSAO`
-- [ ] `./mvnw verify` passa
-- [ ] 8 testes cobrindo os pontos acima
+- [x] `POST /anos-letivos` cria com sucesso (201 + 5 configs), duplicado (409), datas/ano inválidos (422)
+- [x] `POST /{id}/ativar` encerra o `ATIVO` anterior
+- [x] `PUT /{id}/configuracoes/{serie}` atualiza (200) e rejeita inválido (422)
+- [x] `DELETE /{id}` retorna 204 e a linha continua no banco com `ativo=false` (nunca `DELETE FROM`)
+- [x] Duas requisições `PUT` concorrentes na mesma configuração: a segunda recebe 409 `CONFLITO_DE_VERSAO`
+- [x] `./mvnw verify` passa
+- [x] 8 testes cobrindo os pontos acima
 
 **Tests**: integration
 **Gate**: full
