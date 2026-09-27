@@ -773,11 +773,11 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `POST /alunos/{alunoId}/matriculas` cria nova matrícula no ano seguinte com o mesmo `alunoId` (2 matrículas confirmadas via `GET` ou consulta direta)
-- [ ] Matrícula duplicada no mesmo ano → 409
-- [ ] `PATCH /matriculas/{id}` troca professor/turma e marca `anoFinalizado`
-- [ ] `./mvnw verify` passa
-- [ ] 4 testes cobrindo os pontos acima
+- [x] `POST /alunos/{alunoId}/matriculas` cria nova matrícula no ano seguinte com o mesmo `alunoId` (2 matrículas confirmadas via `GET` ou consulta direta)
+- [x] Matrícula duplicada no mesmo ano → 409
+- [x] `PATCH /matriculas/{id}` troca professor/turma e marca `anoFinalizado`
+- [x] `./mvnw verify` passa
+- [x] 4 testes cobrindo os pontos acima
 
 **Tests**: integration
 **Gate**: full
