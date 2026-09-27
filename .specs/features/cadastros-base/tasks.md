@@ -693,11 +693,13 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] Nova matrícula em outro ano letivo cria com sucesso, ligada ao mesmo `alunoId`
-- [ ] Matrícula duplicada no mesmo ano letivo → 409
-- [ ] Turma inativa/ano `ENCERRADO` → 422
-- [ ] `./mvnw test` passa
-- [ ] 3 testes cobrindo os pontos acima
+- [x] Nova matrícula em outro ano letivo cria com sucesso, ligada ao mesmo `alunoId`
+- [x] Matrícula duplicada no mesmo ano letivo → 409
+- [x] Turma inativa/ano `ENCERRADO` → 422
+- [x] `./mvnw test` passa
+- [x] 3 testes cobrindo os pontos acima
+
+**Deviation:** implementados 4 testes em vez de 3 - a validação de turma inválida (`TURMA_INVALIDA`) e a de ano letivo `ENCERRADO` (`ANO_LETIVO_ENCERRADO`) são branches independentes de `AlunoService.buscarTurmaValidaParaMatricula` (reutilizado aqui) e cada um recebe seu próprio teste, para que um mutante em qualquer um dos dois branches seja pego dentro desta classe também (mesmo padrão já usado na T23).
 
 **Tests**: unit
 **Gate**: quick
