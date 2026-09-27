@@ -531,7 +531,7 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] Migração cria as duas tabelas com as FKs, a coluna `nome` com collation `utf8mb4_0900_ai_ci` e a constraint única de matrícula por aluno+ano
+- [x] Migração cria as duas tabelas com as FKs, a coluna `nome` com collation `utf8mb4_0900_ai_ci` e a constraint única de matrícula por aluno+ano
 
 **Tests**: none
 **Gate**: build
