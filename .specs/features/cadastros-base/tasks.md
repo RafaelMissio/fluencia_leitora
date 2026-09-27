@@ -113,10 +113,10 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `pom.xml` compila com as novas dependências e plugins
-- [ ] `./mvnw compile` passa
-- [ ] `jacoco-maven-plugin` está configurado com `check` na fase `verify` (85% linhas)
-- [ ] `maven-failsafe-plugin` está configurado para `**/*IT.java`
+- [x] `pom.xml` compila com as novas dependências e plugins
+- [x] `./mvnw compile` passa
+- [x] `jacoco-maven-plugin` está configurado com `check` na fase `verify` (85% linhas)
+- [x] `maven-failsafe-plugin` está configurado para `**/*IT.java`
 
 **Tests**: none
 **Gate**: build

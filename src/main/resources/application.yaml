@@ -1,3 +1,9 @@
 spring:
   application:
     name: fluencia-leitora
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:fluencia_leitora}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+  flyway:
+    locations: classpath:db/migration
