@@ -479,11 +479,11 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `POST /professores` cria (201)
-- [ ] `GET /professores/{id}` retorna as turmas ativas associadas
-- [ ] `DELETE /professores/{id}` retorna 204 (linha permanece com `ativo=false`) ou 409 se houver turma ativa
-- [ ] `./mvnw verify` passa
-- [ ] 4 testes cobrindo os pontos acima
+- [x] `POST /professores` cria (201)
+- [x] `GET /professores/{id}` retorna as turmas ativas associadas
+- [x] `DELETE /professores/{id}` retorna 204 (linha permanece com `ativo=false`) ou 409 se houver turma ativa
+- [x] `./mvnw verify` passa
+- [x] 4 testes cobrindo os pontos acima
 
 **Tests**: integration
 **Gate**: full
