@@ -269,10 +269,10 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `findByAnoLetivoIdAndSerie` retorna o esperado
-- [ ] Inserir duas configurações com o mesmo `(ano_letivo_id, serie)` viola `uk_config_ano_serie`
-- [ ] `./mvnw verify` passa
-- [ ] 2 testes: busca encontrada/vazia, violação da constraint única
+- [x] `findByAnoLetivoIdAndSerie` retorna o esperado
+- [x] Inserir duas configurações com o mesmo `(ano_letivo_id, serie)` viola `uk_config_ano_serie`
+- [x] `./mvnw verify` passa
+- [x] 2 testes: busca encontrada/vazia, violação da constraint única
 
 **Tests**: integration
 **Gate**: full

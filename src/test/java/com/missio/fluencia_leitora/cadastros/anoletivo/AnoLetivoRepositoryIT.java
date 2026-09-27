@@ -10,11 +10,14 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * CAD-02/CAD-04: existsByAno detects duplicate years; findBySituacao locates
- * the (at most one) ATIVO year, exercised against real MySQL.
+ * CAD-01/CAD-02/CAD-04: existsByAno detects duplicate years; findBySituacao
+ * locates the (at most one) ATIVO year; a saved AnoLetivo round-trips all its
+ * mapped fields, including the PLANEJADO/ativo defaults, exercised against
+ * real MySQL.
  */
 @Transactional
 class AnoLetivoRepositoryIT extends IntegrationTestBase {
@@ -24,10 +27,18 @@ class AnoLetivoRepositoryIT extends IntegrationTestBase {
 
     @Test
     void existsByAnoRetornaTrueQuandoAnoJaCadastradoEFalseCasoContrario() {
-        anoLetivoRepository.save(new AnoLetivo(2030, LocalDate.of(2030, 2, 1), LocalDate.of(2030, 12, 15)));
+        LocalDate dataInicio = LocalDate.of(2030, 2, 1);
+        LocalDate dataFim = LocalDate.of(2030, 12, 15);
+        AnoLetivo salvo = anoLetivoRepository.save(new AnoLetivo(2030, dataInicio, dataFim));
 
         assertTrue(anoLetivoRepository.existsByAno(2030));
         assertFalse(anoLetivoRepository.existsByAno(2031));
+        assertEquals(dataInicio, salvo.getDataInicio());
+        assertEquals(dataFim, salvo.getDataFim());
+        assertEquals(SituacaoAnoLetivo.PLANEJADO, salvo.getSituacao());
+        assertTrue(salvo.isAtivo());
+        assertNotNull(salvo.getCriadoEm());
+        assertNotNull(salvo.getAtualizadoEm());
     }
 
     @Test
