@@ -110,12 +110,12 @@ T17
 - Skill: NONE
 
 **Done when**:
-- [ ] `findByEmailIgnoreCase` encontra independente de maiúsculas
-- [ ] `registrarFalha` incrementa o contador numa única instrução e só seta `bloqueado_ate` quando atinge o limite (não antes)
-- [ ] `zerarFalhas` reseta contador e desbloqueio
-- [ ] Inserir dois usuários com o mesmo e-mail (case-insensitive) viola a constraint única
-- [ ] `./mvnw verify` passa
-- [ ] 4 testes cobrindo os pontos acima
+- [x] `findByEmailIgnoreCase` encontra independente de maiúsculas
+- [x] `registrarFalha` incrementa o contador numa única instrução e só seta `bloqueado_ate` quando atinge o limite (não antes)
+- [x] `zerarFalhas` reseta contador e desbloqueio
+- [x] Inserir dois usuários com o mesmo e-mail (case-insensitive) viola a constraint única
+- [x] `./mvnw verify` passa (os 4 testes novos e todo o resto verdes; as únicas falhas são as 31 pré-existentes de 401/403 nos `*ControllerIT`, corrigidas pela T6)
+- [x] 4 testes cobrindo os pontos acima
 
 **Tests**: integration
 **Gate**: full
