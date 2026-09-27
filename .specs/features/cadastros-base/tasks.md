@@ -159,9 +159,9 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `ContextoUsuarioHeaderAdapter` lê `X-Perfil`/`X-Professor-Id` e retorna os valores certos (ou `null`/`COORDENADOR` por padrão quando ausentes)
-- [ ] `./mvnw test` passa
-- [ ] 3 testes: perfil COORDENADOR sem header de professor, perfil PROFESSOR com `professorId`, ausência de headers (default)
+- [x] `ContextoUsuarioHeaderAdapter` lê `X-Perfil`/`X-Professor-Id` e retorna os valores certos (ou `null`/`COORDENADOR` por padrão quando ausentes)
+- [x] `./mvnw test` passa
+- [x] 3 testes: perfil COORDENADOR sem header de professor, perfil PROFESSOR com `professorId`, ausência de headers (default)
 
 **Tests**: unit
 **Gate**: quick
