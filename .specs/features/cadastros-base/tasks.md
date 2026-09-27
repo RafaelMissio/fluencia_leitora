@@ -292,10 +292,10 @@ T29
 - Skill: NONE
 
 **Done when**:
-- [ ] `criar` grava o ano + as 5 configurações numa única transação e lança 409 se duplicado
-- [ ] `ativar` encerra o `ATIVO` anterior (se houver) e ativa o novo
-- [ ] `./mvnw test` passa
-- [ ] 4 testes: criar com sucesso (5 configs certas), criar duplicado → 409, ativar sem `ATIVO` anterior, ativar com `ATIVO` anterior (encerra + ativa)
+- [x] `criar` grava o ano + as 5 configurações numa única transação e lança 409 se duplicado
+- [x] `ativar` encerra o `ATIVO` anterior (se houver) e ativa o novo
+- [x] `./mvnw test` passa
+- [x] 4 testes: criar com sucesso (5 configs certas), criar duplicado → 409, ativar sem `ATIVO` anterior, ativar com `ATIVO` anterior (encerra + ativa)
 
 **Tests**: unit
 **Gate**: quick
