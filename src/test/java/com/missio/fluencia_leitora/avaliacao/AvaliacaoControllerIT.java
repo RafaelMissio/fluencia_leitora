@@ -20,24 +20,46 @@ import com.missio.fluencia_leitora.cadastros.turma.Turma;
 import com.missio.fluencia_leitora.cadastros.turma.TurmaRepository;
 import com.missio.fluencia_leitora.common.security.JwtService;
 import com.missio.fluencia_leitora.common.security.Perfil;
+import com.missio.fluencia_leitora.common.security.PertencimentoProfessorGuard;
 import com.missio.fluencia_leitora.support.IntegrationTestBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -46,7 +68,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * AVA-01..AVA-08: {@code POST /api/v1/avaliacoes} contra MySQL real -
  * caminho feliz (palavras digitadas, lista e texto), um teste por regra de
  * 422 (lição L-016), pertencimento (AUTH-09: 404), autorização (só
- * PROFESSOR cria: 403) e autenticação (401).
+ * PROFESSOR cria: 403) e autenticação (401). AVA-09..AVA-14, AVA-17,
+ * AVA-25: rotas de transição - tabela de status inteira, efeitos de tempo e
+ * reset, exemplo do SDD §13 com a seed real, finalização preguiçosa e
+ * conflito de versão.
  *
  * <p>Cada teste cria o seu próprio ano letivo e o ativa (encerrando o ativo
  * anterior - CAD-04), com período de hoje-60 a hoje+60 dias, para que
@@ -94,6 +119,12 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
 
     @Autowired
     private JwtService jwtService;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+
+    @MockitoSpyBean
+    private PertencimentoProfessorGuard pertencimentoProfessorGuard;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -441,5 +472,295 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
                         .content(objectMapper.writeValueAsString(
                                 payloadComPalavras(matricula.getAluno().getId(), palavras(15)))))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // ---- Transições (AVA-09..AVA-14, AVA-17, AVA-25) --------------------
+
+    private Long criarAvaliacao(String bearer, Matricula matricula, int quantidadePalavras) throws Exception {
+        MvcResult result = postar(bearer, payloadComPalavras(matricula.getAluno().getId(), palavras(quantidadePalavras)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
+    }
+
+    private ResultActions acao(String bearer, Long id, String acao) throws Exception {
+        return mockMvc.perform(post("/api/v1/avaliacoes/" + id + "/" + acao).header("Authorization", bearer));
+    }
+
+    private void alterar(Long id, Consumer<Avaliacao> alteracao) {
+        new TransactionTemplate(transactionManager).executeWithoutResult(
+                tx -> alteracao.accept(avaliacaoRepository.findById(id).orElseThrow()));
+    }
+
+    /** Avaliação de 15 palavras do 1º ano levada ao status pedido pela própria API (CANCELADA direto no banco - T22 ainda não existe). */
+    private Long avaliacaoNoStatus(String bearer, Professor professor, StatusAvaliacao status) throws Exception {
+        Long id = criarAvaliacao(bearer, novaMatricula(1, professor), 15);
+        switch (status) {
+            case EM_ANDAMENTO -> acao(bearer, id, "iniciar").andExpect(status().isOk());
+            case PAUSADA -> {
+                acao(bearer, id, "iniciar").andExpect(status().isOk());
+                acao(bearer, id, "pausar").andExpect(status().isOk());
+            }
+            case FINALIZADA -> {
+                acao(bearer, id, "iniciar").andExpect(status().isOk());
+                acao(bearer, id, "finalizar").andExpect(status().isOk());
+            }
+            case CANCELADA -> alterar(id, avaliacao -> avaliacao.setStatus(StatusAvaliacao.CANCELADA));
+            default -> {
+            }
+        }
+        return id;
+    }
+
+    /** Tabela de status (spec.md), menos a coluna {@code cancelar} (T23): toda célula, com o status gravado depois. */
+    @ParameterizedTest(name = "{0} + {1} -> {2} {3}")
+    @CsvSource({
+            "CRIADA,       iniciar,   200, EM_ANDAMENTO",
+            "CRIADA,       pausar,    409, CRIADA",
+            "CRIADA,       continuar, 409, CRIADA",
+            "CRIADA,       resetar,   409, CRIADA",
+            "CRIADA,       finalizar, 409, CRIADA",
+            "EM_ANDAMENTO, iniciar,   200, EM_ANDAMENTO",
+            "EM_ANDAMENTO, pausar,    200, PAUSADA",
+            "EM_ANDAMENTO, continuar, 200, EM_ANDAMENTO",
+            "EM_ANDAMENTO, resetar,   200, CRIADA",
+            "EM_ANDAMENTO, finalizar, 200, FINALIZADA",
+            "PAUSADA,      iniciar,   409, PAUSADA",
+            "PAUSADA,      pausar,    200, PAUSADA",
+            "PAUSADA,      continuar, 200, EM_ANDAMENTO",
+            "PAUSADA,      resetar,   200, CRIADA",
+            "PAUSADA,      finalizar, 200, FINALIZADA",
+            "FINALIZADA,   iniciar,   409, FINALIZADA",
+            "FINALIZADA,   pausar,    409, FINALIZADA",
+            "FINALIZADA,   continuar, 409, FINALIZADA",
+            "FINALIZADA,   resetar,   409, FINALIZADA",
+            "FINALIZADA,   finalizar, 200, FINALIZADA",
+            "CANCELADA,    iniciar,   409, CANCELADA",
+            "CANCELADA,    pausar,    409, CANCELADA",
+            "CANCELADA,    continuar, 409, CANCELADA",
+            "CANCELADA,    resetar,   409, CANCELADA",
+            "CANCELADA,    finalizar, 409, CANCELADA"
+    })
+    void tabelaDeStatus(StatusAvaliacao origem, String acao, int httpEsperado, StatusAvaliacao statusEsperado)
+            throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, origem);
+        Avaliacao antes = avaliacaoRepository.findById(id).orElseThrow();
+
+        ResultActions resposta = acao(bearer, id, acao).andExpect(status().is(httpEsperado));
+
+        if (httpEsperado == 409) {
+            resposta.andExpect(jsonPath("$.code").value("TRANSICAO_INVALIDA"))
+                    .andExpect(jsonPath("$.statusAtual").value(origem.name()))
+                    .andExpect(jsonPath("$.acao").value(acao));
+        } else {
+            resposta.andExpect(jsonPath("$.status").value(statusEsperado.name()));
+        }
+        Avaliacao depois = avaliacaoRepository.findById(id).orElseThrow();
+        assertEquals(statusEsperado, depois.getStatus());
+        if (origem == statusEsperado) {
+            // 409 e ação idempotente (AVA-14): nada muda.
+            assertEquals(antes.getIniciadoEm(), depois.getIniciadoEm());
+            assertEquals(antes.getTempoAcumuladoSegundos(), depois.getTempoAcumuladoSegundos());
+            assertEquals(antes.getFinalizadoEm(), depois.getFinalizadoEm());
+            assertEquals(antes.getTempoUtilizadoSegundos(), depois.getTempoUtilizadoSegundos());
+        }
+    }
+
+    @Test
+    void iniciarRetorna200ComIniciadoEmGravado() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.CRIADA);
+
+        acao(bearer, id, "iniciar")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("EM_ANDAMENTO"))
+                .andExpect(jsonPath("$.iniciadoEm").value(notNullValue()));
+
+        assertNotNull(avaliacaoRepository.findById(id).orElseThrow().getIniciadoEm());
+    }
+
+    @Test
+    void iniciarPausarContinuarEFinalizarNaoContaOTempoPausado() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+        alterar(id, avaliacao -> avaliacao.setIniciadoEm(avaliacao.getIniciadoEm().minusSeconds(3)));
+        acao(bearer, id, "pausar").andExpect(status().isOk());
+        acao(bearer, id, "continuar").andExpect(status().isOk());
+
+        acao(bearer, id, "finalizar")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FINALIZADA"))
+                .andExpect(jsonPath("$.tempoUtilizadoSegundos").value(3))
+                .andExpect(jsonPath("$.finalizadoEm").value(notNullValue()));
+    }
+
+    @Test
+    void resetarVoltaParaCriadaZeraOTempoELimpaIniciadoEmEAsMarcacoes() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+        alterar(id, avaliacao -> {
+            avaliacao.setTempoAcumuladoSegundos(20);
+            avaliacao.getPalavras().get(0).setStatus(StatusPalavra.CORRETA);
+            avaliacao.getPalavras().get(1).setStatus(StatusPalavra.NAO_LIDA);
+        });
+
+        acao(bearer, id, "resetar")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CRIADA"))
+                .andExpect(jsonPath("$.iniciadoEm").value(nullValue()))
+                .andExpect(jsonPath("$.palavras[0].status").value("PENDENTE"))
+                .andExpect(jsonPath("$.palavras[1].status").value("PENDENTE"));
+
+        Avaliacao gravada = avaliacaoRepository.findById(id).orElseThrow();
+        assertEquals(0, gravada.getTempoAcumuladoSegundos());
+        assertNull(gravada.getIniciadoEm());
+    }
+
+    @Test
+    void finalizarExemploDoSdd13ComASeedRealRetornaOResultadoCompleto() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = criarAvaliacao(bearer, novaMatricula(1, professor), 20);
+        acao(bearer, id, "iniciar").andExpect(status().isOk());
+        alterar(id, avaliacao -> {
+            for (int i = 0; i < 20; i++) {
+                StatusPalavra status = i < 9 ? StatusPalavra.CORRETA
+                        : i < 13 ? StatusPalavra.INCORRETA
+                        : i < 16 ? StatusPalavra.NAO_LIDA
+                        : StatusPalavra.PENDENTE;
+                avaliacao.getPalavras().get(i).setStatus(status);
+            }
+        });
+
+        acao(bearer, id, "finalizar")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FINALIZADA"))
+                .andExpect(jsonPath("$.quantidadeTotal").value(20))
+                .andExpect(jsonPath("$.quantidadeCorretas").value(9))
+                .andExpect(jsonPath("$.quantidadeIncorretas").value(4))
+                .andExpect(jsonPath("$.quantidadeNaoLidas").value(7))
+                .andExpect(jsonPath("$.quantidadeLidas").value(13))
+                .andExpect(jsonPath("$.percentualAcerto").value(45.00))
+                .andExpect(jsonPath("$.fase").value("LEITOR_INICIANTE"))
+                .andExpect(jsonPath("$.nivel").value(nullValue()))
+                .andExpect(jsonPath("$.classificacaoPendente").value(false))
+                .andExpect(jsonPath("$.palavras[19].status").value("NAO_LIDA"));
+
+        Avaliacao gravada = avaliacaoRepository.findById(id).orElseThrow();
+        assertEquals(0, new BigDecimal("45.00").compareTo(gravada.getPercentualAcerto()));
+        assertEquals(2, gravada.getPercentualAcerto().scale());
+        assertEquals(7, gravada.getQuantidadeNaoLidas());
+    }
+
+    @Test
+    void finalizarComTempoJaEsgotadoRetorna200ComTempoUtilizadoIgualAoConfigurado() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+        alterar(id, avaliacao -> avaliacao.setIniciadoEm(Instant.now().minusSeconds(90)));
+
+        acao(bearer, id, "finalizar")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FINALIZADA"))
+                .andExpect(jsonPath("$.tempoUtilizadoSegundos").value(60));
+    }
+
+    @Test
+    void pausarComTempoJaEsgotadoFinalizaEGravaAntesDeResponder409() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+        alterar(id, avaliacao -> avaliacao.setIniciadoEm(Instant.now().minusSeconds(90)));
+
+        acao(bearer, id, "pausar")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("TRANSICAO_INVALIDA"))
+                .andExpect(jsonPath("$.statusAtual").value("FINALIZADA"))
+                .andExpect(jsonPath("$.acao").value("pausar"));
+
+        Avaliacao gravada = avaliacaoRepository.findById(id).orElseThrow();
+        assertEquals(StatusAvaliacao.FINALIZADA, gravada.getStatus());
+        assertEquals(60, gravada.getTempoUtilizadoSegundos());
+        assertEquals(15, gravada.getQuantidadeNaoLidas());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"iniciar", "pausar", "continuar", "resetar", "finalizar"})
+    void transicaoEmAvaliacaoDeOutroProfessorRetorna404SemAlterar(String acao) throws Exception {
+        Professor dono = novoProfessor();
+        String bearerDono = bearerProfessor(dono);
+        Long id = avaliacaoNoStatus(bearerDono, dono, StatusAvaliacao.EM_ANDAMENTO);
+
+        acao(bearerProfessor(novoProfessor()), id, acao)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+
+        assertEquals(StatusAvaliacao.EM_ANDAMENTO, avaliacaoRepository.findById(id).orElseThrow().getStatus());
+    }
+
+    @Test
+    void transicaoEmAvaliacaoInexistenteRetorna404() throws Exception {
+        acao(bearerProfessor(novoProfessor()), Long.MAX_VALUE, "iniciar")
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"iniciar", "pausar", "continuar", "resetar", "finalizar"})
+    void transicaoComoCoordenadorRetorna403(String acao) throws Exception {
+        Professor professor = novoProfessor();
+        Long id = avaliacaoNoStatus(bearerProfessor(professor), professor, StatusAvaliacao.CRIADA);
+
+        acao(bearerCoordenador(), id, acao).andExpect(status().isForbidden());
+
+        assertEquals(StatusAvaliacao.CRIADA, avaliacaoRepository.findById(id).orElseThrow().getStatus());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"iniciar", "pausar", "continuar", "resetar", "finalizar"})
+    void transicaoSemAutenticacaoRetorna401(String acao) throws Exception {
+        Professor professor = novoProfessor();
+        Long id = avaliacaoNoStatus(bearerProfessor(professor), professor, StatusAvaliacao.CRIADA);
+
+        mockMvc.perform(post("/api/v1/avaliacoes/" + id + "/" + acao)).andExpect(status().isUnauthorized());
+    }
+
+    /**
+     * AVA-25: as duas requisições leem a mesma versão (a barreira segura as
+     * duas logo depois da leitura, dentro da transação) e só uma consegue
+     * gravar; a outra recebe 409 {@code CONFLITO_DE_VERSAO}.
+     */
+    @Test
+    void duasTransicoesConcorrentesNaMesmaAvaliacaoUmaRecebe200EAOutra409ConflitoDeVersao() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+        CyclicBarrier barrier = new CyclicBarrier(2);
+        doAnswer(invocation -> {
+            barrier.await(10, TimeUnit.SECONDS);
+            return invocation.callRealMethod();
+        }).when(pertencimentoProfessorGuard).verificar(any());
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<MockHttpServletResponse> primeira = executor.submit(() -> acao(bearer, id, "pausar").andReturn().getResponse());
+            Future<MockHttpServletResponse> segunda = executor.submit(() -> acao(bearer, id, "pausar").andReturn().getResponse());
+            MockHttpServletResponse resposta1 = primeira.get(30, TimeUnit.SECONDS);
+            MockHttpServletResponse resposta2 = segunda.get(30, TimeUnit.SECONDS);
+
+            List<Integer> statuses = List.of(resposta1.getStatus(), resposta2.getStatus());
+            assertTrue(statuses.contains(200), "esperava um 200, recebeu: " + statuses);
+            assertTrue(statuses.contains(409), "esperava um 409, recebeu: " + statuses);
+            MockHttpServletResponse conflito = resposta1.getStatus() == 409 ? resposta1 : resposta2;
+            assertEquals("CONFLITO_DE_VERSAO", objectMapper.readTree(conflito.getContentAsString()).get("code").asText());
+        } finally {
+            executor.shutdownNow();
+        }
+        assertEquals(StatusAvaliacao.PAUSADA, avaliacaoRepository.findById(id).orElseThrow().getStatus());
     }
 }

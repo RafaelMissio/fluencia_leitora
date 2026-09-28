@@ -233,23 +233,23 @@ O professor precisa aplicar uma avaliação cronometrada de leitura (palavras, p
 | AVA-06 | P1: Data válida | T12, T13 | Done |
 | AVA-07 | P1: 1º ano sem não canônicas | T12, T13 | Done |
 | AVA-08 | P1: Validação de palavra e tokenização do texto digitado | T12, T13 | Done |
-| AVA-09 | P1: Iniciar | T14 | In Progress |
-| AVA-10 | P1: Pausar / continuar sem contar a pausa | T14 | In Progress |
-| AVA-11 | P1: Resetar | T14 | In Progress |
-| AVA-12 | P1: Finalizar | T15 | In Progress |
-| AVA-13 | P1: Transição inválida 409 | T14 | In Progress |
-| AVA-14 | P1: Transições idempotentes | T14 | In Progress |
+| AVA-09 | P1: Iniciar | T14, T16 | Done |
+| AVA-10 | P1: Pausar / continuar sem contar a pausa | T14, T16 | Done |
+| AVA-11 | P1: Resetar | T14, T16 | Done |
+| AVA-12 | P1: Finalizar | T15, T16 | Done |
+| AVA-13 | P1: Transição inválida 409 | T14, T16 | In Progress |
+| AVA-14 | P1: Transições idempotentes | T14, T15, T16 | In Progress |
 | AVA-15 | P1: Marcar palavra individual e em lote | - | Pending |
-| AVA-16 | P1: Log de transições | T14 | In Progress |
-| AVA-17 | P1: Finalização automática pelo servidor (tempo esgotado e > 24h) | T15 | In Progress |
+| AVA-16 | P1: Log de transições | T14 | Done |
+| AVA-17 | P1: Finalização automática pelo servidor (tempo esgotado e > 24h) | T14, T15, T16 | In Progress |
 | AVA-18 | P1: Marcação bloqueada em CRIADA ou CANCELADA | - | Pending |
 | AVA-19 | P1: Alteração depois de finalizar com auditoria e recálculo | - | Pending |
-| AVA-20 | P1: Cálculo do resultado | T15 | In Progress |
-| AVA-21 | P1: Classificação na finalização | T15 | In Progress |
-| AVA-22 | P1: Classificação pendente | T15 | In Progress |
+| AVA-20 | P1: Cálculo do resultado | T15, T16 | Done |
+| AVA-21 | P1: Classificação na finalização | T15, T16 | Done |
+| AVA-22 | P1: Classificação pendente | T15, T16 | Done |
 | AVA-23 | P1: Consulta da avaliação | - | Pending |
 | AVA-24 | P1: Cancelamento com justificativa | - | Pending |
-| AVA-25 | P1: Lock otimista | - | Pending |
+| AVA-25 | P1: Lock otimista | T16 | Done |
 | AVA-26 | P2: Consulta da auditoria | - | Pending |
 | AVA-27 | P1: Envio do áudio (201, grava `avaliacao_audio`) | - | Pending |
 | AVA-28 | P1: Envio bloqueado fora de FINALIZADA | - | Pending |

@@ -534,11 +534,11 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Toda rota tem teste de caminho feliz + 409 de transição inválida + idempotência (200)
-- [ ] Professor de outro aluno recebe 404 em cada uma das 5 rotas (AUTH-09)
-- [ ] Teste de conflito de versão: duas requisições concorrentes na mesma avaliação → uma 200, a outra 409 `CONFLITO_DE_VERSAO` (AVA-25, reusa o handler já existente - ver design.md Risks)
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 18 testes novos
+- [x] Toda rota tem teste de caminho feliz + 409 de transição inválida + idempotência (200)
+- [x] Professor de outro aluno recebe 404 em cada uma das 5 rotas (AUTH-09)
+- [x] Teste de conflito de versão: duas requisições concorrentes na mesma avaliação → uma 200, a outra 409 `CONFLITO_DE_VERSAO` (AVA-25, reusa o handler já existente - ver design.md Risks)
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 18 testes novos
 
 **Tests**: integration
 **Gate**: full
