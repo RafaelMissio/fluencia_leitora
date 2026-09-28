@@ -269,6 +269,27 @@ class ListaPalavrasControllerIT extends IntegrationTestBase {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void putComMaisDe200ItensRetorna422PorTamanhoForaDaFaixa() throws Exception {
+        JsonNode criada = criarListaERetornarCorpo(
+                "Lista Para Editar Com 201 Itens " + UUID.randomUUID(), 2, List.of(item("gato", "CANONICA")));
+        long id = criada.get("id").asLong();
+        long version = 0L;
+
+        List<Map<String, Object>> itens = new ArrayList<>();
+        for (int i = 0; i < 201; i++) {
+            itens.add(item("palavra" + sufixoDeLetras(i), "CANONICA"));
+        }
+        Map<String, Object> payload = payloadAtualizacao("Lista Editada Com 201 Itens", 2, itens, version);
+
+        mockMvc.perform(put("/api/v1/listas-palavras/" + id).header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"))
+                .andExpect(jsonPath("$.errors[0].field").value("itens"));
+    }
+
     private boolean filtradaContemNome(JsonNode resposta, String nome) {
         return StreamSupport.stream(resposta.spliterator(), false)
                 .anyMatch(no -> no.get("nome").asText().equals(nome));
