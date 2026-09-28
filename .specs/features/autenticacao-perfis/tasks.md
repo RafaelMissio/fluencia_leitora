@@ -488,10 +488,10 @@ T17
 - Skill: NONE
 
 **Done when**:
-- [ ] Token de PROFESSOR em `POST`/`PATCH` de matrícula → 403
-- [ ] Tokens de COORDENADOR continuam funcionando
-- [ ] `./mvnw verify` passa
-- [ ] Testes existentes + pelo menos 1 novo caso de 403
+- [x] Token de PROFESSOR em `POST`/`PATCH` de matrícula → 403
+- [x] Tokens de COORDENADOR continuam funcionando
+- [x] `./mvnw verify` passa (suíte completa verde: 71 unit + 70 IT, JaCoCo ok)
+- [x] Testes existentes + pelo menos 1 novo caso de 403
 
 **Tests**: integration
 **Gate**: full

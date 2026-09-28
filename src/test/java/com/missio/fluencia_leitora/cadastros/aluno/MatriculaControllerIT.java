@@ -1,8 +1,12 @@
 package com.missio.fluencia_leitora.cadastros.aluno;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.missio.fluencia_leitora.autenticacao.Usuario;
+import com.missio.fluencia_leitora.autenticacao.UsuarioRepository;
 import com.missio.fluencia_leitora.cadastros.professor.Professor;
 import com.missio.fluencia_leitora.cadastros.professor.ProfessorRepository;
+import com.missio.fluencia_leitora.common.security.JwtService;
+import com.missio.fluencia_leitora.common.security.Perfil;
 import com.missio.fluencia_leitora.support.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,8 +17,10 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -22,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * CAD-12/CAD-13/CAD-14/CAD-17: exercises the whole MatriculaController
- * surface against real MySQL.
+ * surface against real MySQL. AUTH-07: PROFESSOR gets 403 on POST/PATCH.
  */
 @AutoConfigureMockMvc
 class MatriculaControllerIT extends IntegrationTestBase {
@@ -37,6 +43,12 @@ class MatriculaControllerIT extends IntegrationTestBase {
 
     @Autowired
     private MatriculaRepository matriculaRepository;
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private JwtService jwtService;
 
     // static: shared, never-rolled-back database across every @Test method,
     // same rationale as AnoLetivoControllerIT.anoSequencial. Kept within
@@ -162,5 +174,31 @@ class MatriculaControllerIT extends IntegrationTestBase {
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.anoFinalizado").value(true));
+    }
+
+    @Test
+    void professorRecebe403EmPostEPatchSemAlterarNada() throws Exception {
+        Long professorId = novoProfessor("Professor Sem Matricula");
+        Long turma2026Id = novaTurma(novoAnoLetivoAtivo(), professorId);
+        Long alunoId = criarAluno("Aluno Matricula Intocada", turma2026Id);
+        Long matriculaId = matriculaRepository.findByAlunoId(alunoId).get(0).getId();
+        Long turma2027Id = novaTurma(novoAnoLetivoAtivo(), professorId);
+        Usuario usuario = usuarioRepository.save(new Usuario(
+                "prof-" + UUID.randomUUID() + "@escola.com", "hash-nao-usado", Perfil.PROFESSOR, professorId));
+        String bearerProfessor = "Bearer " + jwtService.emitir(usuario.getId());
+
+        mockMvc.perform(post("/api/v1/alunos/" + alunoId + "/matriculas").header("Authorization", bearerProfessor)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of("turmaId", turma2027Id))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"));
+        mockMvc.perform(patch("/api/v1/matriculas/" + matriculaId).header("Authorization", bearerProfessor)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of("anoFinalizado", true))))
+                .andExpect(status().isForbidden());
+
+        List<Matricula> matriculas = matriculaRepository.findByAlunoId(alunoId);
+        assertEquals(1, matriculas.size());
+        assertFalse(matriculas.get(0).isAnoFinalizado());
     }
 }
