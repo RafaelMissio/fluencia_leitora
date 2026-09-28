@@ -1,15 +1,18 @@
 package com.missio.fluencia_leitora.common.error;
 
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
+import org.springframework.validation.method.ParameterValidationResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.util.List;
@@ -55,9 +58,40 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY).body(problemDetail);
     }
 
+    /**
+     * T2: falha de validação em {@code @PathVariable}/{@code @RequestParam}
+     * (ex. {@code serie} fora de 1-5) - mecanismo do Spring Framework 7
+     * (pós-6.1), distinto de {@code MethodArgumentNotValidException}
+     * ({@code @Valid @RequestBody}) acima. Mesmo formato de resposta
+     * ({@code VALIDACAO_INVALIDA} + lista de {@code field}/{@code message}).
+     */
+    @Override
+    protected ResponseEntity<Object> handleHandlerMethodValidationException(
+            HandlerMethodValidationException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        List<Map<String, String>> fieldErrors = ex.getParameterValidationResults().stream()
+                .map(this::toFieldErrorMap)
+                .collect(Collectors.toList());
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY, "Payload inválido");
+        problemDetail.setProperty("code", "VALIDACAO_INVALIDA");
+        problemDetail.setProperty("errors", fieldErrors);
+
+        return ResponseEntity.status(org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY).body(problemDetail);
+    }
+
     private Map<String, String> toFieldErrorMap(FieldError fieldError) {
         return Map.of(
                 "field", fieldError.getField(),
                 "message", fieldError.getDefaultMessage() == null ? "" : fieldError.getDefaultMessage());
+    }
+
+    private Map<String, String> toFieldErrorMap(ParameterValidationResult result) {
+        String field = result.getMethodParameter().getParameterName();
+        String message = result.getResolvableErrors().stream()
+                .findFirst()
+                .map(MessageSourceResolvable::getDefaultMessage)
+                .orElse("");
+        return Map.of("field", field == null ? "" : field, "message", message == null ? "" : message);
     }
 }

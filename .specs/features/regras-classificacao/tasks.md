@@ -142,10 +142,10 @@ T13 -> T14
 
 **Done when**:
 
-- [ ] Uma rota de teste com `@Min`/`@Max` num `@PathVariable`/`@RequestParam` fora do intervalo devolve 422 com `code=VALIDACAO_INVALIDA` (não o 400 default do Spring)
-- [ ] Handlers existentes (`BusinessException`, `ObjectOptimisticLockingFailureException`, `MethodArgumentNotValidException`) continuam passando sem alteração
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 1 teste novo em `GlobalExceptionHandlerTest` (mais os existentes, sem regressão)
+- [x] Uma rota de teste com `@Min`/`@Max` num `@PathVariable`/`@RequestParam` fora do intervalo devolve 422 com `code=VALIDACAO_INVALIDA` (não o 400 default do Spring)
+- [x] Handlers existentes (`BusinessException`, `ObjectOptimisticLockingFailureException`, `MethodArgumentNotValidException`) continuam passando sem alteração
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 1 teste novo em `GlobalExceptionHandlerTest` (mais os existentes, sem regressão)
 
 **Tests**: unit
 **Gate**: quick

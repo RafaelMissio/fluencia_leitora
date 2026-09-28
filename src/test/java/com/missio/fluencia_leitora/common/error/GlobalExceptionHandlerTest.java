@@ -2,6 +2,8 @@ package com.missio.fluencia_leitora.common.error;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -11,6 +13,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -69,6 +72,16 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.errors[0].field").value("nome"));
     }
 
+    @Test
+    void methodParameterValidationFailureIsMappedTo422WithValidacaoInvalidaCode() throws Exception {
+        mockMvc.perform(get("/test/validate-param").param("serie", "6"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"))
+                .andExpect(jsonPath("$.status").value(422))
+                .andExpect(jsonPath("$.errors[0].field").value("serie"));
+    }
+
     @RestController
     static class TestController {
 
@@ -93,6 +106,11 @@ class GlobalExceptionHandlerTest {
 
         @PostMapping("/test/validate")
         public void triggerValidationFailure(@Valid @RequestBody TestRequest request) {
+            // unreachable when validation fails
+        }
+
+        @GetMapping("/test/validate-param")
+        public void triggerMethodParameterValidationFailure(@RequestParam @Min(1) @Max(5) int serie) {
             // unreachable when validation fails
         }
     }
