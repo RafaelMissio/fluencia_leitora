@@ -377,9 +377,9 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Os 5 DTOs existem como records com as anotações de bean validation acima
-- [ ] Elementos de `palavras`/`itens` anotados `@NotNull` (não só `@Valid` no container - lição L-023)
-- [ ] Gate check passes: `./mvnw compile`
+- [x] Os 5 DTOs existem como records com as anotações de bean validation acima
+- [x] Elementos de `palavras`/`itens` anotados `@NotNull` (não só `@Valid` no container - lição L-023)
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
