@@ -213,8 +213,8 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Os 3 enums existem com exatamente os valores acima
-- [ ] Gate check passes: `./mvnw compile`
+- [x] Os 3 enums existem com exatamente os valores acima
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
