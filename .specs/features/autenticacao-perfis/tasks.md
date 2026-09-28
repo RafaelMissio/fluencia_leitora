@@ -282,14 +282,14 @@ T17
 - Skill: NONE
 
 **Done when**:
-- [ ] Login certo retorna token + `expiresIn=28800` + perfil (+ `professorId` se PROFESSOR)
-- [ ] E-mail inexistente e senha errada retornam exatamente a mesma mensagem/estrutura de erro
-- [ ] Usuário inativo → mesma mensagem genérica de credenciais inválidas
-- [ ] 5ª falha seguida bloqueia por 15 minutos; a 6ª tentativa (mesmo com senha certa) retorna estado bloqueado com segundos restantes
-- [ ] Login certo zera o contador de falhas
-- [ ] Nenhuma linha de log contém a senha em texto puro (captura de log no teste)
-- [ ] `./mvnw test` passa
-- [ ] 6 testes cobrindo os pontos acima
+- [x] Login certo retorna token + `expiresIn=28800` + perfil (+ `professorId` se PROFESSOR)
+- [x] E-mail inexistente e senha errada retornam exatamente a mesma mensagem/estrutura de erro
+- [x] Usuário inativo → mesma mensagem genérica de credenciais inválidas
+- [x] 5ª falha seguida bloqueia por 15 minutos; a 6ª tentativa (mesmo com senha certa) retorna estado bloqueado com segundos restantes
+- [x] Login certo zera o contador de falhas
+- [x] Nenhuma linha de log contém a senha em texto puro (captura de log no teste)
+- [x] `./mvnw test` passa
+- [x] 6 testes cobrindo os pontos acima (7 no total: o bloqueio foi separado em "5ª falha registra bloqueio de 15 min" e "6ª tentativa bloqueada")
 
 **Tests**: unit
 **Gate**: quick
