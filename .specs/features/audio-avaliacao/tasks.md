@@ -9,7 +9,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/audio-avaliacao/design.md`
-**Status**: In Progress
+**Status**: Done - Verifier PASS na primeira rodada (2026-09-28), `.specs/features/audio-avaliacao/validation.md`
 
 ---
 
