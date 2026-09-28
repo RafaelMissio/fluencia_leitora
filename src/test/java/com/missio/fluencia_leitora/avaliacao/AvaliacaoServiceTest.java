@@ -26,12 +26,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.slf4j.LoggerFactory;
+
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -63,6 +72,8 @@ class AvaliacaoServiceTest {
     private static final Long ANO_LETIVO_ID = 100L;
     private static final Long CICLO_ID = 3L;
     private static final Long LISTA_ID = 40L;
+    private static final Long USUARIO_ID = 55L;
+    private static final Long AVALIACAO_ID = 900L;
 
     @Mock
     private AvaliacaoRepository avaliacaoRepository;
@@ -122,6 +133,7 @@ class AvaliacaoServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         lenient().when(contextoUsuario.perfilAtual()).thenReturn(Perfil.PROFESSOR);
         lenient().when(contextoUsuario.professorIdAtual()).thenReturn(PROFESSOR_ID);
+        lenient().when(contextoUsuario.usuarioIdAtual()).thenReturn(USUARIO_ID);
 
         service = new AvaliacaoService(
                 avaliacaoRepository,
@@ -130,7 +142,8 @@ class AvaliacaoServiceTest {
                 configuracaoAvaliacaoRepository,
                 listaPalavrasRepository,
                 cicloRepository,
-                new PertencimentoProfessorGuard(contextoUsuario));
+                new PertencimentoProfessorGuard(contextoUsuario),
+                contextoUsuario);
     }
 
     // ---- helpers -------------------------------------------------------
@@ -518,5 +531,280 @@ class AvaliacaoServiceTest {
                 "PALAVRA_INVALIDA");
 
         assertEquals(3, exception.getDetails().get("posicao"));
+    }
+
+    // ---- Transições (AVA-09..AVA-14, AVA-16, AVA-17) --------------------
+
+    /** Avaliação existente com 3 palavras PENDENTE, 60 s configurados, no status pedido. */
+    private Avaliacao avaliacaoExistente(StatusAvaliacao status) {
+        Avaliacao avaliacao = new Avaliacao(
+                aluno, professor, professor.getNome(), turma, turma.getNome(), 1, anoLetivo, ciclo,
+                TipoLeituraCodigo.PALAVRA, hoje, 60);
+        avaliacao.adicionarPalavra("gato", null);
+        avaliacao.adicionarPalavra("bola", null);
+        avaliacao.adicionarPalavra("casa", null);
+        ReflectionTestUtils.setField(avaliacao, "id", AVALIACAO_ID);
+        avaliacao.setStatus(status);
+        if (status == StatusAvaliacao.EM_ANDAMENTO) {
+            avaliacao.setIniciadoEm(Instant.now());
+        }
+        lenient().when(avaliacaoRepository.findById(AVALIACAO_ID)).thenReturn(Optional.of(avaliacao));
+        return avaliacao;
+    }
+
+    private void assertTransicaoInvalida(Runnable acao, StatusAvaliacao statusAtual, String nomeAcao) {
+        BusinessException exception = assertThrows(BusinessException.class, acao::run);
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals("TRANSICAO_INVALIDA", exception.getCode());
+        assertEquals(statusAtual.name(), exception.getDetails().get("statusAtual"));
+        assertEquals(nomeAcao, exception.getDetails().get("acao"));
+    }
+
+    private static void assertEntre(Instant antes, Instant valor, Instant depois) {
+        assertTrue(!valor.isBefore(antes) && !valor.isAfter(depois), "esperava " + valor + " entre " + antes + " e " + depois);
+    }
+
+    // AVA-09 (AC 1)
+
+    @Test
+    void iniciarNumaCriadaMudaParaEmAndamentoEGravaIniciadoEm() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.CRIADA);
+        Instant antes = Instant.now();
+
+        Avaliacao resultado = service.iniciar(AVALIACAO_ID);
+
+        verify(avaliacaoRepository).save(avaliacao);
+        assertEquals(StatusAvaliacao.EM_ANDAMENTO, resultado.getStatus());
+        assertEntre(antes, resultado.getIniciadoEm(), Instant.now());
+        assertEquals(0, resultado.getTempoAcumuladoSegundos());
+        assertEntre(antes, resultado.getUltimaAtividadeEm(), Instant.now());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = StatusAvaliacao.class, names = {"PAUSADA", "FINALIZADA", "CANCELADA"})
+    void iniciarForaDeCriadaRetorna409TransicaoInvalida(StatusAvaliacao status) {
+        Avaliacao avaliacao = avaliacaoExistente(status);
+
+        assertTransicaoInvalida(() -> service.iniciar(AVALIACAO_ID), status, "iniciar");
+        assertEquals(status, avaliacao.getStatus());
+        verify(avaliacaoRepository, never()).save(any());
+    }
+
+    // AVA-10 (ACs 2 e 3)
+
+    @Test
+    void pausarNumaEmAndamentoMudaParaPausadaESomaOTrechoAoTotal() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.EM_ANDAMENTO);
+        avaliacao.setTempoAcumuladoSegundos(5);
+        avaliacao.setIniciadoEm(Instant.now().minusSeconds(20));
+
+        Avaliacao resultado = service.pausar(AVALIACAO_ID);
+
+        verify(avaliacaoRepository).save(avaliacao);
+        assertEquals(StatusAvaliacao.PAUSADA, resultado.getStatus());
+        assertEquals(25, resultado.getTempoAcumuladoSegundos());
+        assertNull(resultado.getIniciadoEm());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = StatusAvaliacao.class, names = {"CRIADA", "FINALIZADA", "CANCELADA"})
+    void pausarForaDeEmAndamentoRetorna409TransicaoInvalida(StatusAvaliacao status) {
+        Avaliacao avaliacao = avaliacaoExistente(status);
+
+        assertTransicaoInvalida(() -> service.pausar(AVALIACAO_ID), status, "pausar");
+        assertEquals(status, avaliacao.getStatus());
+        verify(avaliacaoRepository, never()).save(any());
+    }
+
+    @Test
+    void continuarNumaPausadaVoltaParaEmAndamentoSemContarOTempoPausado() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.PAUSADA);
+        avaliacao.setTempoAcumuladoSegundos(12);
+        Instant antes = Instant.now();
+
+        Avaliacao resultado = service.continuar(AVALIACAO_ID);
+
+        verify(avaliacaoRepository).save(avaliacao);
+        assertEquals(StatusAvaliacao.EM_ANDAMENTO, resultado.getStatus());
+        assertEquals(12, resultado.getTempoAcumuladoSegundos());
+        assertEntre(antes, resultado.getIniciadoEm(), Instant.now());
+    }
+
+    @Test
+    void pausarContinuarEPausarDeNovoSomaSoOsTrechosEmAndamento() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.EM_ANDAMENTO);
+        avaliacao.setIniciadoEm(Instant.now().minusSeconds(10));
+        service.pausar(AVALIACAO_ID);
+
+        service.continuar(AVALIACAO_ID);
+        avaliacao.setIniciadoEm(avaliacao.getIniciadoEm().minusSeconds(4));
+        service.pausar(AVALIACAO_ID);
+
+        assertEquals(StatusAvaliacao.PAUSADA, avaliacao.getStatus());
+        assertEquals(14, avaliacao.getTempoAcumuladoSegundos());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = StatusAvaliacao.class, names = {"CRIADA", "FINALIZADA", "CANCELADA"})
+    void continuarForaDePausadaRetorna409TransicaoInvalida(StatusAvaliacao status) {
+        Avaliacao avaliacao = avaliacaoExistente(status);
+
+        assertTransicaoInvalida(() -> service.continuar(AVALIACAO_ID), status, "continuar");
+        assertEquals(status, avaliacao.getStatus());
+        verify(avaliacaoRepository, never()).save(any());
+    }
+
+    // AVA-11 (AC 4)
+
+    @ParameterizedTest
+    @EnumSource(value = StatusAvaliacao.class, names = {"EM_ANDAMENTO", "PAUSADA"})
+    void resetarVoltaParaCriadaZeraOTempoLimpaIniciadoEmEVoltaAsPalavrasParaPendente(StatusAvaliacao status) {
+        Avaliacao avaliacao = avaliacaoExistente(status);
+        avaliacao.setTempoAcumuladoSegundos(30);
+        avaliacao.getPalavras().get(0).setStatus(StatusPalavra.CORRETA);
+        avaliacao.getPalavras().get(1).setStatus(StatusPalavra.INCORRETA);
+        avaliacao.getPalavras().get(2).setStatus(StatusPalavra.NAO_LIDA);
+
+        Avaliacao resultado = service.resetar(AVALIACAO_ID);
+
+        verify(avaliacaoRepository).save(avaliacao);
+        assertEquals(StatusAvaliacao.CRIADA, resultado.getStatus());
+        assertEquals(0, resultado.getTempoAcumuladoSegundos());
+        assertNull(resultado.getIniciadoEm());
+        assertEquals(
+                List.of(StatusPalavra.PENDENTE, StatusPalavra.PENDENTE, StatusPalavra.PENDENTE),
+                resultado.getPalavras().stream().map(PalavraAvaliacao::getStatus).toList());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = StatusAvaliacao.class, names = {"CRIADA", "FINALIZADA", "CANCELADA"})
+    void resetarForaDeEmAndamentoOuPausadaRetorna409TransicaoInvalida(StatusAvaliacao status) {
+        Avaliacao avaliacao = avaliacaoExistente(status);
+
+        assertTransicaoInvalida(() -> service.resetar(AVALIACAO_ID), status, "resetar");
+        assertEquals(status, avaliacao.getStatus());
+        verify(avaliacaoRepository, never()).save(any());
+    }
+
+    // AVA-14 (AC 7): ação repetida no status que ela produziria
+
+    @Test
+    void iniciarNumaEmAndamentoRetornaOEstadoAtualSemAlterar() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.EM_ANDAMENTO);
+        Instant iniciadoEm = Instant.now().minusSeconds(8);
+        avaliacao.setIniciadoEm(iniciadoEm);
+        avaliacao.setTempoAcumuladoSegundos(3);
+
+        Avaliacao resultado = service.iniciar(AVALIACAO_ID);
+
+        assertSame(avaliacao, resultado);
+        assertEquals(StatusAvaliacao.EM_ANDAMENTO, resultado.getStatus());
+        assertEquals(iniciadoEm, resultado.getIniciadoEm());
+        assertEquals(3, resultado.getTempoAcumuladoSegundos());
+    }
+
+    @Test
+    void continuarNumaEmAndamentoRetornaOEstadoAtualSemAlterar() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.EM_ANDAMENTO);
+        Instant iniciadoEm = Instant.now().minusSeconds(8);
+        avaliacao.setIniciadoEm(iniciadoEm);
+        avaliacao.setTempoAcumuladoSegundos(3);
+
+        Avaliacao resultado = service.continuar(AVALIACAO_ID);
+
+        assertSame(avaliacao, resultado);
+        assertEquals(StatusAvaliacao.EM_ANDAMENTO, resultado.getStatus());
+        assertEquals(iniciadoEm, resultado.getIniciadoEm());
+        assertEquals(3, resultado.getTempoAcumuladoSegundos());
+    }
+
+    @Test
+    void pausarNumaPausadaRetornaOEstadoAtualSemAlterar() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.PAUSADA);
+        avaliacao.setTempoAcumuladoSegundos(17);
+
+        Avaliacao resultado = service.pausar(AVALIACAO_ID);
+
+        assertSame(avaliacao, resultado);
+        assertEquals(StatusAvaliacao.PAUSADA, resultado.getStatus());
+        assertEquals(17, resultado.getTempoAcumuladoSegundos());
+        assertNull(resultado.getIniciadoEm());
+    }
+
+    // AVA-17 (AC 8): finalização preguiçosa antes do comando
+
+    @Test
+    void pausarComTempoEsgotadoFinalizaAntesERetorna409ComStatusFinalizada() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.EM_ANDAMENTO);
+        avaliacao.setTempoAcumuladoSegundos(40);
+        avaliacao.setIniciadoEm(Instant.now().minusSeconds(25));
+
+        assertTransicaoInvalida(() -> service.pausar(AVALIACAO_ID), StatusAvaliacao.FINALIZADA, "pausar");
+
+        assertEquals(StatusAvaliacao.FINALIZADA, avaliacao.getStatus());
+        assertEquals(60, avaliacao.getTempoUtilizadoSegundos());
+        assertTrue(avaliacao.getFinalizadoEm() != null);
+        assertNull(avaliacao.getIniciadoEm());
+    }
+
+    @Test
+    void pausarComTempoAindaNaoEsgotadoNaoFinaliza() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.EM_ANDAMENTO);
+        avaliacao.setTempoAcumuladoSegundos(40);
+        avaliacao.setIniciadoEm(Instant.now().minusSeconds(19));
+
+        service.pausar(AVALIACAO_ID);
+
+        assertEquals(StatusAvaliacao.PAUSADA, avaliacao.getStatus());
+        assertEquals(59, avaliacao.getTempoAcumuladoSegundos());
+        assertNull(avaliacao.getFinalizadoEm());
+    }
+
+    // Existência e pertencimento (AUTH-09)
+
+    @Test
+    void transicaoDeAvaliacaoInexistenteRetorna404() {
+        when(avaliacaoRepository.findById(AVALIACAO_ID)).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.iniciar(AVALIACAO_ID));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("RECURSO_NAO_ENCONTRADO", exception.getCode());
+    }
+
+    @Test
+    void transicaoDeAvaliacaoDeOutroProfessorRetorna404SemAlterar() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.CRIADA);
+        when(contextoUsuario.professorIdAtual()).thenReturn(PROFESSOR_ID + 1);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.iniciar(AVALIACAO_ID));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("RECURSO_NAO_ENCONTRADO", exception.getCode());
+        assertEquals(StatusAvaliacao.CRIADA, avaliacao.getStatus());
+        verify(avaliacaoRepository, never()).save(any());
+    }
+
+    // AVA-16 (AC 9): log INFO da transição
+
+    @Test
+    void transicaoRegistraLogInfoComAvaliacaoOrigemDestinoEUsuario() {
+        avaliacaoExistente(StatusAvaliacao.EM_ANDAMENTO);
+        Logger logger = (Logger) LoggerFactory.getLogger(AvaliacaoService.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            service.pausar(AVALIACAO_ID);
+        } finally {
+            logger.detachAppender(appender);
+        }
+
+        assertEquals(1, appender.list.size());
+        ILoggingEvent evento = appender.list.get(0);
+        assertEquals(Level.INFO, evento.getLevel());
+        assertEquals(
+                "Transição de avaliação: avaliacaoId=900 origem=EM_ANDAMENTO destino=PAUSADA usuarioId=55",
+                evento.getFormattedMessage());
     }
 }

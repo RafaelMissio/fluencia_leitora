@@ -16,24 +16,34 @@ import com.missio.fluencia_leitora.cadastros.dominio.Ciclo;
 import com.missio.fluencia_leitora.cadastros.dominio.CicloRepository;
 import com.missio.fluencia_leitora.cadastros.professor.Professor;
 import com.missio.fluencia_leitora.common.error.BusinessException;
+import com.missio.fluencia_leitora.common.security.ContextoUsuarioPort;
 import com.missio.fluencia_leitora.common.security.PertencimentoProfessorGuard;
 import com.missio.fluencia_leitora.common.texto.TokenizadorTexto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 /**
- * Ciclo de vida da avaliação de leitura (design.md, Components). Esta
- * versão cobre a criação (AVA-01..AVA-08).
+ * Ciclo de vida da avaliação de leitura (design.md, Components): criação
+ * (AVA-01..AVA-08) e transições de status (AVA-09..AVA-14, AVA-16, AVA-17).
  */
 @Service
 public class AvaliacaoService {
+
+    private static final Logger log = LoggerFactory.getLogger(AvaliacaoService.class);
 
     private static final int TEMPO_MINIMO_SEGUNDOS = 10;
     private static final int TEMPO_MAXIMO_SEGUNDOS = 600;
@@ -48,6 +58,7 @@ public class AvaliacaoService {
     private final ListaPalavrasRepository listaPalavrasRepository;
     private final CicloRepository cicloRepository;
     private final PertencimentoProfessorGuard pertencimentoProfessorGuard;
+    private final ContextoUsuarioPort contextoUsuario;
 
     public AvaliacaoService(
             AvaliacaoRepository avaliacaoRepository,
@@ -56,7 +67,8 @@ public class AvaliacaoService {
             ConfiguracaoAvaliacaoRepository configuracaoAvaliacaoRepository,
             ListaPalavrasRepository listaPalavrasRepository,
             CicloRepository cicloRepository,
-            PertencimentoProfessorGuard pertencimentoProfessorGuard) {
+            PertencimentoProfessorGuard pertencimentoProfessorGuard,
+            ContextoUsuarioPort contextoUsuario) {
         this.avaliacaoRepository = avaliacaoRepository;
         this.matriculaRepository = matriculaRepository;
         this.anoLetivoRepository = anoLetivoRepository;
@@ -64,6 +76,7 @@ public class AvaliacaoService {
         this.listaPalavrasRepository = listaPalavrasRepository;
         this.cicloRepository = cicloRepository;
         this.pertencimentoProfessorGuard = pertencimentoProfessorGuard;
+        this.contextoUsuario = contextoUsuario;
     }
 
     /**
@@ -102,6 +115,115 @@ public class AvaliacaoService {
         palavras.forEach(palavra -> avaliacao.adicionarPalavra(palavra.palavra(), palavra.tipoPalavra()));
 
         return avaliacaoRepository.save(avaliacao);
+    }
+
+    /** AVA-09: CRIADA → EM_ANDAMENTO, começa o trecho de tempo em andamento. */
+    @Transactional(noRollbackFor = BusinessException.class)
+    public Avaliacao iniciar(Long id) {
+        return executar(id, Transicao.INICIAR, avaliacao -> avaliacao.setIniciadoEm(Instant.now()));
+    }
+
+    /** AVA-10: EM_ANDAMENTO → PAUSADA, soma o trecho em andamento ao total. */
+    @Transactional(noRollbackFor = BusinessException.class)
+    public Avaliacao pausar(Long id) {
+        return executar(id, Transicao.PAUSAR, this::encerrarTrecho);
+    }
+
+    /** AVA-10: PAUSADA → EM_ANDAMENTO; o tempo pausado não entra na soma. */
+    @Transactional(noRollbackFor = BusinessException.class)
+    public Avaliacao continuar(Long id) {
+        return executar(id, Transicao.CONTINUAR, avaliacao -> avaliacao.setIniciadoEm(Instant.now()));
+    }
+
+    /** AVA-11: EM_ANDAMENTO/PAUSADA → CRIADA, zera o tempo e volta todas as palavras para PENDENTE. */
+    @Transactional(noRollbackFor = BusinessException.class)
+    public Avaliacao resetar(Long id) {
+        return executar(id, Transicao.RESETAR, avaliacao -> {
+            avaliacao.setTempoAcumuladoSegundos(0);
+            avaliacao.setIniciadoEm(null);
+            avaliacao.getPalavras().forEach(palavra -> palavra.setStatus(StatusPalavra.PENDENTE));
+        });
+    }
+
+    /**
+     * Esqueleto comum das transições (design.md, Architecture Overview):
+     * carrega, finaliza se o tempo já esgotou (AVA-17), devolve o estado
+     * atual se a ação já produziu esse status (AVA-14), valida contra a
+     * tabela de status (AVA-13) e aplica o efeito. Toda validação acontece
+     * antes de qualquer mudança - exceto a finalização preguiçosa, que por
+     * isso é gravada mesmo quando o comando seguinte responde 409
+     * ({@code noRollbackFor}).
+     */
+    private Avaliacao executar(Long id, Transicao transicao, Consumer<Avaliacao> efeito) {
+        Avaliacao avaliacao = carregar(id);
+        finalizarSeTempoEsgotado(avaliacao);
+        StatusAvaliacao origem = avaliacao.getStatus();
+
+        if (origem == transicao.destino && transicao.idempotenteNoDestino) {
+            avaliacao.tocarAtividade();
+            return avaliacaoRepository.save(avaliacao);
+        }
+        if (!transicao.origens.contains(origem)) {
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    "TRANSICAO_INVALIDA",
+                    "Ação " + transicao.acao + " não permitida no status " + origem,
+                    Map.of("statusAtual", origem.name(), "acao", transicao.acao));
+        }
+
+        efeito.accept(avaliacao);
+        mudarStatus(avaliacao, transicao.destino);
+        avaliacao.tocarAtividade();
+        return avaliacaoRepository.save(avaliacao);
+    }
+
+    /** Busca a avaliação (404 se não existe) e aplica o pertencimento do professor (AUTH-09). */
+    private Avaliacao carregar(Long id) {
+        Avaliacao avaliacao = avaliacaoRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "RECURSO_NAO_ENCONTRADO", "Avaliação não encontrada"));
+        pertencimentoProfessorGuard.verificar(
+                avaliacao.getProfessor() == null ? null : avaliacao.getProfessor().getId());
+        return avaliacao;
+    }
+
+    /** AVA-17 (finalização preguiçosa): EM_ANDAMENTO com tempo somado ≥ configurado é finalizada antes do comando. */
+    private void finalizarSeTempoEsgotado(Avaliacao avaliacao) {
+        if (avaliacao.getStatus() == StatusAvaliacao.EM_ANDAMENTO
+                && tempoSomado(avaliacao) >= avaliacao.getTempoConfiguradoSegundos()) {
+            aplicarFinalizacao(avaliacao);
+            mudarStatus(avaliacao, StatusAvaliacao.FINALIZADA);
+        }
+    }
+
+    /** AVA-12: fecha o trecho em andamento e grava {@code tempoUtilizado = min(somado, configurado)}. */
+    private void aplicarFinalizacao(Avaliacao avaliacao) {
+        encerrarTrecho(avaliacao);
+        avaliacao.setTempoUtilizadoSegundos(
+                Math.min(avaliacao.getTempoAcumuladoSegundos(), avaliacao.getTempoConfiguradoSegundos()));
+        avaliacao.setFinalizadoEm(Instant.now());
+    }
+
+    /** Soma o trecho em andamento (se houver) ao tempo acumulado e limpa {@code iniciadoEm}. */
+    private void encerrarTrecho(Avaliacao avaliacao) {
+        avaliacao.setTempoAcumuladoSegundos(tempoSomado(avaliacao));
+        avaliacao.setIniciadoEm(null);
+    }
+
+    /** Tempo acumulado mais o trecho em andamento, em segundos inteiros. */
+    private int tempoSomado(Avaliacao avaliacao) {
+        int trechoAtual = avaliacao.getIniciadoEm() == null
+                ? 0
+                : (int) Duration.between(avaliacao.getIniciadoEm(), Instant.now()).getSeconds();
+        return avaliacao.getTempoAcumuladoSegundos() + trechoAtual;
+    }
+
+    /** AVA-16: toda transição fica registrada em log INFO. */
+    private void mudarStatus(Avaliacao avaliacao, StatusAvaliacao destino) {
+        StatusAvaliacao origem = avaliacao.getStatus();
+        avaliacao.setStatus(destino);
+        log.info("Transição de avaliação: avaliacaoId={} origem={} destino={} usuarioId={}",
+                avaliacao.getId(), origem, destino, contextoUsuario.usuarioIdAtual());
     }
 
     /**
@@ -258,6 +380,31 @@ public class AvaliacaoService {
 
     private BusinessException referenciaInvalida(String mensagem) {
         return new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, "REFERENCIA_INVALIDA", mensagem);
+    }
+
+    /**
+     * Tabela de status (spec.md) para as ações de execução: origens que
+     * permitem a ação, o destino, e se repetir a ação no destino é
+     * idempotente (AVA-14) - {@code resetar} numa CRIADA não é.
+     */
+    private enum Transicao {
+        INICIAR("iniciar", StatusAvaliacao.EM_ANDAMENTO, true, EnumSet.of(StatusAvaliacao.CRIADA)),
+        PAUSAR("pausar", StatusAvaliacao.PAUSADA, true, EnumSet.of(StatusAvaliacao.EM_ANDAMENTO)),
+        CONTINUAR("continuar", StatusAvaliacao.EM_ANDAMENTO, true, EnumSet.of(StatusAvaliacao.PAUSADA)),
+        RESETAR("resetar", StatusAvaliacao.CRIADA, false,
+                EnumSet.of(StatusAvaliacao.EM_ANDAMENTO, StatusAvaliacao.PAUSADA));
+
+        private final String acao;
+        private final StatusAvaliacao destino;
+        private final boolean idempotenteNoDestino;
+        private final Set<StatusAvaliacao> origens;
+
+        Transicao(String acao, StatusAvaliacao destino, boolean idempotenteNoDestino, Set<StatusAvaliacao> origens) {
+            this.acao = acao;
+            this.destino = destino;
+            this.idempotenteNoDestino = idempotenteNoDestino;
+            this.origens = origens;
+        }
     }
 
     /** Uma palavra resolvida da fonte de conteúdo, antes de virar {@link PalavraAvaliacao}. */

@@ -478,12 +478,12 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Toda célula não-terminal da tabela de status para essas 4 ações tem um teste (transição válida e 409 nas inválidas)
-- [ ] Idempotência testada para as 4 ações no status que elas já produziriam
-- [ ] `pausar` soma corretamente o trecho em andamento; `continuar` não conta o tempo pausado (teste com `Clock`/timestamps controlados)
-- [ ] `resetar` zera `tempoAcumuladoSegundos`, limpa `iniciadoEm` e volta todas as palavras para `PENDENTE`
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 12 testes novos
+- [x] Toda célula não-terminal da tabela de status para essas 4 ações tem um teste (transição válida e 409 nas inválidas)
+- [x] Idempotência testada para as 4 ações no status que elas já produziriam
+- [x] `pausar` soma corretamente o trecho em andamento; `continuar` não conta o tempo pausado (teste com `Clock`/timestamps controlados)
+- [x] `resetar` zera `tempoAcumuladoSegundos`, limpa `iniciadoEm` e volta todas as palavras para `PENDENTE`
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 12 testes novos
 
 **Tests**: unit
 **Gate**: quick
