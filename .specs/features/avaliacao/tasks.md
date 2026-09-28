@@ -306,8 +306,8 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Entidade mapeia `avaliacao_audio` com todas as colunas de design.md (sem `nomeArquivo`/`duracaoSegundos`)
-- [ ] Gate check passes: `./mvnw compile`
+- [x] Entidade mapeia `avaliacao_audio` com todas as colunas de design.md (sem `nomeArquivo`/`duracaoSegundos`)
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
