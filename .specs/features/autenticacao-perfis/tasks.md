@@ -361,12 +361,12 @@ T17
 - Skill: NONE
 
 **Done when**:
-- [ ] `POST /usuarios` cria (201), sem senha/hash na resposta
-- [ ] Casos 422/409 do spec confirmados via HTTP
-- [ ] `PUT /usuarios/{id}/senha` grava e desbloqueia
-- [ ] Só `COORDENADOR` pode chamar ambos (`@PreAuthorize("hasRole('COORDENADOR')")`) - 403 para PROFESSOR
-- [ ] `./mvnw verify` passa
-- [ ] 5 testes cobrindo os pontos acima, contra MySQL real
+- [x] `POST /usuarios` cria (201), sem senha/hash na resposta
+- [x] Casos 422/409 do spec confirmados via HTTP
+- [x] `PUT /usuarios/{id}/senha` grava e desbloqueia
+- [x] Só `COORDENADOR` pode chamar ambos (`@PreAuthorize("hasRole('COORDENADOR')")`) - 403 para PROFESSOR
+- [x] `./mvnw verify` passa (`UsuarioControllerIT` 5/5 e todo o resto verdes; a única falha é a pré-existente `AlunoControllerIT.getComPerfilProfessorRetornaSoAlunosDaqueleProfessor`, prevista desde a T7 e corrigida pela T16)
+- [x] 5 testes cobrindo os pontos acima, contra MySQL real
 
 **Tests**: integration
 **Gate**: full
