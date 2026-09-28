@@ -401,9 +401,9 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] `AvaliacaoResponse.from(Avaliacao)` inclui `classificacaoPendente = (status == FINALIZADA && fase == null)`
-- [ ] Campos de resultado (`quantidadeCorretas` etc., `fase`, `nivel`) presentes só quando `FINALIZADA` (`null` fora disso) - teste de leitura de ambos os ramos vem em T19/T21 (lição L-014)
-- [ ] Gate check passes: `./mvnw compile`
+- [x] `AvaliacaoResponse.from(Avaliacao)` inclui `classificacaoPendente = (status == FINALIZADA && fase == null)`
+- [x] Campos de resultado (`quantidadeCorretas` etc., `fase`, `nivel`) presentes só quando `FINALIZADA` (`null` fora disso) - teste de leitura de ambos os ramos vem em T19/T21 (lição L-014)
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
