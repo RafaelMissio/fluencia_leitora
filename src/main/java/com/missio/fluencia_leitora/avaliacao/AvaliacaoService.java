@@ -19,12 +19,16 @@ import com.missio.fluencia_leitora.common.error.BusinessException;
 import com.missio.fluencia_leitora.common.security.ContextoUsuarioPort;
 import com.missio.fluencia_leitora.common.security.PertencimentoProfessorGuard;
 import com.missio.fluencia_leitora.common.texto.TokenizadorTexto;
+import com.missio.fluencia_leitora.regrasclassificacao.RegraClassificacaoService;
+import com.missio.fluencia_leitora.regrasclassificacao.RegraClassificacaoService.ClassificacaoResultado;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -38,7 +42,8 @@ import java.util.stream.IntStream;
 
 /**
  * Ciclo de vida da avaliação de leitura (design.md, Components): criação
- * (AVA-01..AVA-08) e transições de status (AVA-09..AVA-14, AVA-16, AVA-17).
+ * (AVA-01..AVA-08), transições de status (AVA-09..AVA-14, AVA-16, AVA-17)
+ * e cálculo do resultado/classificação (AVA-20..AVA-22).
  */
 @Service
 public class AvaliacaoService {
@@ -59,6 +64,7 @@ public class AvaliacaoService {
     private final CicloRepository cicloRepository;
     private final PertencimentoProfessorGuard pertencimentoProfessorGuard;
     private final ContextoUsuarioPort contextoUsuario;
+    private final RegraClassificacaoService regraClassificacaoService;
 
     public AvaliacaoService(
             AvaliacaoRepository avaliacaoRepository,
@@ -68,7 +74,8 @@ public class AvaliacaoService {
             ListaPalavrasRepository listaPalavrasRepository,
             CicloRepository cicloRepository,
             PertencimentoProfessorGuard pertencimentoProfessorGuard,
-            ContextoUsuarioPort contextoUsuario) {
+            ContextoUsuarioPort contextoUsuario,
+            RegraClassificacaoService regraClassificacaoService) {
         this.avaliacaoRepository = avaliacaoRepository;
         this.matriculaRepository = matriculaRepository;
         this.anoLetivoRepository = anoLetivoRepository;
@@ -77,6 +84,7 @@ public class AvaliacaoService {
         this.cicloRepository = cicloRepository;
         this.pertencimentoProfessorGuard = pertencimentoProfessorGuard;
         this.contextoUsuario = contextoUsuario;
+        this.regraClassificacaoService = regraClassificacaoService;
     }
 
     /**
@@ -146,6 +154,17 @@ public class AvaliacaoService {
     }
 
     /**
+     * AVA-12: EM_ANDAMENTO/PAUSADA → FINALIZADA, com tempo utilizado,
+     * conversão das PENDENTE em NAO_LIDA, resultado e classificação. Se o
+     * tempo já tinha esgotado, a finalização preguiçosa já finalizou e esta
+     * chamada é idempotente (AVA-14, AVA-17).
+     */
+    @Transactional(noRollbackFor = BusinessException.class)
+    public Avaliacao finalizar(Long id) {
+        return executar(id, Transicao.FINALIZAR, this::aplicarFinalizacao);
+    }
+
+    /**
      * Esqueleto comum das transições (design.md, Architecture Overview):
      * carrega, finaliza se o tempo já esgotou (AVA-17), devolve o estado
      * atual se a ação já produziu esse status (AVA-14), valida contra a
@@ -196,12 +215,43 @@ public class AvaliacaoService {
         }
     }
 
-    /** AVA-12: fecha o trecho em andamento e grava {@code tempoUtilizado = min(somado, configurado)}. */
+    /**
+     * AVA-12: fecha o trecho em andamento, grava {@code tempoUtilizado =
+     * min(somado, configurado)}, converte as PENDENTE em NAO_LIDA e calcula
+     * o resultado e a classificação.
+     */
     private void aplicarFinalizacao(Avaliacao avaliacao) {
         encerrarTrecho(avaliacao);
         avaliacao.setTempoUtilizadoSegundos(
                 Math.min(avaliacao.getTempoAcumuladoSegundos(), avaliacao.getTempoConfiguradoSegundos()));
         avaliacao.setFinalizadoEm(Instant.now());
+        avaliacao.getPalavras().stream()
+                .filter(palavra -> palavra.getStatus() == StatusPalavra.PENDENTE)
+                .forEach(palavra -> palavra.setStatus(StatusPalavra.NAO_LIDA));
+        recalcularResultado(avaliacao);
+    }
+
+    /**
+     * AVA-20..AVA-22 (SDD §13): conta os status das palavras, calcula
+     * {@code percentualAcerto = corretas / total × 100} (2 casas, HALF_UP) e
+     * grava a fase/nível da classificação ativa da série - {@code null}/{@code
+     * null} quando nenhuma faixa cobre as corretas.
+     */
+    private void recalcularResultado(Avaliacao avaliacao) {
+        int corretas = contar(avaliacao, StatusPalavra.CORRETA);
+        avaliacao.setQuantidadeCorretas(corretas);
+        avaliacao.setQuantidadeIncorretas(contar(avaliacao, StatusPalavra.INCORRETA));
+        avaliacao.setQuantidadeNaoLidas(contar(avaliacao, StatusPalavra.NAO_LIDA));
+        avaliacao.setPercentualAcerto(BigDecimal.valueOf(corretas * 100L)
+                .divide(BigDecimal.valueOf(avaliacao.getQuantidadeTotal()), 2, RoundingMode.HALF_UP));
+
+        ClassificacaoResultado classificacao = regraClassificacaoService.classificar(avaliacao.getSerie(), corretas);
+        avaliacao.setFase(classificacao.fase());
+        avaliacao.setNivel(classificacao.nivel());
+    }
+
+    private static int contar(Avaliacao avaliacao, StatusPalavra status) {
+        return (int) avaliacao.getPalavras().stream().filter(palavra -> palavra.getStatus() == status).count();
     }
 
     /** Soma o trecho em andamento (se houver) ao tempo acumulado e limpa {@code iniciadoEm}. */
@@ -392,6 +442,8 @@ public class AvaliacaoService {
         PAUSAR("pausar", StatusAvaliacao.PAUSADA, true, EnumSet.of(StatusAvaliacao.EM_ANDAMENTO)),
         CONTINUAR("continuar", StatusAvaliacao.EM_ANDAMENTO, true, EnumSet.of(StatusAvaliacao.PAUSADA)),
         RESETAR("resetar", StatusAvaliacao.CRIADA, false,
+                EnumSet.of(StatusAvaliacao.EM_ANDAMENTO, StatusAvaliacao.PAUSADA)),
+        FINALIZAR("finalizar", StatusAvaliacao.FINALIZADA, true,
                 EnumSet.of(StatusAvaliacao.EM_ANDAMENTO, StatusAvaliacao.PAUSADA));
 
         private final String acao;

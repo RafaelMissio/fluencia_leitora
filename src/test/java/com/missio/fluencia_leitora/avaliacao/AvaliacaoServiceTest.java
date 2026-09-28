@@ -22,6 +22,10 @@ import com.missio.fluencia_leitora.common.error.BusinessException;
 import com.missio.fluencia_leitora.common.security.ContextoUsuarioPort;
 import com.missio.fluencia_leitora.common.security.Perfil;
 import com.missio.fluencia_leitora.common.security.PertencimentoProfessorGuard;
+import com.missio.fluencia_leitora.avaliacao.dto.AvaliacaoResponse;
+import com.missio.fluencia_leitora.regrasclassificacao.Fase;
+import com.missio.fluencia_leitora.regrasclassificacao.RegraClassificacaoService;
+import com.missio.fluencia_leitora.regrasclassificacao.RegraClassificacaoService.ClassificacaoResultado;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,9 +43,11 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -52,6 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -96,6 +103,9 @@ class AvaliacaoServiceTest {
     @Mock
     private ContextoUsuarioPort contextoUsuario;
 
+    @Mock
+    private RegraClassificacaoService regraClassificacaoService;
+
     private final LocalDate hoje = LocalDate.now();
 
     private AnoLetivo anoLetivo;
@@ -134,6 +144,8 @@ class AvaliacaoServiceTest {
         lenient().when(contextoUsuario.perfilAtual()).thenReturn(Perfil.PROFESSOR);
         lenient().when(contextoUsuario.professorIdAtual()).thenReturn(PROFESSOR_ID);
         lenient().when(contextoUsuario.usuarioIdAtual()).thenReturn(USUARIO_ID);
+        lenient().when(regraClassificacaoService.classificar(anyInt(), anyInt()))
+                .thenReturn(new ClassificacaoResultado(Fase.PRE_LEITOR, 1));
 
         service = new AvaliacaoService(
                 avaliacaoRepository,
@@ -143,7 +155,8 @@ class AvaliacaoServiceTest {
                 listaPalavrasRepository,
                 cicloRepository,
                 new PertencimentoProfessorGuard(contextoUsuario),
-                contextoUsuario);
+                contextoUsuario,
+                regraClassificacaoService);
     }
 
     // ---- helpers -------------------------------------------------------
@@ -806,5 +819,183 @@ class AvaliacaoServiceTest {
         assertEquals(
                 "Transição de avaliação: avaliacaoId=900 origem=EM_ANDAMENTO destino=PAUSADA usuarioId=55",
                 evento.getFormattedMessage());
+    }
+
+    // ---- Finalização e resultado (AVA-12, AVA-17, AVA-20..AVA-22) --------
+
+    /** Avaliação com as palavras nos status dados, na ordem: corretas, incorretas, não lidas, pendentes. */
+    private Avaliacao avaliacaoComPalavras(StatusAvaliacao status, int corretas, int incorretas, int naoLidas, int pendentes) {
+        Avaliacao avaliacao = new Avaliacao(
+                aluno, professor, professor.getNome(), turma, turma.getNome(), 1, anoLetivo, ciclo,
+                TipoLeituraCodigo.PALAVRA, hoje, 60);
+        List<StatusPalavra> statuses = new ArrayList<>();
+        statuses.addAll(Collections.nCopies(corretas, StatusPalavra.CORRETA));
+        statuses.addAll(Collections.nCopies(incorretas, StatusPalavra.INCORRETA));
+        statuses.addAll(Collections.nCopies(naoLidas, StatusPalavra.NAO_LIDA));
+        statuses.addAll(Collections.nCopies(pendentes, StatusPalavra.PENDENTE));
+        for (StatusPalavra statusPalavra : statuses) {
+            avaliacao.adicionarPalavra("palavra", null);
+            avaliacao.getPalavras().get(avaliacao.getPalavras().size() - 1).setStatus(statusPalavra);
+        }
+        ReflectionTestUtils.setField(avaliacao, "id", AVALIACAO_ID);
+        avaliacao.setStatus(status);
+        if (status == StatusAvaliacao.EM_ANDAMENTO) {
+            avaliacao.setIniciadoEm(Instant.now());
+        }
+        lenient().when(avaliacaoRepository.findById(AVALIACAO_ID)).thenReturn(Optional.of(avaliacao));
+        return avaliacao;
+    }
+
+    @Test
+    void finalizarNumaEmAndamentoGravaFinalizadaFinalizadoEmETempoUtilizadoSomado() {
+        Avaliacao avaliacao = avaliacaoComPalavras(StatusAvaliacao.EM_ANDAMENTO, 1, 0, 0, 2);
+        avaliacao.setTempoAcumuladoSegundos(10);
+        avaliacao.setIniciadoEm(Instant.now().minusSeconds(15));
+        Instant antes = Instant.now();
+
+        Avaliacao resultado = service.finalizar(AVALIACAO_ID);
+
+        verify(avaliacaoRepository).save(avaliacao);
+        assertEquals(StatusAvaliacao.FINALIZADA, resultado.getStatus());
+        assertEntre(antes, resultado.getFinalizadoEm(), Instant.now());
+        assertEquals(25, resultado.getTempoUtilizadoSegundos());
+        assertNull(resultado.getIniciadoEm());
+    }
+
+    @Test
+    void finalizarNumaPausadaGravaOTempoAcumuladoComoTempoUtilizado() {
+        Avaliacao avaliacao = avaliacaoComPalavras(StatusAvaliacao.PAUSADA, 1, 0, 0, 2);
+        avaliacao.setTempoAcumuladoSegundos(33);
+
+        Avaliacao resultado = service.finalizar(AVALIACAO_ID);
+
+        assertEquals(StatusAvaliacao.FINALIZADA, resultado.getStatus());
+        assertEquals(33, resultado.getTempoUtilizadoSegundos());
+    }
+
+    @Test
+    void finalizarConverteAsPalavrasPendenteEmNaoLidaSemMexerNasMarcadas() {
+        avaliacaoComPalavras(StatusAvaliacao.PAUSADA, 1, 1, 0, 2);
+
+        Avaliacao resultado = service.finalizar(AVALIACAO_ID);
+
+        assertEquals(
+                List.of(StatusPalavra.CORRETA, StatusPalavra.INCORRETA, StatusPalavra.NAO_LIDA, StatusPalavra.NAO_LIDA),
+                resultado.getPalavras().stream().map(PalavraAvaliacao::getStatus).toList());
+    }
+
+    @Test
+    void finalizarExemploDoSdd13GravaLidas13Percentual45ELeitorInicianteSemNivel() {
+        avaliacaoComPalavras(StatusAvaliacao.EM_ANDAMENTO, 9, 4, 3, 4);
+        when(regraClassificacaoService.classificar(1, 9))
+                .thenReturn(new ClassificacaoResultado(Fase.LEITOR_INICIANTE, null));
+
+        Avaliacao resultado = service.finalizar(AVALIACAO_ID);
+
+        assertEquals(20, resultado.getQuantidadeTotal());
+        assertEquals(9, resultado.getQuantidadeCorretas());
+        assertEquals(4, resultado.getQuantidadeIncorretas());
+        assertEquals(7, resultado.getQuantidadeNaoLidas());
+        assertEquals(new BigDecimal("45.00"), resultado.getPercentualAcerto());
+        assertEquals(Fase.LEITOR_INICIANTE, resultado.getFase());
+        assertNull(resultado.getNivel());
+        AvaliacaoResponse response = AvaliacaoResponse.from(resultado);
+        assertEquals(13, response.quantidadeLidas());
+        assertEquals(false, response.classificacaoPendente());
+    }
+
+    @Test
+    void finalizarGravaFaseENivelDaClassificacaoPelaSerieECorretas() {
+        avaliacaoComPalavras(StatusAvaliacao.PAUSADA, 5, 10, 0, 0);
+        when(regraClassificacaoService.classificar(1, 5)).thenReturn(new ClassificacaoResultado(Fase.PRE_LEITOR, 2));
+
+        Avaliacao resultado = service.finalizar(AVALIACAO_ID);
+
+        assertEquals(Fase.PRE_LEITOR, resultado.getFase());
+        assertEquals(2, resultado.getNivel());
+    }
+
+    @Test
+    void finalizarArredondaOPercentualComDuasCasasHalfUp() {
+        avaliacaoComPalavras(StatusAvaliacao.PAUSADA, 2, 1, 0, 0);
+
+        Avaliacao resultado = service.finalizar(AVALIACAO_ID);
+
+        assertEquals(new BigDecimal("66.67"), resultado.getPercentualAcerto());
+    }
+
+    @Test
+    void finalizarSemClassificacaoFinalizaComFaseENivelNulosEClassificacaoPendente() {
+        avaliacaoComPalavras(StatusAvaliacao.PAUSADA, 9, 4, 7, 0);
+        when(regraClassificacaoService.classificar(1, 9)).thenReturn(new ClassificacaoResultado(null, null));
+
+        Avaliacao resultado = service.finalizar(AVALIACAO_ID);
+
+        assertEquals(StatusAvaliacao.FINALIZADA, resultado.getStatus());
+        assertNull(resultado.getFase());
+        assertNull(resultado.getNivel());
+        assertEquals(new BigDecimal("45.00"), resultado.getPercentualAcerto());
+        assertTrue(AvaliacaoResponse.from(resultado).classificacaoPendente());
+    }
+
+    @Test
+    void finalizarComTodasAsPalavrasPendenteGravaZeroCorretasTodasNaoLidasEPercentualZero() {
+        avaliacaoComPalavras(StatusAvaliacao.EM_ANDAMENTO, 0, 0, 0, 15);
+
+        Avaliacao resultado = service.finalizar(AVALIACAO_ID);
+
+        assertEquals(0, resultado.getQuantidadeCorretas());
+        assertEquals(0, resultado.getQuantidadeIncorretas());
+        assertEquals(15, resultado.getQuantidadeNaoLidas());
+        assertEquals(new BigDecimal("0.00"), resultado.getPercentualAcerto());
+        verify(regraClassificacaoService).classificar(1, 0);
+    }
+
+    @Test
+    void finalizarComTempoJaEsgotadoFinalizaPreguicosamenteComTempoUtilizadoIgualAoConfigurado() {
+        Avaliacao avaliacao = avaliacaoComPalavras(StatusAvaliacao.EM_ANDAMENTO, 9, 4, 0, 7);
+        avaliacao.setTempoAcumuladoSegundos(50);
+        avaliacao.setIniciadoEm(Instant.now().minusSeconds(30));
+        when(regraClassificacaoService.classificar(1, 9))
+                .thenReturn(new ClassificacaoResultado(Fase.LEITOR_INICIANTE, null));
+
+        Avaliacao resultado = service.finalizar(AVALIACAO_ID);
+
+        assertEquals(StatusAvaliacao.FINALIZADA, resultado.getStatus());
+        assertEquals(60, resultado.getTempoUtilizadoSegundos());
+        assertEquals(7, resultado.getQuantidadeNaoLidas());
+        assertEquals(new BigDecimal("45.00"), resultado.getPercentualAcerto());
+        assertEquals(Fase.LEITOR_INICIANTE, resultado.getFase());
+        verify(regraClassificacaoService).classificar(1, 9);
+    }
+
+    @Test
+    void finalizarNumaFinalizadaRetornaOEstadoAtualSemRecalcular() {
+        Avaliacao avaliacao = avaliacaoComPalavras(StatusAvaliacao.FINALIZADA, 9, 4, 7, 0);
+        Instant finalizadoEm = Instant.now().minusSeconds(100);
+        avaliacao.setFinalizadoEm(finalizadoEm);
+        avaliacao.setTempoUtilizadoSegundos(42);
+        avaliacao.setQuantidadeCorretas(9);
+        avaliacao.setFase(Fase.LEITOR_INICIANTE);
+
+        Avaliacao resultado = service.finalizar(AVALIACAO_ID);
+
+        assertSame(avaliacao, resultado);
+        assertEquals(StatusAvaliacao.FINALIZADA, resultado.getStatus());
+        assertEquals(finalizadoEm, resultado.getFinalizadoEm());
+        assertEquals(42, resultado.getTempoUtilizadoSegundos());
+        assertEquals(Fase.LEITOR_INICIANTE, resultado.getFase());
+        verify(regraClassificacaoService, never()).classificar(anyInt(), anyInt());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = StatusAvaliacao.class, names = {"CRIADA", "CANCELADA"})
+    void finalizarNumaCriadaOuCanceladaRetorna409TransicaoInvalida(StatusAvaliacao status) {
+        Avaliacao avaliacao = avaliacaoComPalavras(status, 0, 0, 0, 3);
+
+        assertTransicaoInvalida(() -> service.finalizar(AVALIACAO_ID), status, "finalizar");
+        assertEquals(status, avaliacao.getStatus());
+        assertNull(avaliacao.getFinalizadoEm());
+        verify(avaliacaoRepository, never()).save(any());
     }
 }

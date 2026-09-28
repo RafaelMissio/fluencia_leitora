@@ -505,14 +505,14 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] `finalizar` grava `tempoUtilizadoSegundos = min(soma, configurado)`, converte `PENDENTE`→`NAO_LIDA`, calcula o resultado e a classificação
-- [ ] Exemplo do SDD §13 (total 20, corretas 9, incorretas 4, não lidas 7 → lidas 13, percentualAcerto 45.00) reproduzido exatamente num teste
-- [ ] Série 1 do exemplo acima grava fase `LEITOR_INICIANTE` com nível nulo (usa a mesma seed de `regras-classificacao`)
-- [ ] Classificação sem cobertura grava `fase`/`nivel` nulos, finaliza mesmo assim (AVA-22)
-- [ ] Todas as palavras `PENDENTE` na finalização grava corretas 0, não lidas = total, percentualAcerto 0.00 (edge case)
-- [ ] `WHILE EM_ANDAMENTO com tempo >= configurado, WHEN comando chega THEN finaliza antes` testado com `finalizar` chamado depois do tempo já esgotado (idempotência preguiçosa)
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 10 testes novos
+- [x] `finalizar` grava `tempoUtilizadoSegundos = min(soma, configurado)`, converte `PENDENTE`→`NAO_LIDA`, calcula o resultado e a classificação
+- [x] Exemplo do SDD §13 (total 20, corretas 9, incorretas 4, não lidas 7 → lidas 13, percentualAcerto 45.00) reproduzido exatamente num teste
+- [x] Série 1 do exemplo acima grava fase `LEITOR_INICIANTE` com nível nulo (usa a mesma seed de `regras-classificacao`)
+- [x] Classificação sem cobertura grava `fase`/`nivel` nulos, finaliza mesmo assim (AVA-22)
+- [x] Todas as palavras `PENDENTE` na finalização grava corretas 0, não lidas = total, percentualAcerto 0.00 (edge case)
+- [x] `WHILE EM_ANDAMENTO com tempo >= configurado, WHEN comando chega THEN finaliza antes` testado com `finalizar` chamado depois do tempo já esgotado (idempotência preguiçosa)
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 10 testes novos
 
 **Tests**: unit
 **Gate**: quick
