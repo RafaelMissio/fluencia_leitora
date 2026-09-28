@@ -301,8 +301,8 @@ T13 -> T14
 
 **Done when**:
 
-- [ ] `RegraClassificacaoResponse.from(...)` mapeia todos os campos de `RegraClassificacao`
-- [ ] Gate check passes: `./mvnw compile`
+- [x] `RegraClassificacaoResponse.from(...)` mapeia todos os campos de `RegraClassificacao`
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
