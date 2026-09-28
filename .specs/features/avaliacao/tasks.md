@@ -425,11 +425,11 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Todo AC de AVA-01..AVA-08 tem um teste unitário próprio (1:1)
-- [ ] Edge case: matrícula sem professor atribuído coberto (comportamento observável validado no controller, T13)
-- [ ] Palavra digitada sem `tipoPalavra` aceita como `null`; restrição de 1º ano só dispara quando o tipo é informado (assumption confirmada)
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 15 testes novos (8 ACs x múltiplos branches + edge cases)
+- [x] Todo AC de AVA-01..AVA-08 tem um teste unitário próprio (1:1)
+- [x] Edge case: matrícula sem professor atribuído coberto (comportamento observável validado no controller, T13)
+- [x] Palavra digitada sem `tipoPalavra` aceita como `null`; restrição de 1º ano só dispara quando o tipo é informado (assumption confirmada)
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 15 testes novos (8 ACs x múltiplos branches + edge cases)
 
 **Tests**: unit
 **Gate**: quick
