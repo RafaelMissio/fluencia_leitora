@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 11,
+  "next_id": 25,
   "lessons": [
     {
       "id": "L-001",
@@ -47,17 +47,19 @@
       "text": "Assert every literal default value stated in an AC's outcome, not just the fields that come directly from user input.",
       "signal": "ac_gap",
       "scope": "service-tests",
-      "status": "candidate",
+      "status": "confirmed",
       "features": [
-        "cadastros-base"
+        "cadastros-base",
+        "banco-palavras"
       ],
-      "recurrence": 1,
+      "recurrence": 2,
       "harmful": 0,
       "evidence": [
-        "src/main/java/com/missio/fluencia_leitora/cadastros/aluno/Matricula.java:45 (CAD-11 AC1) (service-tests)"
+        "src/main/java/com/missio/fluencia_leitora/cadastros/aluno/Matricula.java:45 (CAD-11 AC1) (service-tests)",
+        "PAL-01 (service-tests)"
       ],
       "created": "2026-09-27T19:41:55Z",
-      "last_seen": "2026-09-27T19:41:55Z"
+      "last_seen": "2026-09-28T09:30:50Z"
     },
     {
       "id": "L-004",
@@ -101,17 +103,19 @@
       "text": "When an AC cannot be exercised because its endpoints belong to a later feature, record the deferral in spec.md traceability and add the AC to the owning feature spec in the same change.",
       "signal": "ac_gap",
       "scope": "traceability",
-      "status": "candidate",
+      "status": "confirmed",
       "features": [
-        "autenticacao-perfis"
+        "autenticacao-perfis",
+        "banco-palavras"
       ],
-      "recurrence": 1,
+      "recurrence": 2,
       "harmful": 0,
       "evidence": [
-        "AUTH-08 (no endpoint exists; design.md Risks promised spec.md deferral note) (traceability)"
+        "AUTH-08 (no endpoint exists; design.md Risks promised spec.md deferral note) (traceability)",
+        "PAL-06 (traceability)"
       ],
       "created": "2026-09-28T03:19:27Z",
-      "last_seen": "2026-09-28T03:19:27Z"
+      "last_seen": "2026-09-28T09:30:50Z"
     },
     {
       "id": "L-007",
@@ -184,6 +188,258 @@
       ],
       "created": "2026-09-28T03:19:27Z",
       "last_seen": "2026-09-28T03:19:27Z"
+    },
+    {
+      "id": "L-011",
+      "key": "surviving_mutant::for every conditional field in a response dto add a read back test asserting both its presence in the matching case and its absence otherwise",
+      "text": "For every conditional field in a response DTO, add a read-back test asserting both its presence in the matching case and its absence otherwise.",
+      "signal": "surviving_mutant",
+      "scope": "controller-tests",
+      "status": "candidate",
+      "features": [
+        "banco-palavras"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "M3 ListaPalavrasResponse.java:28 (controller-tests)"
+      ],
+      "created": "2026-09-28T09:30:49Z",
+      "last_seen": "2026-09-28T09:30:49Z"
+    },
+    {
+      "id": "L-012",
+      "key": "surviving_mutant::when a spec requires input normalization such as trimming add a test whose input actually contains the unnormalized form and assert the stored value",
+      "text": "When a spec requires input normalization such as trimming, add a test whose input actually contains the unnormalized form and assert the stored value.",
+      "signal": "surviving_mutant",
+      "scope": "dto",
+      "status": "candidate",
+      "features": [
+        "banco-palavras"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "M5 ItemPalavraRequest.java:19 (dto)"
+      ],
+      "created": "2026-09-28T09:30:49Z",
+      "last_seen": "2026-09-28T09:30:49Z"
+    },
+    {
+      "id": "L-013",
+      "key": "spec_precision_gap::when an ac says an error returns an item position state whether the position is 0 based or 1 based and the field that carries it",
+      "text": "When an AC says an error returns an item position, state whether the position is 0-based or 1-based and the field that carries it.",
+      "signal": "spec_precision_gap",
+      "scope": "spec",
+      "status": "candidate",
+      "features": [
+        "banco-palavras"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "PAL-03 (spec)"
+      ],
+      "created": "2026-09-28T09:30:50Z",
+      "last_seen": "2026-09-28T09:30:50Z"
+    },
+    {
+      "id": "L-014",
+      "key": "ac_gap::when a response field is only populated for one variant of a type enum add a test asserting both the populated and the null branches of that field",
+      "text": "When a response field is only populated for one variant of a type/enum, add a test asserting both the populated and the null branches of that field.",
+      "signal": "ac_gap",
+      "scope": "dto",
+      "status": "candidate",
+      "features": [
+        "banco-palavras"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "PAL-11 (dto)"
+      ],
+      "created": "2026-09-28T09:33:22Z",
+      "last_seen": "2026-09-28T09:33:22Z"
+    },
+    {
+      "id": "L-015",
+      "key": "ac_gap::cover the controller happy path for every distinct request variant of an endpoint not only its error branches even when the domain logic is already unit tested",
+      "text": "Cover the controller happy path for every distinct request variant of an endpoint, not only its error branches, even when the domain logic is already unit-tested.",
+      "signal": "ac_gap",
+      "scope": "controller",
+      "status": "candidate",
+      "features": [
+        "banco-palavras"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "PAL-07 (controller)"
+      ],
+      "created": "2026-09-28T09:33:22Z",
+      "last_seen": "2026-09-28T09:33:22Z"
+    },
+    {
+      "id": "L-016",
+      "key": "ac_gap::add a dedicated test for each validation branch the spec lists explicitly each bound each format rule not just one representative case",
+      "text": "Add a dedicated test for each validation branch the spec lists explicitly (each bound, each format rule), not just one representative case.",
+      "signal": "ac_gap",
+      "scope": "validation",
+      "status": "candidate",
+      "features": [
+        "banco-palavras"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "PAL-03, PAL-05 (validation)"
+      ],
+      "created": "2026-09-28T09:33:22Z",
+      "last_seen": "2026-09-28T09:33:22Z"
+    },
+    {
+      "id": "L-017",
+      "key": "spec_precision_gap::when an acceptance criterion s guarantee depends on a feature that does not exist yet mark it explicitly as deferred untestable in the spec instead of leaving it as a silently passing requirement",
+      "text": "When an acceptance criterion's guarantee depends on a feature that does not exist yet, mark it explicitly as deferred/untestable in the spec instead of leaving it as a silently-passing requirement.",
+      "signal": "spec_precision_gap",
+      "scope": "spec",
+      "status": "candidate",
+      "features": [
+        "banco-palavras"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "PAL-06 (spec)"
+      ],
+      "created": "2026-09-28T09:33:22Z",
+      "last_seen": "2026-09-28T09:33:22Z"
+    },
+    {
+      "id": "L-018",
+      "key": "surviving_mutant::in a boundary test keep every other input valid so the boundary under test is the only rule that can reject the request",
+      "text": "In a boundary test, keep every other input valid so the boundary under test is the only rule that can reject the request.",
+      "signal": "surviving_mutant",
+      "scope": "controller-tests",
+      "status": "candidate",
+      "features": [
+        "banco-palavras"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "ListaPalavrasControllerIT.java:475-487 (mutant M3, iteration 2) (controller-tests)"
+      ],
+      "created": "2026-09-28T09:46:50Z",
+      "last_seen": "2026-09-28T09:46:50Z"
+    },
+    {
+      "id": "L-019",
+      "key": "surviving_mutant::when the same validation constraint is declared separately on create and update request dtos test it through every route that uses each dto",
+      "text": "When the same validation constraint is declared separately on create and update request DTOs, test it through every route that uses each DTO.",
+      "signal": "surviving_mutant",
+      "scope": "controller-tests",
+      "status": "candidate",
+      "features": [
+        "banco-palavras"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md iteration 3, mutant M5 (AtualizarListaPalavrasRequest.java:25) (controller-tests)"
+      ],
+      "created": "2026-09-28T09:56:49Z",
+      "last_seen": "2026-09-28T09:56:49Z"
+    },
+    {
+      "id": "L-020",
+      "key": "spec_precision_gap::for every field an ac names as a required input add a test that omits it and asserts a 4xx so a db not null constraint never surfaces as a 500",
+      "text": "For every field an AC names as a required input, add a test that omits it and asserts a 4xx, so a DB NOT NULL constraint never surfaces as a 500.",
+      "signal": "spec_precision_gap",
+      "scope": "request-dtos",
+      "status": "candidate",
+      "features": [
+        "banco-palavras"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/main/java/com/missio/fluencia_leitora/bancopalavras/dto/ItemPalavraRequest.java:16 (probes C/D: missing tipoPalavra -> DataIntegrityViolationException 500) (request-dtos)"
+      ],
+      "created": "2026-09-28T10:07:45Z",
+      "last_seen": "2026-09-28T10:07:45Z"
+    },
+    {
+      "id": "L-021",
+      "key": "spec_deviation::tick a done when box only when a test exercises that exact behavior each checked box needs a test that would fail without it",
+      "text": "Tick a Done-when box only when a test exercises that exact behavior; each checked box needs a test that would fail without it.",
+      "signal": "spec_deviation",
+      "scope": "tasks",
+      "status": "candidate",
+      "features": [
+        "banco-palavras"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "tasks.md:358 (T10 Done-when: list tipoPalavra on PALAVRA -> 422; probe B returned 201) (tasks)"
+      ],
+      "created": "2026-09-28T10:07:45Z",
+      "last_seen": "2026-09-28T10:07:45Z"
+    },
+    {
+      "id": "L-022",
+      "key": "ac_gap::validate server derived values such as tokens against the same column constraints as user supplied fields before persisting them",
+      "text": "Validate server-derived values such as tokens against the same column constraints as user-supplied fields before persisting them.",
+      "signal": "ac_gap",
+      "scope": "service-validation",
+      "status": "candidate",
+      "features": [
+        "banco-palavras"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "ListaPalavrasService.java:167-182 (TEXTO_CURTO token >60 chars -> 500) (service-validation)"
+      ],
+      "created": "2026-09-28T10:38:38Z",
+      "last_seen": "2026-09-28T10:38:38Z"
+    },
+    {
+      "id": "L-023",
+      "key": "ac_gap::annotate collection elements with notnull alongside valid since container level valid silently skips null elements",
+      "text": "Annotate collection elements with @NotNull alongside @Valid, since container-level @Valid silently skips null elements.",
+      "signal": "ac_gap",
+      "scope": "dto-validation",
+      "status": "candidate",
+      "features": [
+        "banco-palavras"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "ListaPalavrasService.java:189 (itens:[null] -> NPE 500) (dto-validation)"
+      ],
+      "created": "2026-09-28T10:38:38Z",
+      "last_seen": "2026-09-28T10:38:38Z"
+    },
+    {
+      "id": "L-024",
+      "key": "spec_precision_gap::when content is derived from free text apply the spec s count bounds to the derived items too including the empty result",
+      "text": "When content is derived from free text, apply the spec's count bounds to the derived items too, including the empty result.",
+      "signal": "spec_precision_gap",
+      "scope": "spec",
+      "status": "candidate",
+      "features": [
+        "banco-palavras"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "PAL-05 vs TEXTO_CURTO zero tokens -> 201 (spec)"
+      ],
+      "created": "2026-09-28T10:38:38Z",
+      "last_seen": "2026-09-28T10:38:38Z"
     }
   ]
 }

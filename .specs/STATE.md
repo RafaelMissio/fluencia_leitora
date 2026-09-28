@@ -58,13 +58,21 @@
 - **Date**: 2026-09-27
 - **Status**: active
 
+### AD-008
+- **Decision**: `BusinessException` ganha um construtor `(HttpStatus status, String code, String message, Map<String, Object> details)`; `GlobalExceptionHandler` copia cada entrada de `details` para o `ProblemDetail` como propriedade extra, além do `code`. O construtor antigo (sem `details`) continua existindo.
+- **Reason**: `banco-palavras` (AC `NAO_CANONICA_PROIBIDA_1_ANO`) precisa devolver, além do `code`, as posições dos itens inválidos - dado estruturado que um `code`+`message` simples não carrega.
+- **Trade-off**: `common.error` passa a ter duas formas de construir o erro; features futuras devem preferir `details` só quando o AC exigir dado estruturado extra, não como padrão.
+- **Scope**: common.error (todas as features que usam `BusinessException`)
+- **Date**: 2026-09-28
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: `cadastros-base` - **Done**. `autenticacao-perfis` - **Done** (Verifier PASS na iteração 2/3, 2026-09-28). Próxima feature: `banco-palavras` (ainda não iniciada - só tem `spec.md`).
-- **Phase / Task**: `autenticacao-perfis` fechada - todas as 17 tasks `[x]`, `validate_state.py autenticacao-perfis` exit 0. `banco-palavras` não tem Design/Tasks ainda.
-- **Completed**: `cadastros-base` (29/29 tasks, Verifier PASS). `autenticacao-perfis` (17/17 tasks + 1 commit de fix pós-Verifier `442a190`, 143 testes, Verifier PASS - `.specs/features/autenticacao-perfis/validation.md`). Ordem de dependência do restante do backend: `autenticacao-perfis` → `banco-palavras` → `regras-classificacao` → `audio-avaliacao` → `avaliacao` → `historico-evolucao`; `frontend-web` por último (decisão do usuário, 2026-09-27).
+- **Feature**: `cadastros-base` - **Done**. `autenticacao-perfis` - **Done** (Verifier PASS na iteração 2/3, 2026-09-28). `banco-palavras` - **Done** (Verifier PASS na rodada de fechamento, 2026-09-28, depois de 5 rodadas de fix→re-verify). Próxima feature: `regras-classificacao` (ainda não iniciada).
+- **Phase / Task**: `banco-palavras` fechada - todas as 15 tasks `[x]`, `validate_state.py banco-palavras` exit 0. `regras-classificacao` não tem Design/Tasks ainda.
+- **Completed**: `cadastros-base` (29/29 tasks, Verifier PASS). `autenticacao-perfis` (17/17 tasks + 1 commit de fix pós-Verifier `442a190`, 143 testes, Verifier PASS - `.specs/features/autenticacao-perfis/validation.md`). `banco-palavras` (15/15 tasks + 4 commits de fix pós-Verifier `bd91825`, `5d665f0`, `9a45587`, `3f7baf6`, `220e4d7`, 211 testes, 97.5% cobertura, Verifier PASS - `.specs/features/banco-palavras/validation.md`; PAL-06 deferido para `avaliacao`, AC já adicionado no spec de lá). Ordem de dependência do restante do backend: `autenticacao-perfis` → `banco-palavras` → `regras-classificacao` → `audio-avaliacao` → `avaliacao` → `historico-evolucao`; `frontend-web` por último (decisão do usuário, 2026-09-27).
 - **In-progress** (file:line): none
-- **Next step**: Iniciar `banco-palavras` pela skill `tlc-spec-driven` - `spec.md` já existe, falta Design/Tasks/Execute. Follow-ups menores e não bloqueantes registrados no validation.md de `autenticacao-perfis` (opcionais, ver lições L-005..L-010 em `.specs/LESSONS.md`): (1) log de login sem IP; (2) promover o AUTH-08 a AC numerado em `.specs/features/avaliacao/spec.md` quando essa feature chegar ao Design.
+- **Next step**: Iniciar `regras-classificacao` pela skill `tlc-spec-driven` - ainda não tem `spec.md`. Follow-ups menores e não bloqueantes: (1) de `autenticacao-perfis` - log de login sem IP; promover o AUTH-08 a AC numerado em `.specs/features/avaliacao/spec.md` quando essa feature chegar ao Design (ainda pendente); (2) de `banco-palavras` - dois testes opcionais de 1 linha (PUT com item nulo em `itens`; texto com palavra de exatamente 60 caracteres), ver `.specs/features/banco-palavras/validation.md` e lições L-005/L-019 em `.specs/LESSONS.md`.
 - **Blockers**: none
 - **Uncommitted files**: none
 - **Branch**: `master` (repo git local, sem remoto)

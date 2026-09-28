@@ -116,20 +116,22 @@ O professor precisa de listas de palavras, pseudopalavras e textos curtos adequa
 
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
-| PAL-01 | P1: Criar lista de palavras e pseudopalavras | - | Pending |
-| PAL-02 | P1: 1º ano só com canônicas | - | Pending |
-| PAL-03 | P1: Validação do formato da palavra | - | Pending |
-| PAL-04 | P1: Sem duplicatas | - | Pending |
-| PAL-05 | P1: Tamanho de 1 a 200 | - | Pending |
-| PAL-06 | P1: Alteração da lista não afeta avaliações | - | Pending |
-| PAL-07 | P1: Criar texto curto | - | Pending |
-| PAL-08 | P1: Tokenização do texto | - | Pending |
-| PAL-09 | P1: Texto do 1º ano canônico | - | Pending |
-| PAL-10 | P1: Consulta filtrada | - | Pending |
-| PAL-11 | P1: Consulta por id / inativação | - | Pending |
-| PAL-12 | P1: Conteúdo compatível com o tipo | - | Pending |
+| PAL-01 | P1: Criar lista de palavras e pseudopalavras | T10, T13 | ✅ Verified |
+| PAL-02 | P1: 1º ano só com canônicas | T10, T13 | ✅ Verified |
+| PAL-03 | P1: Validação do formato da palavra | T8, T13 | ✅ Verified |
+| PAL-04 | P1: Sem duplicatas | T10, T13 | ✅ Verified |
+| PAL-05 | P1: Tamanho de 1 a 200 | T8, T13 | ✅ Verified |
+| PAL-06 | P1: Alteração da lista não afeta avaliações | T11 | ⏸ Deferred - só é observável quando a feature `avaliacao` existir (guarda cópia das palavras); AC correspondente a adicionar no spec de `avaliacao` quando essa feature chegar ao Design |
+| PAL-07 | P1: Criar texto curto | T10, T13 | ✅ Verified |
+| PAL-08 | P1: Tokenização do texto | T2 | ✅ Verified |
+| PAL-09 | P1: Texto do 1º ano canônico | T10, T13 | ✅ Verified |
+| PAL-10 | P1: Consulta filtrada | T7, T15 | ✅ Verified |
+| PAL-11 | P1: Consulta por id / inativação | T12, T15 | ✅ Verified |
+| PAL-12 | P1: Conteúdo compatível com o tipo | T10, T13 | ✅ Verified |
 
-**Coverage:** 12 total, 0 mapped to tasks, 12 unmapped ⚠️
+**Coverage:** 12 total, 11 verified, 1 deferred (PAL-06, waiting on `avaliacao`) - `.specs/features/banco-palavras/validation.md` (Verifier, iteração 2/3, 2026-09-28).
+
+**Nota (spec-precision, PAL-03):** o formato da "posição do item" não foi fixado. A validação de formato (`palavra` vazia/>60/caractere inválido) usa Bean Validation e retorna o caminho do campo 0-based (`itens[0].palavra`); a validação de série×canônica (PAL-02/PAL-09) é uma regra de negócio própria e retorna posições 1-based em `details.posicoes` (AD-008). São dois mecanismos de erro diferentes (validação declarativa de formato vs. regra de negócio), então o formato diferente é aceito como está - não é uma inconsistência a corrigir.
 
 ---
 
