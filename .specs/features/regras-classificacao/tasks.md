@@ -418,11 +418,11 @@ T13 -> T14
 
 **Done when**:
 
-- [ ] `PROFESSOR` e `COORDENADOR` autenticados recebem 200 com as faixas ativas da série pedida, ordenadas por `quantidadeMinimaAcertos`
-- [ ] Requisição sem `Authorization` recebe 401
-- [ ] `serie` fora de 1-5 recebe 422 `VALIDACAO_INVALIDA`
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 4 tests pass em `RegraClassificacaoControllerIT` (endpoint `GET /regras-classificacao`)
+- [x] `PROFESSOR` e `COORDENADOR` autenticados recebem 200 com as faixas ativas da série pedida, ordenadas por `quantidadeMinimaAcertos`
+- [x] Requisição sem `Authorization` recebe 401
+- [x] `serie` fora de 1-5 recebe 422 `VALIDACAO_INVALIDA`
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 4 tests pass em `RegraClassificacaoControllerIT` (endpoint `GET /regras-classificacao`)
 
 **Tests**: integration
 **Gate**: full
