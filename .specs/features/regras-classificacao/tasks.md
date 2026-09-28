@@ -221,9 +221,9 @@ T13 -> T14
 
 **Done when**:
 
-- [ ] Entidade mapeia todas as colunas de `regra_classificacao` (T3)
-- [ ] `inativar(Long, Instant)` seta `ativo=false`, `alteradoPor` e `alteradoEm` numa só chamada
-- [ ] Gate check passes: `./mvnw compile`
+- [x] Entidade mapeia todas as colunas de `regra_classificacao` (T3)
+- [x] `inativar(Long, Instant)` seta `ativo=false`, `alteradoPor` e `alteradoEm` numa só chamada
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
