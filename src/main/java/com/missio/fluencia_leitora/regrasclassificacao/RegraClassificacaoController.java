@@ -1,5 +1,6 @@
 package com.missio.fluencia_leitora.regrasclassificacao;
 
+import com.missio.fluencia_leitora.regrasclassificacao.dto.HistoricoVersaoResponse;
 import com.missio.fluencia_leitora.regrasclassificacao.dto.RegraClassificacaoResponse;
 import com.missio.fluencia_leitora.regrasclassificacao.dto.SubstituirRegrasClassificacaoRequest;
 import jakarta.validation.Valid;
@@ -44,6 +45,16 @@ public class RegraClassificacaoController {
             @Valid @RequestBody SubstituirRegrasClassificacaoRequest request) {
         return service.substituir(serie, request.faixas()).stream()
                 .map(RegraClassificacaoResponse::from)
+                .toList();
+    }
+
+    @GetMapping("/historico")
+    public List<HistoricoVersaoResponse> historico(@RequestParam @Min(1) @Max(5) int serie) {
+        return service.buscarHistorico(serie).stream()
+                .map(grupo -> new HistoricoVersaoResponse(
+                        grupo.get(0).getAlteradoEm(),
+                        grupo.get(0).getAlteradoPor(),
+                        grupo.stream().map(RegraClassificacaoResponse::from).toList()))
                 .toList();
     }
 }

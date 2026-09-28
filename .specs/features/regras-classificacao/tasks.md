@@ -465,10 +465,12 @@ T13 -> T14
 ### T14: Criar `RegraClassificacaoController.historico` (GET)
 
 **What**: `GET /api/v1/regras-classificacao/historico?serie={1-5}` (sem `@PreAuthorize`, `@RequestParam @Min(1) @Max(5) int serie`), retorna `List<HistoricoVersaoResponse>` (200).
-**Where**: `src/main/java/com/missio/fluencia_leitora/regrasclassificacao/RegraClassificacaoController.java` (modify)
+**Where**: `src/main/java/com/missio/fluencia_leitora/regrasclassificacao/RegraClassificacaoController.java` (modify); `src/main/resources/db/migration/V8__regra_classificacao_precisao_alterado_em.sql` (novo - ver Deviations abaixo)
 **Depends on**: T10, T13
 **Reuses**: padrão já aplicado em T12/T13; `RegraClassificacaoService.buscarHistorico` (T10)
 **Requirement**: REG-15
+
+**Deviations found during implementation**: o teste do 2º Done-when (duas substituições geram 3 grupos no histórico) revelou que `alterado_em TIMESTAMP` (V7, sem casas decimais) trunca para o segundo - duas substituições da mesma série dentro do mesmo segundo (como as deste teste) ficam com o mesmo valor e o histórico as funde num grupo só, embora `buscarHistoricoPorSerie`/`buscarHistorico` agrupem corretamente por igualdade de `alteradoEm`. Correção: `V8__regra_classificacao_precisao_alterado_em.sql` (`ALTER TABLE ... MODIFY COLUMN alterado_em TIMESTAMP(6) NULL`, precisão de microssegundo, igual ao `Instant` da entidade) - migração nova em vez de editar `V7` (já commitada em T3; migração aplicada não se edita). Necessário para o Done-when passar, então tratado como parte de T14, não uma task separada.
 
 **Tools**:
 
@@ -477,11 +479,11 @@ T13 -> T14
 
 **Done when**:
 
-- [ ] `PROFESSOR` e `COORDENADOR` autenticados recebem 200
-- [ ] Substituir as faixas de uma série duas vezes (dois `PUT`) e consultar o histórico mostra 3 grupos (o seed original + as duas substituições), o grupo corrente primeiro
-- [ ] `serie` fora de 1-5 recebe 422 `VALIDACAO_INVALIDA`
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 3 tests pass em `RegraClassificacaoControllerIT` (endpoint `GET /regras-classificacao/historico`)
+- [x] `PROFESSOR` e `COORDENADOR` autenticados recebem 200
+- [x] Substituir as faixas de uma série duas vezes (dois `PUT`) e consultar o histórico mostra 2 grupos a mais que antes (a mesma diferença que 3 absolutos teriam contra um seed intocado), o grupo corrente primeiro - **SPEC_DEVIATION**: asserção relativa (grupos-antes + 2), não um total absoluto de 3, porque a série usada (5) também é mutada pelo teste de sucesso do T13 dentro da mesma classe, sem ordem garantida entre os dois (ver Javadoc de `RegraClassificacaoControllerIT`); o efeito verificado (duas substituições = dois grupos novos, corrente primeiro) é o mesmo exigido pela AC
+- [x] `serie` fora de 1-5 recebe 422 `VALIDACAO_INVALIDA`
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 3 tests pass em `RegraClassificacaoControllerIT` (endpoint `GET /regras-classificacao/historico`)
 
 **Tests**: integration
 **Gate**: full

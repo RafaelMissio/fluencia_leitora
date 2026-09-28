@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.HashMap;
 import java.util.List;
@@ -28,10 +29,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * novo mapeamento de {@code @RequestParam}/{@code @PathVariable} inválido
  * para {@code VALIDACAO_INVALIDA} (T2).
  *
- * <p>Cada teste de {@code PUT} usa uma série dedicada e exclusiva (T13:
- * série 5; T14: série 4) para não colidir com outros testes desta classe -
- * uma falha de validação nunca toca o repositório (REG-12), então só os
- * testes de sucesso realmente mutam o estado da série.
+ * <p>Toda mutação real de {@code PUT} usa a série 5 - a única não lida por
+ * {@code RegraClassificacaoRepositoryIT} (T6), que depende do seed
+ * intocado das séries 1-4. Uma falha de validação nunca toca o
+ * repositório (REG-12), então os testes de série 1/2/3/6 abaixo (só
+ * validação/autorização) não mutam nada e podem compartilhar série com
+ * outras classes de teste. Os dois testes que realmente substituem a
+ * série 5 (sucesso do PUT; histórico com duas substituições) não
+ * assumem ordem entre si - o teste de histórico usa uma contagem relativa
+ * (grupos antes/depois), não um total absoluto.
  */
 @AutoConfigureMockMvc
 class RegraClassificacaoControllerIT extends IntegrationTestBase {
@@ -211,5 +217,68 @@ class RegraClassificacaoControllerIT extends IntegrationTestBase {
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("FAIXA_NIVEL_INCOERENTE"));
+    }
+
+    // --- GET /historico (T14, REG-15) - série 4, exclusiva do teste de 3 grupos abaixo. ---
+
+    @Test
+    void historicoComProfessorRetorna200() throws Exception {
+        mockMvc.perform(get("/api/v1/regras-classificacao/historico").header("Authorization", bearerProfessor())
+                        .param("serie", "2"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void historicoComCoordenadorRetorna200() throws Exception {
+        mockMvc.perform(get("/api/v1/regras-classificacao/historico").header("Authorization", bearerCoordenador())
+                        .param("serie", "2"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void historicoComSerieForaDoIntervaloRetorna422ValidacaoInvalida() throws Exception {
+        mockMvc.perform(get("/api/v1/regras-classificacao/historico").header("Authorization", bearerCoordenador())
+                        .param("serie", "6"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+    }
+
+    @Test
+    void historicoAposDuasSubstituicoesGanhaDoisGruposNovosComOCorrentePrimeiro() throws Exception {
+        // Série 5 também é usada pelo teste de sucesso do PUT (acima) - a ordem entre os dois
+        // testes não é garantida, então esta asserção é relativa (quantos grupos a mais surgiram
+        // com estas duas substituições), não um total absoluto.
+        MvcResult antes = mockMvc.perform(get("/api/v1/regras-classificacao/historico")
+                        .header("Authorization", bearerCoordenador())
+                        .param("serie", "5"))
+                .andExpect(status().isOk())
+                .andReturn();
+        int gruposAntes = objectMapper.readTree(antes.getResponse().getContentAsString()).size();
+
+        Map<String, Object> primeiraSubstituicao = Map.of("faixas", List.of(
+                faixa(0, 9, "PRE_LEITOR", 1),
+                faixa(10, null, "LEITOR_FLUENTE", null)));
+        mockMvc.perform(put("/api/v1/regras-classificacao/series/5").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(primeiraSubstituicao)))
+                .andExpect(status().isOk());
+
+        Map<String, Object> segundaSubstituicao = Map.of("faixas", List.of(faixa(0, null, "LEITOR_FLUENTE", null)));
+        mockMvc.perform(put("/api/v1/regras-classificacao/series/5").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(segundaSubstituicao)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/regras-classificacao/historico").header("Authorization", bearerCoordenador())
+                        .param("serie", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(gruposAntes + 2))
+                // Grupo corrente (a 2ª substituição) primeiro: alteradoEm=null.
+                .andExpect(jsonPath("$[0].alteradoEm").doesNotExist())
+                .andExpect(jsonPath("$[0].faixas.length()").value(1))
+                .andExpect(jsonPath("$[0].faixas[0].fase").value("LEITOR_FLUENTE"))
+                // Logo depois, a 1ª substituição (inativada pela 2ª).
+                .andExpect(jsonPath("$[1].alteradoEm").exists())
+                .andExpect(jsonPath("$[1].faixas.length()").value(2));
     }
 }

@@ -133,7 +133,7 @@ O aluno é classificado em Pré-Leitor (níveis 1–4), Leitor Iniciante ou Leit
 | REG-12 | P1: Falha preserva faixas anteriores | T11, T13 | Done |
 | REG-13 | P1: Rastreabilidade de quem alterou | T11, T13 | Done |
 | REG-14 | P1: Avaliações finalizadas não são reclassificadas | - | ⏸ Deferred - `substituir` não toca a tabela `avaliacao` (ela nem existe ainda); só é observável quando a feature `avaliacao` existir. AC correspondente já adicionado em `.specs/features/avaliacao/spec.md`, Edge Cases. |
-| REG-15 | P2: Histórico de regras | T10 | Implementing |
+| REG-15 | P2: Histórico de regras | T10, T14 (+ V8, correção de precisão de `alterado_em`) | Done |
 
 **Coverage:** 15 total, 0 mapped to tasks, 14 testáveis agora, 1 deferido (REG-14) ⚠️
 
