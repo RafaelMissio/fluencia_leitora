@@ -42,6 +42,14 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void businessExceptionWithDetailsCopiesEachEntryToProblemDetail() throws Exception {
+        mockMvc.perform(get("/test/business-exception-with-details"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("NAO_CANONICA_PROIBIDA_1_ANO"))
+                .andExpect(jsonPath("$.posicoes[0]").value(2));
+    }
+
+    @Test
     void optimisticLockingFailureIsMappedTo409WithConflitoDeVersaoCode() throws Exception {
         mockMvc.perform(get("/test/optimistic-lock"))
                 .andExpect(status().isConflict())
@@ -67,6 +75,15 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/test/business-exception")
         public void triggerBusinessException() {
             throw new BusinessException(HttpStatus.CONFLICT, "TURMA_DUPLICADA", "Turma já existe");
+        }
+
+        @GetMapping("/test/business-exception-with-details")
+        public void triggerBusinessExceptionWithDetails() {
+            throw new BusinessException(
+                    HttpStatus.UNPROCESSABLE_ENTITY,
+                    "NAO_CANONICA_PROIBIDA_1_ANO",
+                    "Item não canônico em lista do 1º ano",
+                    java.util.Map.of("posicoes", java.util.List.of(2)));
         }
 
         @GetMapping("/test/optimistic-lock")
