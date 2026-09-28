@@ -1,5 +1,6 @@
 package com.missio.fluencia_leitora.avaliacao;
 
+import com.missio.fluencia_leitora.avaliacao.dto.MarcarPalavrasRequest.MarcacaoItem;
 import com.missio.fluencia_leitora.avaliacao.dto.NovaAvaliacaoRequest;
 import com.missio.fluencia_leitora.avaliacao.dto.PalavraDigitadaRequest;
 import com.missio.fluencia_leitora.bancopalavras.ListaPalavras;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -62,6 +64,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -105,6 +108,9 @@ class AvaliacaoServiceTest {
 
     @Mock
     private RegraClassificacaoService regraClassificacaoService;
+
+    @Mock
+    private AvaliacaoAuditoriaRepository avaliacaoAuditoriaRepository;
 
     private final LocalDate hoje = LocalDate.now();
 
@@ -156,7 +162,8 @@ class AvaliacaoServiceTest {
                 cicloRepository,
                 new PertencimentoProfessorGuard(contextoUsuario),
                 contextoUsuario,
-                regraClassificacaoService);
+                regraClassificacaoService,
+                avaliacaoAuditoriaRepository);
     }
 
     // ---- helpers -------------------------------------------------------
@@ -997,5 +1004,236 @@ class AvaliacaoServiceTest {
         assertEquals(status, avaliacao.getStatus());
         assertNull(avaliacao.getFinalizadoEm());
         verify(avaliacaoRepository, never()).save(any());
+    }
+
+    // ---- Marcação de palavras (AVA-15, AVA-18, AVA-19) -------------------
+
+    private List<StatusPalavra> statusDasPalavras(Avaliacao avaliacao) {
+        return avaliacao.getPalavras().stream().map(PalavraAvaliacao::getStatus).toList();
+    }
+
+    /** FINALIZADA com as palavras dadas e o resultado já calculado, como a finalização deixaria. */
+    private Avaliacao finalizadaComPalavras(int corretas, int incorretas, int naoLidas, Fase fase, Integer nivel) {
+        Avaliacao avaliacao = avaliacaoComPalavras(StatusAvaliacao.FINALIZADA, corretas, incorretas, naoLidas, 0);
+        avaliacao.setQuantidadeCorretas(corretas);
+        avaliacao.setQuantidadeIncorretas(incorretas);
+        avaliacao.setQuantidadeNaoLidas(naoLidas);
+        avaliacao.setFase(fase);
+        avaliacao.setNivel(nivel);
+        return avaliacao;
+    }
+
+    private BusinessException assertMarcacaoRejeitada(Runnable acao, HttpStatus status, String code) {
+        BusinessException exception = assertThrows(BusinessException.class, acao::run);
+        assertEquals(status, exception.getStatus());
+        assertEquals(code, exception.getCode());
+        verify(avaliacaoRepository, never()).save(any());
+        verify(avaliacaoAuditoriaRepository, never()).save(any());
+        return exception;
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = StatusAvaliacao.class, names = {"EM_ANDAMENTO", "PAUSADA"})
+    void marcarPalavraEmAndamentoOuPausadaGravaOStatusSemAuditoria(StatusAvaliacao status) {
+        Avaliacao avaliacao = avaliacaoExistente(status);
+        Instant antes = Instant.now();
+
+        Avaliacao resultado = service.marcarPalavra(AVALIACAO_ID, 2, StatusPalavra.CORRETA);
+
+        verify(avaliacaoRepository).save(avaliacao);
+        assertEquals(List.of(StatusPalavra.PENDENTE, StatusPalavra.CORRETA, StatusPalavra.PENDENTE), statusDasPalavras(resultado));
+        assertEquals(status, resultado.getStatus());
+        assertEntre(antes, resultado.getUltimaAtividadeEm(), Instant.now());
+        verify(avaliacaoAuditoriaRepository, never()).save(any());
+        verify(regraClassificacaoService, never()).classificar(anyInt(), anyInt());
+    }
+
+    @Test
+    void marcarPalavraEmAndamentoAceitaVoltarParaPendente() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.EM_ANDAMENTO);
+        avaliacao.getPalavras().get(0).setStatus(StatusPalavra.INCORRETA);
+
+        service.marcarPalavra(AVALIACAO_ID, 1, StatusPalavra.PENDENTE);
+
+        assertEquals(StatusPalavra.PENDENTE, avaliacao.getPalavras().get(0).getStatus());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = StatusAvaliacao.class, names = {"CRIADA", "CANCELADA"})
+    void marcarPalavraEmCriadaOuCanceladaRetorna409MarcacaoNaoPermitida(StatusAvaliacao status) {
+        Avaliacao avaliacao = avaliacaoExistente(status);
+
+        BusinessException exception = assertMarcacaoRejeitada(
+                () -> service.marcarPalavra(AVALIACAO_ID, 1, StatusPalavra.CORRETA),
+                HttpStatus.CONFLICT, "MARCACAO_NAO_PERMITIDA");
+
+        assertEquals(status.name(), exception.getDetails().get("statusAtual"));
+        assertEquals(StatusPalavra.PENDENTE, avaliacao.getPalavras().get(0).getStatus());
+    }
+
+    @Test
+    void marcarPalavraComOrdemInexistenteRetorna404() {
+        avaliacaoExistente(StatusAvaliacao.EM_ANDAMENTO);
+
+        BusinessException exception = assertMarcacaoRejeitada(
+                () -> service.marcarPalavra(AVALIACAO_ID, 4, StatusPalavra.CORRETA),
+                HttpStatus.NOT_FOUND, "RECURSO_NAO_ENCONTRADO");
+
+        assertEquals(4, exception.getDetails().get("ordem"));
+    }
+
+    @Test
+    void marcarPalavraPendenteNumaFinalizadaRetorna422SemMudar() {
+        Avaliacao avaliacao = finalizadaComPalavras(9, 4, 7, Fase.LEITOR_INICIANTE, null);
+
+        assertMarcacaoRejeitada(
+                () -> service.marcarPalavra(AVALIACAO_ID, 1, StatusPalavra.PENDENTE),
+                HttpStatus.UNPROCESSABLE_ENTITY, "STATUS_PALAVRA_INVALIDO");
+
+        assertEquals(StatusPalavra.CORRETA, avaliacao.getPalavras().get(0).getStatus());
+        assertEquals(9, avaliacao.getQuantidadeCorretas());
+    }
+
+    @Test
+    void marcarPalavraNumaFinalizadaRecalculaEGeraUmaAuditoria() {
+        Avaliacao avaliacao = finalizadaComPalavras(9, 4, 7, Fase.LEITOR_INICIANTE, null);
+        when(regraClassificacaoService.classificar(1, 10))
+                .thenReturn(new ClassificacaoResultado(Fase.LEITOR_INICIANTE, null));
+        Instant antes = Instant.now();
+
+        Avaliacao resultado = service.marcarPalavra(AVALIACAO_ID, 14, StatusPalavra.CORRETA);
+
+        assertEquals(StatusPalavra.CORRETA, resultado.getPalavras().get(13).getStatus());
+        assertEquals(10, resultado.getQuantidadeCorretas());
+        assertEquals(4, resultado.getQuantidadeIncorretas());
+        assertEquals(6, resultado.getQuantidadeNaoLidas());
+        assertEquals(new BigDecimal("50.00"), resultado.getPercentualAcerto());
+        assertEquals(StatusAvaliacao.FINALIZADA, resultado.getStatus());
+        ArgumentCaptor<AvaliacaoAuditoria> captor = ArgumentCaptor.forClass(AvaliacaoAuditoria.class);
+        verify(avaliacaoAuditoriaRepository, times(1)).save(captor.capture());
+        AvaliacaoAuditoria auditoria = captor.getValue();
+        assertSame(avaliacao, auditoria.getAvaliacao());
+        assertEquals(USUARIO_ID, auditoria.getUsuarioId());
+        assertEquals(AcaoAuditoria.MARCACAO_PALAVRA, auditoria.getAcao());
+        assertEquals("palavra 14: NAO_LIDA", auditoria.getValorAnterior());
+        assertEquals("palavra 14: CORRETA", auditoria.getValorNovo());
+        assertNull(auditoria.getJustificativa());
+        assertEntre(antes, resultado.getUltimaAtividadeEm(), Instant.now());
+    }
+
+    @Test
+    void marcarPalavraNumaFinalizadaQueMudaAClassificacaoRegistraAClassificacaoAnteriorEANova() {
+        finalizadaComPalavras(7, 4, 9, Fase.PRE_LEITOR, 4);
+        when(regraClassificacaoService.classificar(1, 8))
+                .thenReturn(new ClassificacaoResultado(Fase.LEITOR_INICIANTE, null));
+
+        Avaliacao resultado = service.marcarPalavra(AVALIACAO_ID, 12, StatusPalavra.CORRETA);
+
+        assertEquals(Fase.LEITOR_INICIANTE, resultado.getFase());
+        assertNull(resultado.getNivel());
+        ArgumentCaptor<AvaliacaoAuditoria> captor = ArgumentCaptor.forClass(AvaliacaoAuditoria.class);
+        verify(avaliacaoAuditoriaRepository).save(captor.capture());
+        assertEquals("palavra 12: NAO_LIDA (classificação: PRE_LEITOR/4)", captor.getValue().getValorAnterior());
+        assertEquals("palavra 12: CORRETA (classificação: LEITOR_INICIANTE/-)", captor.getValue().getValorNovo());
+    }
+
+    @Test
+    void marcarPalavraComOStatusAtualRetornaSemAuditoriaNemRecalculo() {
+        Avaliacao avaliacao = finalizadaComPalavras(9, 4, 7, Fase.LEITOR_INICIANTE, null);
+
+        Avaliacao resultado = service.marcarPalavra(AVALIACAO_ID, 1, StatusPalavra.CORRETA);
+
+        assertSame(avaliacao, resultado);
+        assertEquals(9, resultado.getQuantidadeCorretas());
+        verify(avaliacaoAuditoriaRepository, never()).save(any());
+        verify(regraClassificacaoService, never()).classificar(anyInt(), anyInt());
+    }
+
+    @Test
+    void marcarPalavrasEmLoteGravaTodosOsItens() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.EM_ANDAMENTO);
+
+        service.marcarPalavras(AVALIACAO_ID, List.of(
+                new MarcacaoItem(1, StatusPalavra.CORRETA),
+                new MarcacaoItem(2, StatusPalavra.INCORRETA),
+                new MarcacaoItem(3, StatusPalavra.NAO_LIDA)));
+
+        verify(avaliacaoRepository).save(avaliacao);
+        assertEquals(List.of(StatusPalavra.CORRETA, StatusPalavra.INCORRETA, StatusPalavra.NAO_LIDA), statusDasPalavras(avaliacao));
+    }
+
+    @Test
+    void marcarPalavrasEmLoteComUmaOrdemInexistenteNaoGravaNenhum() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.EM_ANDAMENTO);
+
+        assertMarcacaoRejeitada(
+                () -> service.marcarPalavras(AVALIACAO_ID, List.of(
+                        new MarcacaoItem(1, StatusPalavra.CORRETA),
+                        new MarcacaoItem(9, StatusPalavra.CORRETA))),
+                HttpStatus.NOT_FOUND, "RECURSO_NAO_ENCONTRADO");
+
+        assertEquals(List.of(StatusPalavra.PENDENTE, StatusPalavra.PENDENTE, StatusPalavra.PENDENTE), statusDasPalavras(avaliacao));
+    }
+
+    @Test
+    void marcarPalavrasEmLoteNumaFinalizadaComUmPendenteNaoGravaNenhumNemAudita() {
+        Avaliacao avaliacao = finalizadaComPalavras(9, 4, 7, Fase.LEITOR_INICIANTE, null);
+
+        assertMarcacaoRejeitada(
+                () -> service.marcarPalavras(AVALIACAO_ID, List.of(
+                        new MarcacaoItem(14, StatusPalavra.CORRETA),
+                        new MarcacaoItem(15, StatusPalavra.PENDENTE))),
+                HttpStatus.UNPROCESSABLE_ENTITY, "STATUS_PALAVRA_INVALIDO");
+
+        assertEquals(StatusPalavra.NAO_LIDA, avaliacao.getPalavras().get(13).getStatus());
+        assertEquals(9, avaliacao.getQuantidadeCorretas());
+    }
+
+    @Test
+    void marcarPalavrasEmLoteNumaFinalizadaGeraUmaAuditoriaPorPalavraAlterada() {
+        Avaliacao avaliacao = finalizadaComPalavras(9, 4, 7, Fase.LEITOR_INICIANTE, null);
+        when(regraClassificacaoService.classificar(anyInt(), anyInt()))
+                .thenReturn(new ClassificacaoResultado(Fase.LEITOR_INICIANTE, null));
+
+        service.marcarPalavras(AVALIACAO_ID, List.of(
+                new MarcacaoItem(14, StatusPalavra.CORRETA),
+                new MarcacaoItem(1, StatusPalavra.CORRETA),
+                new MarcacaoItem(15, StatusPalavra.INCORRETA)));
+
+        ArgumentCaptor<AvaliacaoAuditoria> captor = ArgumentCaptor.forClass(AvaliacaoAuditoria.class);
+        verify(avaliacaoAuditoriaRepository, times(2)).save(captor.capture());
+        assertEquals(List.of("palavra 14: CORRETA", "palavra 15: INCORRETA"),
+                captor.getAllValues().stream().map(AvaliacaoAuditoria::getValorNovo).toList());
+        assertEquals(10, avaliacao.getQuantidadeCorretas());
+        assertEquals(5, avaliacao.getQuantidadeIncorretas());
+        assertEquals(5, avaliacao.getQuantidadeNaoLidas());
+    }
+
+    @Test
+    void marcarPalavraComTempoEsgotadoFinalizaAntesEAuditaAMudanca() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.EM_ANDAMENTO);
+        avaliacao.setIniciadoEm(Instant.now().minusSeconds(61));
+
+        service.marcarPalavra(AVALIACAO_ID, 1, StatusPalavra.CORRETA);
+
+        assertEquals(StatusAvaliacao.FINALIZADA, avaliacao.getStatus());
+        assertEquals(60, avaliacao.getTempoUtilizadoSegundos());
+        assertEquals(1, avaliacao.getQuantidadeCorretas());
+        assertEquals(2, avaliacao.getQuantidadeNaoLidas());
+        ArgumentCaptor<AvaliacaoAuditoria> captor = ArgumentCaptor.forClass(AvaliacaoAuditoria.class);
+        verify(avaliacaoAuditoriaRepository).save(captor.capture());
+        assertEquals("palavra 1: NAO_LIDA", captor.getValue().getValorAnterior());
+    }
+
+    @Test
+    void marcarPalavraDeAvaliacaoDeOutroProfessorRetorna404() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.EM_ANDAMENTO);
+        when(contextoUsuario.professorIdAtual()).thenReturn(PROFESSOR_ID + 1);
+
+        assertMarcacaoRejeitada(
+                () -> service.marcarPalavra(AVALIACAO_ID, 1, StatusPalavra.CORRETA),
+                HttpStatus.NOT_FOUND, "RECURSO_NAO_ENCONTRADO");
+
+        assertEquals(StatusPalavra.PENDENTE, avaliacao.getPalavras().get(0).getStatus());
     }
 }

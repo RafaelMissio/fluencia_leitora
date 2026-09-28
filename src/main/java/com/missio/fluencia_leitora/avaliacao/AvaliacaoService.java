@@ -1,5 +1,6 @@
 package com.missio.fluencia_leitora.avaliacao;
 
+import com.missio.fluencia_leitora.avaliacao.dto.MarcarPalavrasRequest.MarcacaoItem;
 import com.missio.fluencia_leitora.avaliacao.dto.NovaAvaliacaoRequest;
 import com.missio.fluencia_leitora.bancopalavras.ListaPalavras;
 import com.missio.fluencia_leitora.bancopalavras.ListaPalavrasRepository;
@@ -43,7 +44,8 @@ import java.util.stream.IntStream;
 /**
  * Ciclo de vida da avaliação de leitura (design.md, Components): criação
  * (AVA-01..AVA-08), transições de status (AVA-09..AVA-14, AVA-16, AVA-17)
- * e cálculo do resultado/classificação (AVA-20..AVA-22).
+ * cálculo do resultado/classificação (AVA-20..AVA-22) e marcação das
+ * palavras com auditoria depois de finalizar (AVA-15, AVA-18, AVA-19).
  */
 @Service
 public class AvaliacaoService {
@@ -65,6 +67,7 @@ public class AvaliacaoService {
     private final PertencimentoProfessorGuard pertencimentoProfessorGuard;
     private final ContextoUsuarioPort contextoUsuario;
     private final RegraClassificacaoService regraClassificacaoService;
+    private final AvaliacaoAuditoriaRepository avaliacaoAuditoriaRepository;
 
     public AvaliacaoService(
             AvaliacaoRepository avaliacaoRepository,
@@ -75,7 +78,8 @@ public class AvaliacaoService {
             CicloRepository cicloRepository,
             PertencimentoProfessorGuard pertencimentoProfessorGuard,
             ContextoUsuarioPort contextoUsuario,
-            RegraClassificacaoService regraClassificacaoService) {
+            RegraClassificacaoService regraClassificacaoService,
+            AvaliacaoAuditoriaRepository avaliacaoAuditoriaRepository) {
         this.avaliacaoRepository = avaliacaoRepository;
         this.matriculaRepository = matriculaRepository;
         this.anoLetivoRepository = anoLetivoRepository;
@@ -85,6 +89,7 @@ public class AvaliacaoService {
         this.pertencimentoProfessorGuard = pertencimentoProfessorGuard;
         this.contextoUsuario = contextoUsuario;
         this.regraClassificacaoService = regraClassificacaoService;
+        this.avaliacaoAuditoriaRepository = avaliacaoAuditoriaRepository;
     }
 
     /**
@@ -162,6 +167,112 @@ public class AvaliacaoService {
     @Transactional(noRollbackFor = BusinessException.class)
     public Avaliacao finalizar(Long id) {
         return executar(id, Transicao.FINALIZAR, this::aplicarFinalizacao);
+    }
+
+    /** AVA-15: marca uma palavra ({@code PUT .../palavras/{ordem}}). */
+    @Transactional
+    public Avaliacao marcarPalavra(Long id, int ordem, StatusPalavra status) {
+        return marcar(id, List.of(new MarcacaoItem(ordem, status)));
+    }
+
+    /** AVA-15: marca várias palavras numa única transação - tudo ou nada. */
+    @Transactional
+    public Avaliacao marcarPalavras(Long id, List<MarcacaoItem> itens) {
+        return marcar(id, itens);
+    }
+
+    /**
+     * AVA-15/AVA-18/AVA-19. Valida todos os itens antes de mudar qualquer
+     * palavra, e qualquer erro desfaz a transação inteira. Status igual ao
+     * atual não muda nada nem gera auditoria. Numa FINALIZADA, cada mudança
+     * recalcula o resultado e grava uma auditoria {@code MARCACAO_PALAVRA}.
+     *
+     * <p>Spec-precision gap: o spec não define os códigos do 404 de
+     * {@code ordem} inexistente nem do 422 de PENDENTE depois de finalizar -
+     * usamos {@code RECURSO_NAO_ENCONTRADO} (o mesmo 404 do resto da API) e
+     * {@code STATUS_PALAVRA_INVALIDO}, os dois com {@code ordem} nos detalhes.
+     */
+    private Avaliacao marcar(Long id, List<MarcacaoItem> itens) {
+        Avaliacao avaliacao = carregar(id);
+        finalizarSeTempoEsgotado(avaliacao);
+        StatusAvaliacao status = avaliacao.getStatus();
+        if (status == StatusAvaliacao.CRIADA || status == StatusAvaliacao.CANCELADA) {
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    "MARCACAO_NAO_PERMITIDA",
+                    "Marcação não permitida no status " + status,
+                    Map.of("statusAtual", status.name()));
+        }
+        boolean finalizada = status == StatusAvaliacao.FINALIZADA;
+
+        List<PalavraAvaliacao> palavras = itens.stream().map(item -> {
+            PalavraAvaliacao palavra = avaliacao.getPalavras().stream()
+                    .filter(p -> p.getOrdem() == item.ordem())
+                    .findFirst()
+                    .orElseThrow(() -> new BusinessException(
+                            HttpStatus.NOT_FOUND,
+                            "RECURSO_NAO_ENCONTRADO",
+                            "Palavra não encontrada na avaliação",
+                            Map.of("ordem", item.ordem())));
+            if (finalizada && item.status() == StatusPalavra.PENDENTE) {
+                throw new BusinessException(
+                        HttpStatus.UNPROCESSABLE_ENTITY,
+                        "STATUS_PALAVRA_INVALIDO",
+                        "Uma avaliação finalizada não aceita o status PENDENTE",
+                        Map.of("ordem", item.ordem()));
+            }
+            return palavra;
+        }).toList();
+
+        for (int i = 0; i < itens.size(); i++) {
+            PalavraAvaliacao palavra = palavras.get(i);
+            StatusPalavra novo = itens.get(i).status();
+            if (palavra.getStatus() == novo) {
+                continue;
+            }
+            if (finalizada) {
+                marcarComAuditoria(avaliacao, palavra, novo);
+            } else {
+                palavra.setStatus(novo);
+            }
+        }
+
+        avaliacao.tocarAtividade();
+        return avaliacaoRepository.save(avaliacao);
+    }
+
+    /**
+     * AVA-19: grava a mudança, recalcula o resultado e registra a auditoria
+     * no formato de design.md (Tech Decisions): {@code "palavra {ordem}:
+     * {status}"}, mais {@code " (classificação: {fase}/{nivel})"} quando a
+     * classificação muda ({@code -} no lugar de fase/nível nulos).
+     */
+    private void marcarComAuditoria(Avaliacao avaliacao, PalavraAvaliacao palavra, StatusPalavra novo) {
+        StatusPalavra anterior = palavra.getStatus();
+        String classificacaoAnterior = classificacao(avaliacao);
+
+        palavra.setStatus(novo);
+        recalcularResultado(avaliacao);
+        String classificacaoNova = classificacao(avaliacao);
+
+        String sufixoAnterior = "";
+        String sufixoNovo = "";
+        if (!classificacaoAnterior.equals(classificacaoNova)) {
+            sufixoAnterior = " (classificação: " + classificacaoAnterior + ")";
+            sufixoNovo = " (classificação: " + classificacaoNova + ")";
+        }
+        avaliacaoAuditoriaRepository.save(new AvaliacaoAuditoria(
+                avaliacao,
+                contextoUsuario.usuarioIdAtual(),
+                AcaoAuditoria.MARCACAO_PALAVRA,
+                "palavra " + palavra.getOrdem() + ": " + anterior + sufixoAnterior,
+                "palavra " + palavra.getOrdem() + ": " + novo + sufixoNovo,
+                null));
+    }
+
+    private static String classificacao(Avaliacao avaliacao) {
+        return (avaliacao.getFase() == null ? "-" : avaliacao.getFase().name())
+                + "/" + (avaliacao.getNivel() == null ? "-" : avaliacao.getNivel());
     }
 
     /**

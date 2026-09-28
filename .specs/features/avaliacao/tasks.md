@@ -560,14 +560,14 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] `CRIADA`/`CANCELADA` bloqueiam com `MARCACAO_NAO_PERMITIDA` (409); `EM_ANDAMENTO`/`PAUSADA`/`FINALIZADA` aceitam
-- [ ] `ordem` inexistente retorna comportamento que o controller mapeia para 404 (T18)
-- [ ] `FINALIZADA` + status pedido `PENDENTE` → erro (422) - AC específico do spec
-- [ ] Status igual ao atual não gera auditoria
-- [ ] Mudança numa `FINALIZADA` gera exatamente 1 registro de auditoria, recalcula `corretas` e a classificação (teste do AC "palavra 3 de NAO_LIDA para CORRETA: corretas +1, 1 registro de auditoria")
-- [ ] Lote: um item inválido não grava nenhum (transação única - teste que confirma rollback completo)
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 12 testes novos
+- [x] `CRIADA`/`CANCELADA` bloqueiam com `MARCACAO_NAO_PERMITIDA` (409); `EM_ANDAMENTO`/`PAUSADA`/`FINALIZADA` aceitam
+- [x] `ordem` inexistente retorna comportamento que o controller mapeia para 404 (T18)
+- [x] `FINALIZADA` + status pedido `PENDENTE` → erro (422) - AC específico do spec
+- [x] Status igual ao atual não gera auditoria
+- [x] Mudança numa `FINALIZADA` gera exatamente 1 registro de auditoria, recalcula `corretas` e a classificação (teste do AC "palavra 3 de NAO_LIDA para CORRETA: corretas +1, 1 registro de auditoria")
+- [x] Lote: um item inválido não grava nenhum (transação única - teste que confirma rollback completo)
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 12 testes novos
 
 **Tests**: unit
 **Gate**: quick
