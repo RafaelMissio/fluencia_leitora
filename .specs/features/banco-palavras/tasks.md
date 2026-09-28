@@ -144,12 +144,12 @@ T14 -> T15
 
 **Done when**:
 
-- [ ] `tokenizar("O gato, a bola.")` retorna exatamente `["O", "gato", "a", "bola"]` (AC do spec, ordem 1-4)
-- [ ] Espaços múltiplos entre palavras não geram tokens vazios
-- [ ] Pontuação só nas bordas do token é removida; hífen interno (`bem-vindo`) não é afetado
-- [ ] Grafia original (maiúsculas, acentos) é preservada em cada token
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 5 tests pass em `TokenizadorTextoTest`
+- [x] `tokenizar("O gato, a bola.")` retorna exatamente `["O", "gato", "a", "bola"]` (AC do spec, ordem 1-4)
+- [x] Espaços múltiplos entre palavras não geram tokens vazios
+- [x] Pontuação só nas bordas do token é removida; hífen interno (`bem-vindo`) não é afetado
+- [x] Grafia original (maiúsculas, acentos) é preservada em cada token
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 5 tests pass em `TokenizadorTextoTest`
 
 **Tests**: unit
 **Gate**: quick
