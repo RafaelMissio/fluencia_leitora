@@ -275,9 +275,9 @@ T13 -> T14
 
 **Done when**:
 
-- [ ] As duas classes compilam com as anotações de validação acima
-- [ ] `SubstituirRegrasClassificacaoRequest` NÃO tem `@NotEmpty`/`@Size(min=1)` na lista `faixas` (confirmado por leitura do código, não é testável por Bean Validation)
-- [ ] Gate check passes: `./mvnw compile`
+- [x] As duas classes compilam com as anotações de validação acima
+- [x] `SubstituirRegrasClassificacaoRequest` NÃO tem `@NotEmpty`/`@Size(min=1)` na lista `faixas` (confirmado por leitura do código, não é testável por Bean Validation)
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
