@@ -309,11 +309,11 @@ T17
 - Skill: NONE
 
 **Done when**:
-- [ ] Login certo → 200 com o corpo esperado
-- [ ] Credenciais erradas → 401
-- [ ] 6ª tentativa após bloqueio → 429 com `Retry-After` presente e numérico
-- [ ] `./mvnw verify` passa
-- [ ] 4 testes cobrindo os pontos acima, contra MySQL real (Testcontainers)
+- [x] Login certo → 200 com o corpo esperado
+- [x] Credenciais erradas → 401
+- [x] 6ª tentativa após bloqueio → 429 com `Retry-After` presente e numérico
+- [x] `./mvnw verify` passa (`AuthControllerIT` 4/4 e todo o resto verdes; a única falha é a pré-existente `AlunoControllerIT.getComPerfilProfessorRetornaSoAlunosDaqueleProfessor`, prevista desde a T7 e corrigida pela T16)
+- [x] 4 testes cobrindo os pontos acima, contra MySQL real (Testcontainers)
 
 **Tests**: integration
 **Gate**: full
