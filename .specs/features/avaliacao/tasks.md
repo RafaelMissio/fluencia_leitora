@@ -187,11 +187,11 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] As 4 tabelas existem com exatamente as colunas de design.md, Data Models (sem `nome_arquivo`/`duracao_segundos` em `avaliacao_audio` - Tech Decisions)
-- [ ] `UNIQUE (avaliacao_id, ordem)` em `avaliacao_palavra`; `UNIQUE (avaliacao_id)` em `avaliacao_audio`
-- [ ] FKs para `aluno`, `professor`, `ano_letivo`, `ciclo`, e das tabelas filhas para `avaliacao`
-- [ ] `./mvnw compile` sobe o contexto sem erro de migração (Flyway valida no boot)
-- [ ] Gate check passes: `./mvnw compile`
+- [x] As 4 tabelas existem com exatamente as colunas de design.md, Data Models (sem `nome_arquivo`/`duracao_segundos` em `avaliacao_audio` - Tech Decisions)
+- [x] `UNIQUE (avaliacao_id, ordem)` em `avaliacao_palavra`; `UNIQUE (avaliacao_id)` em `avaliacao_audio`
+- [x] FKs para `aluno`, `professor`, `ano_letivo`, `ciclo`, e das tabelas filhas para `avaliacao`
+- [x] `./mvnw compile` sobe o contexto sem erro de migração (Flyway valida no boot)
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
