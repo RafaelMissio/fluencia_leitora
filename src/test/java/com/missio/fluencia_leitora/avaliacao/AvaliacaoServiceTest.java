@@ -1652,4 +1652,56 @@ class AvaliacaoServiceTest {
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
         assertEquals("RECURSO_NAO_ENCONTRADO", exception.getCode());
     }
+
+    // ---- Finalização automática por inatividade (AVA-17) ------------------
+
+    @Test
+    void finalizarInativasFinalizaCadaAvaliacaoRetornadaComTempoUtilizadoIgualAoConfigurado() {
+        Avaliacao a1 = avaliacaoComPalavras(StatusAvaliacao.EM_ANDAMENTO, 0, 0, 0, 3);
+        a1.setIniciadoEm(Instant.now().minusSeconds(25 * 3600L));
+        Avaliacao a2 = avaliacaoComPalavras(StatusAvaliacao.EM_ANDAMENTO, 0, 0, 0, 3);
+        a2.setIniciadoEm(Instant.now().minusSeconds(30 * 3600L));
+        when(avaliacaoRepository.findByStatusAndUltimaAtividadeEmBefore(eq(StatusAvaliacao.EM_ANDAMENTO), any(Instant.class)))
+                .thenReturn(List.of(a1, a2));
+
+        int quantidade = service.finalizarInativas();
+
+        assertEquals(2, quantidade);
+        assertEquals(StatusAvaliacao.FINALIZADA, a1.getStatus());
+        assertEquals(StatusAvaliacao.FINALIZADA, a2.getStatus());
+        assertEquals(60, a1.getTempoUtilizadoSegundos());
+        assertEquals(60, a2.getTempoUtilizadoSegundos());
+        assertNull(a1.getIniciadoEm());
+        assertNull(a2.getIniciadoEm());
+        verify(avaliacaoRepository).saveAll(List.of(a1, a2));
+    }
+
+    @Test
+    void finalizarInativasConsultaComOLimiteDe24hAtras() {
+        Instant antes = Instant.now();
+        when(avaliacaoRepository.findByStatusAndUltimaAtividadeEmBefore(eq(StatusAvaliacao.EM_ANDAMENTO), any(Instant.class)))
+                .thenReturn(List.of());
+
+        service.finalizarInativas();
+
+        Instant depois = Instant.now();
+        ArgumentCaptor<Instant> limiteCaptor = ArgumentCaptor.forClass(Instant.class);
+        verify(avaliacaoRepository)
+                .findByStatusAndUltimaAtividadeEmBefore(eq(StatusAvaliacao.EM_ANDAMENTO), limiteCaptor.capture());
+        Instant limite = limiteCaptor.getValue();
+        assertTrue(!limite.isBefore(antes.minusSeconds(24 * 3600L))
+                && !limite.isAfter(depois.minusSeconds(24 * 3600L)),
+                "esperava um limite ~24h atrás, foi " + limite);
+    }
+
+    @Test
+    void finalizarInativasSemNenhumaRetornaZero() {
+        when(avaliacaoRepository.findByStatusAndUltimaAtividadeEmBefore(eq(StatusAvaliacao.EM_ANDAMENTO), any(Instant.class)))
+                .thenReturn(List.of());
+
+        int quantidade = service.finalizarInativas();
+
+        assertEquals(0, quantidade);
+        verify(avaliacaoRepository).saveAll(List.of());
+    }
 }

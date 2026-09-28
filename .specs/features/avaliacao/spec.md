@@ -237,11 +237,11 @@ O professor precisa aplicar uma avaliação cronometrada de leitura (palavras, p
 | AVA-10 | P1: Pausar / continuar sem contar a pausa | T14, T16 | Done |
 | AVA-11 | P1: Resetar | T14, T16 | Done |
 | AVA-12 | P1: Finalizar | T15, T16 | Done |
-| AVA-13 | P1: Transição inválida 409 | T14, T16 | In Progress |
-| AVA-14 | P1: Transições idempotentes | T14, T15, T16 | In Progress |
+| AVA-13 | P1: Transição inválida 409 | T14, T16, T22, T23 | Done |
+| AVA-14 | P1: Transições idempotentes | T14, T15, T16, T22, T23 | Done |
 | AVA-15 | P1: Marcar palavra individual e em lote | T17, T18 | Done |
 | AVA-16 | P1: Log de transições | T14 | Done |
-| AVA-17 | P1: Finalização automática pelo servidor (tempo esgotado e > 24h) | T14, T15, T16 | In Progress |
+| AVA-17 | P1: Finalização automática pelo servidor (tempo esgotado e > 24h) | T14, T15, T16, T27 | Done |
 | AVA-18 | P1: Marcação bloqueada em CRIADA ou CANCELADA | T17, T18 | Done |
 | AVA-19 | P1: Alteração depois de finalizar com auditoria e recálculo | T17, T18 | Done |
 | AVA-20 | P1: Cálculo do resultado | T15, T16 | Done |
@@ -258,7 +258,7 @@ O professor precisa aplicar uma avaliação cronometrada de leitura (palavras, p
 | AVA-31 | P1: Download do áudio | T24, T25 | Done |
 | AVA-32 | P1: Download sem áudio gravado (404) | T24, T25 | Done |
 
-**Coverage:** 32 total, 0 mapped to tasks, 32 unmapped ⚠️
+**Coverage:** 32 total, 32 mapped to tasks, 0 unmapped
 
 ---
 

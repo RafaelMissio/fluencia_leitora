@@ -818,11 +818,11 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] `finalizarInativas()` finaliza só `EM_ANDAMENTO` com `ultimaAtividadeEm` > 24h atrás, deixa `PAUSADA` e avaliações recentes intocadas (teste unitário com relógio controlado)
-- [ ] `AvaliacaoFinalizacaoScheduler.finalizarInativas()` chama o service (teste unitário do scheduler, sem depender do cron real disparar)
-- [ ] `@EnableScheduling` presente; contexto Spring sobe sem erro (qualquer `*ControllerIT` existente confirma isso indiretamente)
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 5 testes novos
+- [x] `finalizarInativas()` finaliza só `EM_ANDAMENTO` com `ultimaAtividadeEm` > 24h atrás, deixa `PAUSADA` e avaliações recentes intocadas (a filtragem em si é responsabilidade da query, já coberta em `AvaliacaoRepositoryIT`/T8; teste unitário aqui com relógio controlado confirma o argumento de status e o limite de ~24h passados ao repositório, e que cada item retornado é finalizado com `tempoUtilizadoSegundos = tempoConfiguradoSegundos`)
+- [x] `AvaliacaoFinalizacaoScheduler.finalizarInativas()` chama o service (teste unitário do scheduler, sem depender do cron real disparar)
+- [x] `@EnableScheduling` presente; contexto Spring sobe sem erro (confirmado rodando `./mvnw verify` completo - `FluenciaLeitoraApplicationIT` e todo `*ControllerIT` sobem o contexto com o scheduler ativo)
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 5 testes novos
 
 **Tests**: unit
 **Gate**: quick

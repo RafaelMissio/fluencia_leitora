@@ -51,7 +51,8 @@ import java.util.stream.IntStream;
  * cálculo do resultado/classificação (AVA-20..AVA-22), marcação das
  * palavras com auditoria depois de finalizar (AVA-15, AVA-18, AVA-19),
  * consultas da avaliação e da auditoria (AVA-23, AVA-26), cancelamento
- * (AVA-24) e envio/download do áudio (AVA-27..AVA-32).
+ * (AVA-24), envio/download do áudio (AVA-27..AVA-32) e a finalização
+ * automática das avaliações abandonadas há mais de 24h (AVA-17).
  */
 @Service
 public class AvaliacaoService {
@@ -64,6 +65,7 @@ public class AvaliacaoService {
     private static final int LIMITE_CARACTERES_PALAVRA = 60;
     private static final int JUSTIFICATIVA_MINIMO_CARACTERES = 10;
     private static final int JUSTIFICATIVA_MAXIMO_CARACTERES = 500;
+    private static final int LIMITE_INATIVIDADE_HORAS = 24;
     private static final Pattern FORMATO_PALAVRA = Pattern.compile("^[\\p{L}-]+$");
 
     private final AvaliacaoRepository avaliacaoRepository;
@@ -409,6 +411,30 @@ public class AvaliacaoService {
 
     /** AVA-31: os bytes do áudio e o {@code mimeType} gravado, para o {@code Content-Type} da resposta. */
     public record AudioBaixado(byte[] conteudo, String mimeType) {
+    }
+
+    /**
+     * AVA-17 (Edge Cases, spec.md: rotina agendada de hora em hora): finaliza
+     * toda avaliação {@code EM_ANDAMENTO} cujo {@code ultimaAtividadeEm} é
+     * anterior a 24h atrás. Reusa {@link #aplicarFinalizacao} - como o tempo
+     * decorrido real sempre excede {@code tempoConfiguradoSegundos} (máximo
+     * 600 s) para uma avaliação inativa há 24h, o {@code min(...)} de {@link
+     * #aplicarFinalizacao} já produz {@code tempoUtilizadoSegundos =
+     * tempoConfiguradoSegundos} sem precisar de um caminho especial. Chamado
+     * pelo {@link AvaliacaoFinalizacaoScheduler}.
+     *
+     * @return quantas avaliações foram finalizadas
+     */
+    @Transactional
+    public int finalizarInativas() {
+        List<Avaliacao> inativas = avaliacaoRepository.findByStatusAndUltimaAtividadeEmBefore(
+                StatusAvaliacao.EM_ANDAMENTO, Instant.now().minusSeconds(LIMITE_INATIVIDADE_HORAS * 3600L));
+        for (Avaliacao avaliacao : inativas) {
+            aplicarFinalizacao(avaliacao);
+            mudarStatus(avaliacao, StatusAvaliacao.FINALIZADA);
+        }
+        avaliacaoRepository.saveAll(inativas);
+        return inativas.size();
     }
 
     /**
