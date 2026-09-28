@@ -236,8 +236,8 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Entidade mapeia `avaliacao_palavra` com todas as colunas de design.md
-- [ ] Gate check passes: `./mvnw compile`
+- [x] Entidade mapeia `avaliacao_palavra` com todas as colunas de design.md
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
