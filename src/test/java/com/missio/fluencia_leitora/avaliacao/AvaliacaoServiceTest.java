@@ -1,5 +1,9 @@
 package com.missio.fluencia_leitora.avaliacao;
 
+import com.missio.fluencia_leitora.audioavaliacao.AudioArmazenamentoException;
+import com.missio.fluencia_leitora.audioavaliacao.AudioFormatoInvalidoException;
+import com.missio.fluencia_leitora.audioavaliacao.AudioStoragePort;
+import com.missio.fluencia_leitora.audioavaliacao.AudioTamanhoInvalidoException;
 import com.missio.fluencia_leitora.avaliacao.dto.MarcarPalavrasRequest.MarcacaoItem;
 import com.missio.fluencia_leitora.avaliacao.dto.NovaAvaliacaoRequest;
 import com.missio.fluencia_leitora.avaliacao.dto.PalavraDigitadaRequest;
@@ -36,6 +40,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -45,6 +50,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -54,6 +60,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -61,6 +68,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -111,6 +119,12 @@ class AvaliacaoServiceTest {
 
     @Mock
     private AvaliacaoAuditoriaRepository avaliacaoAuditoriaRepository;
+
+    @Mock
+    private AvaliacaoAudioRepository avaliacaoAudioRepository;
+
+    @Mock
+    private AudioStoragePort audioStoragePort;
 
     private final LocalDate hoje = LocalDate.now();
 
@@ -163,7 +177,9 @@ class AvaliacaoServiceTest {
                 new PertencimentoProfessorGuard(contextoUsuario),
                 contextoUsuario,
                 regraClassificacaoService,
-                avaliacaoAuditoriaRepository);
+                avaliacaoAuditoriaRepository,
+                avaliacaoAudioRepository,
+                audioStoragePort);
     }
 
     // ---- helpers -------------------------------------------------------
@@ -1472,6 +1488,166 @@ class AvaliacaoServiceTest {
 
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> service.cancelar(AVALIACAO_ID, "Avaliação criada por engano, cancelando."));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("RECURSO_NAO_ENCONTRADO", exception.getCode());
+    }
+
+    // ---- Envio e download do áudio (AVA-27..AVA-32) -----------------------
+
+    @Test
+    void enviarAudioNumaFinalizadaChamaArmazenarEGravaAReferencia() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.FINALIZADA);
+        byte[] conteudo = {1, 2, 3, 4};
+        when(audioStoragePort.armazenar(conteudo, "audio/wav")).thenReturn("ref-123.wav");
+        when(avaliacaoAudioRepository.save(any(AvaliacaoAudio.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AvaliacaoAudio resultado = service.enviarAudio(AVALIACAO_ID, conteudo, "audio/wav");
+
+        assertSame(avaliacao, resultado.getAvaliacao());
+        assertEquals("ref-123.wav", resultado.getReferenciaArmazenamento());
+        assertEquals("audio/wav", resultado.getMimeType());
+        assertEquals(4, resultado.getTamanhoBytes());
+        verify(avaliacaoAudioRepository).save(any(AvaliacaoAudio.class));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = StatusAvaliacao.class, names = {"CRIADA", "EM_ANDAMENTO", "PAUSADA", "CANCELADA"})
+    void enviarAudioForaDeFinalizadaRetorna409AudioEnvioNaoPermitido(StatusAvaliacao status) {
+        avaliacaoExistente(status);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.enviarAudio(AVALIACAO_ID, new byte[]{1}, "audio/wav"));
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals("AUDIO_ENVIO_NAO_PERMITIDO", exception.getCode());
+        assertEquals(status.name(), exception.getDetails().get("statusAtual"));
+        verify(audioStoragePort, never()).armazenar(any(), any());
+        verify(avaliacaoAudioRepository, never()).save(any());
+    }
+
+    @Test
+    void enviarAudioNumaFinalizadaComAudioJaExistenteRetorna409ViaChecagemPrevia() {
+        avaliacaoExistente(StatusAvaliacao.FINALIZADA);
+        when(avaliacaoAudioRepository.existsByAvaliacaoId(AVALIACAO_ID)).thenReturn(true);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.enviarAudio(AVALIACAO_ID, new byte[]{1}, "audio/wav"));
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals("AUDIO_JA_ENVIADO", exception.getCode());
+        verify(audioStoragePort, never()).armazenar(any(), any());
+    }
+
+    /** Simula a corrida do design.md (Risks & Concerns): a checagem prévia passa, mas o save colide na constraint UNIQUE. */
+    @Test
+    void enviarAudioComCorridaNoSaveRetorna409ViaConstraintDoBanco() {
+        avaliacaoExistente(StatusAvaliacao.FINALIZADA);
+        when(audioStoragePort.armazenar(any(), any())).thenReturn("ref-123.wav");
+        when(avaliacaoAudioRepository.save(any(AvaliacaoAudio.class)))
+                .thenThrow(new DataIntegrityViolationException("uk_avaliacao_audio_avaliacao"));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.enviarAudio(AVALIACAO_ID, new byte[]{1}, "audio/wav"));
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals("AUDIO_JA_ENVIADO", exception.getCode());
+    }
+
+    @Test
+    void enviarAudioComFormatoInvalidoRetorna422AudioFormatoInvalido() {
+        avaliacaoExistente(StatusAvaliacao.FINALIZADA);
+        when(audioStoragePort.armazenar(any(), eq("audio/xyz")))
+                .thenThrow(new AudioFormatoInvalidoException("mimeType não permitido"));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.enviarAudio(AVALIACAO_ID, new byte[]{1}, "audio/xyz"));
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+        assertEquals("AUDIO_FORMATO_INVALIDO", exception.getCode());
+        verify(avaliacaoAudioRepository, never()).save(any());
+    }
+
+    @Test
+    void enviarAudioComTamanhoInvalidoRetorna422AudioTamanhoInvalido() {
+        avaliacaoExistente(StatusAvaliacao.FINALIZADA);
+        when(audioStoragePort.armazenar(any(), any()))
+                .thenThrow(new AudioTamanhoInvalidoException("tamanho fora da faixa"));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.enviarAudio(AVALIACAO_ID, new byte[0], "audio/wav"));
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+        assertEquals("AUDIO_TAMANHO_INVALIDO", exception.getCode());
+        verify(avaliacaoAudioRepository, never()).save(any());
+    }
+
+    @Test
+    void enviarAudioComFalhaDeArmazenamentoPropagaAExcecaoSemTratar() {
+        avaliacaoExistente(StatusAvaliacao.FINALIZADA);
+        when(audioStoragePort.armazenar(any(), any()))
+                .thenThrow(new AudioArmazenamentoException("falha ao gravar", new IOException()));
+
+        assertThrows(AudioArmazenamentoException.class,
+                () -> service.enviarAudio(AVALIACAO_ID, new byte[]{1}, "audio/wav"));
+
+        verify(avaliacaoAudioRepository, never()).save(any());
+    }
+
+    @Test
+    void enviarAudioDeAvaliacaoDeOutroProfessorRetorna404() {
+        avaliacaoExistente(StatusAvaliacao.FINALIZADA);
+        when(contextoUsuario.professorIdAtual()).thenReturn(PROFESSOR_ID + 1);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.enviarAudio(AVALIACAO_ID, new byte[]{1}, "audio/wav"));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        verify(audioStoragePort, never()).armazenar(any(), any());
+    }
+
+    @Test
+    void baixarAudioRecuperaOsMesmosBytesEMimeTypeGravados() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.FINALIZADA);
+        AvaliacaoAudio audio = new AvaliacaoAudio(avaliacao, "ref-123.wav", "audio/wav", 4);
+        when(avaliacaoAudioRepository.findByAvaliacaoId(AVALIACAO_ID)).thenReturn(Optional.of(audio));
+        byte[] bytesGravados = {9, 8, 7, 6};
+        when(audioStoragePort.recuperar("ref-123.wav")).thenReturn(bytesGravados);
+
+        AvaliacaoService.AudioBaixado resultado = service.baixarAudio(AVALIACAO_ID);
+
+        assertArrayEquals(bytesGravados, resultado.conteudo());
+        assertEquals("audio/wav", resultado.mimeType());
+    }
+
+    @Test
+    void baixarAudioSemAudioGravadoRetorna404() {
+        avaliacaoExistente(StatusAvaliacao.FINALIZADA);
+        when(avaliacaoAudioRepository.findByAvaliacaoId(AVALIACAO_ID)).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.baixarAudio(AVALIACAO_ID));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("RECURSO_NAO_ENCONTRADO", exception.getCode());
+        verify(audioStoragePort, never()).recuperar(any());
+    }
+
+    @Test
+    void baixarAudioDeAvaliacaoDeOutroProfessorRetorna404() {
+        avaliacaoExistente(StatusAvaliacao.FINALIZADA);
+        when(contextoUsuario.professorIdAtual()).thenReturn(PROFESSOR_ID + 1);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.baixarAudio(AVALIACAO_ID));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        verify(avaliacaoAudioRepository, never()).findByAvaliacaoId(any());
+    }
+
+    @Test
+    void baixarAudioDeAvaliacaoInexistenteRetorna404() {
+        when(avaliacaoRepository.findById(AVALIACAO_ID)).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.baixarAudio(AVALIACAO_ID));
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
         assertEquals("RECURSO_NAO_ENCONTRADO", exception.getCode());

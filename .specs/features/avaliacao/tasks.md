@@ -740,12 +740,12 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Envio fora de `FINALIZADA` → 409 `AUDIO_ENVIO_NAO_PERMITIDO`
-- [ ] Segundo envio para a mesma avaliação → 409 `AUDIO_JA_ENVIADO` (teste via checagem prévia E via a constraint - simular a corrida com dois saves diretos no repositório)
-- [ ] `AudioFormatoInvalidoException`/`AudioTamanhoInvalidoException` mapeadas para 422 com os códigos do spec
-- [ ] Download sem áudio gravado → 404; download recupera exatamente os mesmos bytes enviados
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 8 testes novos
+- [x] Envio fora de `FINALIZADA` → 409 `AUDIO_ENVIO_NAO_PERMITIDO`
+- [x] Segundo envio para a mesma avaliação → 409 `AUDIO_JA_ENVIADO` (teste via checagem prévia E via a constraint - simular a corrida com dois saves diretos no repositório)
+- [x] `AudioFormatoInvalidoException`/`AudioTamanhoInvalidoException` mapeadas para 422 com os códigos do spec
+- [x] Download sem áudio gravado → 404; download recupera exatamente os mesmos bytes enviados
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 8 testes novos
 
 **Tests**: unit
 **Gate**: quick

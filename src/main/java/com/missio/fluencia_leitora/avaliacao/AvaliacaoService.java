@@ -1,5 +1,8 @@
 package com.missio.fluencia_leitora.avaliacao;
 
+import com.missio.fluencia_leitora.audioavaliacao.AudioFormatoInvalidoException;
+import com.missio.fluencia_leitora.audioavaliacao.AudioStoragePort;
+import com.missio.fluencia_leitora.audioavaliacao.AudioTamanhoInvalidoException;
 import com.missio.fluencia_leitora.avaliacao.dto.MarcarPalavrasRequest.MarcacaoItem;
 import com.missio.fluencia_leitora.avaliacao.dto.NovaAvaliacaoRequest;
 import com.missio.fluencia_leitora.bancopalavras.ListaPalavras;
@@ -24,6 +27,7 @@ import com.missio.fluencia_leitora.regrasclassificacao.RegraClassificacaoService
 import com.missio.fluencia_leitora.regrasclassificacao.RegraClassificacaoService.ClassificacaoResultado;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,8 +50,8 @@ import java.util.stream.IntStream;
  * (AVA-01..AVA-08), transições de status (AVA-09..AVA-14, AVA-16, AVA-17)
  * cálculo do resultado/classificação (AVA-20..AVA-22), marcação das
  * palavras com auditoria depois de finalizar (AVA-15, AVA-18, AVA-19),
- * consultas da avaliação e da auditoria (AVA-23, AVA-26) e cancelamento
- * (AVA-24).
+ * consultas da avaliação e da auditoria (AVA-23, AVA-26), cancelamento
+ * (AVA-24) e envio/download do áudio (AVA-27..AVA-32).
  */
 @Service
 public class AvaliacaoService {
@@ -72,6 +76,8 @@ public class AvaliacaoService {
     private final ContextoUsuarioPort contextoUsuario;
     private final RegraClassificacaoService regraClassificacaoService;
     private final AvaliacaoAuditoriaRepository avaliacaoAuditoriaRepository;
+    private final AvaliacaoAudioRepository avaliacaoAudioRepository;
+    private final AudioStoragePort audioStoragePort;
 
     public AvaliacaoService(
             AvaliacaoRepository avaliacaoRepository,
@@ -83,7 +89,9 @@ public class AvaliacaoService {
             PertencimentoProfessorGuard pertencimentoProfessorGuard,
             ContextoUsuarioPort contextoUsuario,
             RegraClassificacaoService regraClassificacaoService,
-            AvaliacaoAuditoriaRepository avaliacaoAuditoriaRepository) {
+            AvaliacaoAuditoriaRepository avaliacaoAuditoriaRepository,
+            AvaliacaoAudioRepository avaliacaoAudioRepository,
+            AudioStoragePort audioStoragePort) {
         this.avaliacaoRepository = avaliacaoRepository;
         this.matriculaRepository = matriculaRepository;
         this.anoLetivoRepository = anoLetivoRepository;
@@ -94,6 +102,8 @@ public class AvaliacaoService {
         this.contextoUsuario = contextoUsuario;
         this.regraClassificacaoService = regraClassificacaoService;
         this.avaliacaoAuditoriaRepository = avaliacaoAuditoriaRepository;
+        this.avaliacaoAudioRepository = avaliacaoAudioRepository;
+        this.audioStoragePort = audioStoragePort;
     }
 
     /**
@@ -336,6 +346,69 @@ public class AvaliacaoService {
     public List<AvaliacaoAuditoria> consultarAuditoria(Long id) {
         carregar(id);
         return avaliacaoAuditoriaRepository.findByAvaliacaoIdOrderByDataHoraAsc(id);
+    }
+
+    /**
+     * AVA-27..AVA-30: só numa avaliação {@code FINALIZADA} e só uma vez
+     * (write-once). A checagem prévia por {@code existsByAvaliacaoId} é só
+     * uma otimização - a garantia real é a constraint {@code UNIQUE
+     * (avaliacao_id)} da migração V9 (design.md, Risks & Concerns), cuja
+     * violação nesta gravação específica vira {@link
+     * DataIntegrityViolationException}, traduzida aqui para o mesmo 409
+     * {@code AUDIO_JA_ENVIADO}. {@code AudioFormatoInvalidoException}/
+     * {@code AudioTamanhoInvalidoException} de {@link AudioStoragePort}
+     * viram 422; {@code AudioArmazenamentoException} sobe sem tratamento
+     * (500 - falha de infraestrutura, não de negócio).
+     */
+    @Transactional
+    public AvaliacaoAudio enviarAudio(Long id, byte[] conteudo, String mimeType) {
+        Avaliacao avaliacao = carregar(id);
+        if (avaliacao.getStatus() != StatusAvaliacao.FINALIZADA) {
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    "AUDIO_ENVIO_NAO_PERMITIDO",
+                    "Envio de áudio só é permitido numa avaliação finalizada",
+                    Map.of("statusAtual", avaliacao.getStatus().name()));
+        }
+        if (avaliacaoAudioRepository.existsByAvaliacaoId(id)) {
+            throw audioJaEnviado();
+        }
+
+        String referencia;
+        try {
+            referencia = audioStoragePort.armazenar(conteudo, mimeType);
+        } catch (AudioFormatoInvalidoException e) {
+            throw new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, "AUDIO_FORMATO_INVALIDO", e.getMessage());
+        } catch (AudioTamanhoInvalidoException e) {
+            throw new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, "AUDIO_TAMANHO_INVALIDO", e.getMessage());
+        }
+
+        try {
+            return avaliacaoAudioRepository.save(
+                    new AvaliacaoAudio(avaliacao, referencia, mimeType, conteudo.length));
+        } catch (DataIntegrityViolationException e) {
+            throw audioJaEnviado();
+        }
+    }
+
+    /** AVA-31, AVA-32: os bytes gravados e o {@code mimeType}; 404 se a avaliação não tiver áudio. */
+    @Transactional(readOnly = true)
+    public AudioBaixado baixarAudio(Long id) {
+        carregar(id);
+        AvaliacaoAudio audio = avaliacaoAudioRepository.findByAvaliacaoId(id)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "RECURSO_NAO_ENCONTRADO", "Avaliação sem áudio gravado"));
+        byte[] conteudo = audioStoragePort.recuperar(audio.getReferenciaArmazenamento());
+        return new AudioBaixado(conteudo, audio.getMimeType());
+    }
+
+    private BusinessException audioJaEnviado() {
+        return new BusinessException(
+                HttpStatus.CONFLICT, "AUDIO_JA_ENVIADO", "Esta avaliação já tem um áudio gravado");
+    }
+
+    /** AVA-31: os bytes do áudio e o {@code mimeType} gravado, para o {@code Content-Type} da resposta. */
+    public record AudioBaixado(byte[] conteudo, String mimeType) {
     }
 
     /**
