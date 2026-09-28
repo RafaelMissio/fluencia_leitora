@@ -327,8 +327,8 @@ T14 -> T15
 
 **Done when**:
 
-- [ ] `ListaPalavrasResponse.from(...)` inclui `texto` só quando `tipoLeitura == TEXTO_CURTO` (demais casos `null`)
-- [ ] Gate check passes: `./mvnw compile`
+- [x] `ListaPalavrasResponse.from(...)` inclui `texto` só quando `tipoLeitura == TEXTO_CURTO` (demais casos `null`)
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
