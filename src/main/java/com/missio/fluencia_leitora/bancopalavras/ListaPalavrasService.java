@@ -80,6 +80,26 @@ public class ListaPalavrasService {
         return repository.save(lista);
     }
 
+    /** PAL-10: delega ao repositório - só listas ativas da série + tipo, sem transformação extra. */
+    @Transactional(readOnly = true)
+    public List<ListaPalavrasResumoProjection> buscar(int serie, TipoLeituraCodigo tipo) {
+        return repository.buscarResumo(serie, tipo);
+    }
+
+    /** PAL-11: inclui listas inativas ("mantê-la acessível por id"). */
+    @Transactional(readOnly = true)
+    public ListaPalavras buscarPorId(Long id) {
+        return buscarExistente(id);
+    }
+
+    /** RNF006: soft-delete - seta {@code ativo=false}, nunca exclui a linha. */
+    @Transactional
+    public void inativar(Long id) {
+        ListaPalavras lista = buscarExistente(id);
+        lista.setAtivo(false);
+        repository.save(lista);
+    }
+
     /** LISTA_NAO_ENCONTRADA (404) quando o id não existe - inclui listas inativas. */
     private ListaPalavras buscarExistente(Long id) {
         return repository.findById(id)

@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -269,5 +270,64 @@ class ListaPalavrasServiceTest {
         assertEquals(1, atualizada.getItens().size());
         assertEquals("nova", atualizada.getItens().get(0).getPalavra());
         assertTrue(atualizada.getItens().stream().noneMatch(item -> item.getPalavra().startsWith("velha")));
+    }
+
+    @Test
+    void buscarDelegaAoRepositorioSemTransformacaoExtra() {
+        ListaPalavrasResumoProjection projecao = new ListaPalavrasResumoProjection() {
+            public Long getId() {
+                return 1L;
+            }
+
+            public String getNome() {
+                return "Lista Resumo";
+            }
+
+            public Long getQuantidadePalavras() {
+                return 5L;
+            }
+        };
+        when(repository.buscarResumo(2, TipoLeituraCodigo.PSEUDOPALAVRA)).thenReturn(List.of(projecao));
+
+        List<ListaPalavrasResumoProjection> resultado = service().buscar(2, TipoLeituraCodigo.PSEUDOPALAVRA);
+
+        assertEquals(1, resultado.size());
+        assertEquals("Lista Resumo", resultado.get(0).getNome());
+        assertEquals(5L, resultado.get(0).getQuantidadePalavras());
+    }
+
+    @Test
+    void buscarPorIdDeIdInexistenteLanca404ListaNaoEncontrada() {
+        when(repository.findById(99L)).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service().buscarPorId(99L));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("LISTA_NAO_ENCONTRADA", exception.getCode());
+    }
+
+    @Test
+    void buscarPorIdDeListaInativaRetornaNormalmente() {
+        ListaPalavras inativa = listaExistente(20L, 0L, "palavra");
+        inativa.setAtivo(false);
+        when(repository.findById(20L)).thenReturn(Optional.of(inativa));
+
+        ListaPalavras encontrada = service().buscarPorId(20L);
+
+        assertEquals(20L, encontrada.getId());
+        assertFalse(encontrada.isAtivo());
+    }
+
+    @Test
+    void inativarSetaAtivoFalseSemChamarDelete() {
+        ListaPalavras lista = listaExistente(21L, 0L, "palavra");
+        when(repository.findById(21L)).thenReturn(Optional.of(lista));
+
+        service().inativar(21L);
+
+        assertFalse(lista.isAtivo());
+        verify(repository).save(lista);
+        verify(repository, never()).delete(any());
+        verify(repository, never()).deleteById(any());
     }
 }

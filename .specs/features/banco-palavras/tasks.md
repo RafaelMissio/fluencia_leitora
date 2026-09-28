@@ -412,11 +412,11 @@ T14 -> T15
 
 **Done when**:
 
-- [ ] `buscar` delega ao repositório e retorna a projeção sem transformação extra
-- [ ] `buscarPorId` de um id inexistente lança 404 `LISTA_NAO_ENCONTRADA`; de uma lista inativa retorna a lista normalmente
-- [ ] `inativar` seta `ativo=false` e não remove a linha (`repository.delete` nunca chamado)
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 4 tests pass adicionados em `ListaPalavrasServiceTest`
+- [x] `buscar` delega ao repositório e retorna a projeção sem transformação extra
+- [x] `buscarPorId` de um id inexistente lança 404 `LISTA_NAO_ENCONTRADA`; de uma lista inativa retorna a lista normalmente
+- [x] `inativar` seta `ativo=false` e não remove a linha (`repository.delete` nunca chamado)
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 4 tests pass adicionados em `ListaPalavrasServiceTest`
 
 **Tests**: unit
 **Gate**: quick
