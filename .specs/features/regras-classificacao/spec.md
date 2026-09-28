@@ -119,8 +119,8 @@ O aluno é classificado em Pré-Leitor (níveis 1–4), Leitor Iniciante ou Leit
 
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
-| REG-01 | P1: Seed das faixas do 1º ano | - | Pending |
-| REG-02 | P1: Seed das faixas do 2º ao 5º ano | - | Pending |
+| REG-01 | P1: Seed das faixas do 1º ano | T3 | Implementing |
+| REG-02 | P1: Seed das faixas do 2º ao 5º ano | T3 | Implementing |
 | REG-03 | P1: Classificação usa só faixas ativas | - | Pending |
 | REG-04 | P1: Mesma regra para os 3 tipos | - | Pending |
 | REG-05 | P1: Sem classificação quando não há cobertura | - | Pending |

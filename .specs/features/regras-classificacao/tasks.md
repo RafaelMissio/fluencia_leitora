@@ -169,10 +169,10 @@ T13 -> T14
 
 **Done when**:
 
-- [ ] `regra_classificacao` criada exatamente como no `design.md` (incluindo `ck_regra_classificacao_serie`, `ck_regra_classificacao_minima`, `ck_regra_classificacao_intervalo`, `ck_regra_classificacao_nivel`, `fk_regra_classificacao_usuario`, `idx_regra_classificacao_filtro`)
-- [ ] Seed grava exatamente as faixas da série 1 (6 linhas) e as mesmas faixas para as séries 2, 3, 4 e 5 (6 linhas cada, 24 no total) - valores conferidos contra a tabela de Assumptions do spec.md
-- [ ] Aplicação sobe sem erro de migração (`./mvnw compile` + contexto Spring Boot inicia num teste de integração já existente, ex. `FluenciaLeitoraApplicationIT`)
-- [ ] Gate check passes: `./mvnw compile`
+- [x] `regra_classificacao` criada exatamente como no `design.md` (incluindo `ck_regra_classificacao_serie`, `ck_regra_classificacao_minima`, `ck_regra_classificacao_intervalo`, `ck_regra_classificacao_nivel`, `fk_regra_classificacao_usuario`, `idx_regra_classificacao_filtro`)
+- [x] Seed grava exatamente as faixas da série 1 (6 linhas) e as mesmas faixas para as séries 2, 3, 4 e 5 (6 linhas cada, 24 no total) - valores conferidos contra a tabela de Assumptions do spec.md
+- [x] Aplicação sobe sem erro de migração (`./mvnw compile` + contexto Spring Boot inicia num teste de integração já existente, ex. `FluenciaLeitoraApplicationIT`)
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
