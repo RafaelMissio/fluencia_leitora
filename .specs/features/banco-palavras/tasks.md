@@ -173,9 +173,9 @@ T14 -> T15
 
 **Done when**:
 
-- [ ] `lista_palavras` e `item_lista_palavras` criadas exatamente como no `design.md` (incluindo `ck_lista_palavras_serie`, `idx_lista_palavras_filtro`, `fk_item_lista_palavras_lista`, `uk_item_lista_palavras_ordem`)
-- [ ] Aplicação sobe sem erro de migração (`./mvnw compile` + contexto Spring Boot inicia num teste de integração já existente, ex. `FluenciaLeitoraApplicationIT`)
-- [ ] Gate check passes: `./mvnw compile`
+- [x] `lista_palavras` e `item_lista_palavras` criadas exatamente como no `design.md` (incluindo `ck_lista_palavras_serie`, `idx_lista_palavras_filtro`, `fk_item_lista_palavras_lista`, `uk_item_lista_palavras_ordem`)
+- [x] Aplicação sobe sem erro de migração (`./mvnw compile` + contexto Spring Boot inicia num teste de integração já existente, ex. `FluenciaLeitoraApplicationIT`)
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
