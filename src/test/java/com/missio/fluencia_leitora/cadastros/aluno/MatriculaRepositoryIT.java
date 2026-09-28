@@ -11,7 +11,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -64,5 +66,28 @@ class MatriculaRepositoryIT extends IntegrationTestBase {
         assertThrows(
                 DataIntegrityViolationException.class,
                 () -> matriculaRepository.saveAndFlush(new Matricula(aluno, anoLetivo, turma, 1, null)));
+    }
+
+    @Test
+    void findByAlunoIdAndAnoLetivoIdEncontraAMatriculaDoAlunoNesseAno() {
+        AnoLetivo anoLetivo = novoAnoLetivo(2482);
+        Turma turma = turmaRepository.save(new Turma("Turma C", 1, anoLetivo, null));
+        Aluno aluno = alunoRepository.save(new Aluno("Aluno Encontrado"));
+        Matricula matricula = matriculaRepository.save(new Matricula(aluno, anoLetivo, turma, 1, null));
+
+        Optional<Matricula> encontrada = matriculaRepository.findByAlunoIdAndAnoLetivoId(aluno.getId(), anoLetivo.getId());
+
+        assertTrue(encontrada.isPresent());
+        assertEquals(matricula.getId(), encontrada.get().getId());
+    }
+
+    @Test
+    void findByAlunoIdAndAnoLetivoIdRetornaVazioSemMatriculaNesseAno() {
+        AnoLetivo anoLetivo = novoAnoLetivo(2483);
+        Aluno aluno = alunoRepository.save(new Aluno("Aluno Sem Matricula"));
+
+        Optional<Matricula> encontrada = matriculaRepository.findByAlunoIdAndAnoLetivoId(aluno.getId(), anoLetivo.getId());
+
+        assertFalse(encontrada.isPresent());
     }
 }

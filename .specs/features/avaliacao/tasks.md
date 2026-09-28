@@ -162,10 +162,10 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Método derivado adicionado, sem alterar os métodos existentes
-- [ ] Novo teste de integração: aluno com matrícula no ano encontrado; aluno sem matrícula nesse ano retorna vazio
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 2 testes novos
+- [x] Método derivado adicionado, sem alterar os métodos existentes
+- [x] Novo teste de integração: aluno com matrícula no ano encontrado; aluno sem matrícula nesse ano retorna vazio
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 2 testes novos
 
 **Tests**: integration
 **Gate**: full
