@@ -210,10 +210,10 @@ T17
 - Skill: NONE
 
 **Done when**:
-- [ ] Os seis `*ControllerIT` listados voltam a passar autenticados como `COORDENADOR`, sem 401/403 inesperado
-- [ ] Nenhuma asserção de negócio pré-existente foi enfraquecida, removida ou tornada menos específica para "consertar" o 401 - só o header de autenticação foi adicionado
-- [ ] `AlunoControllerIT` continua funcionando com `X-Perfil`/`X-Professor-Id` (inalterados) + o novo header de autenticação
-- [ ] `./mvnw verify` passa (suíte completa, sem falha de autenticação)
+- [x] Os seis `*ControllerIT` listados voltam a passar autenticados como `COORDENADOR`, sem 401/403 inesperado
+- [x] Nenhuma asserção de negócio pré-existente foi enfraquecida, removida ou tornada menos específica para "consertar" o 401 - só o header de autenticação foi adicionado
+- [x] `AlunoControllerIT` continua funcionando com `X-Perfil`/`X-Professor-Id` (inalterados) + o novo header de autenticação
+- [x] `./mvnw verify` passa (suíte completa, sem falha de autenticação)
 
 **Tests**: integration (correção de testes existentes; nenhum caso novo é exigido por esta task)
 **Gate**: full

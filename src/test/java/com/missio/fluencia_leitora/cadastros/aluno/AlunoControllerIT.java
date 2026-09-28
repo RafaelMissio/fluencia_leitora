@@ -72,7 +72,7 @@ class AlunoControllerIT extends IntegrationTestBase {
     // em vez de chamar novoAnoLetivoAtivo() duas vezes.
     private Long novoAnoLetivoAtivo() throws Exception {
         int ano = proximoAno();
-        MvcResult anoResult = mockMvc.perform(post("/api/v1/anos-letivos")
+        MvcResult anoResult = mockMvc.perform(post("/api/v1/anos-letivos").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "ano", ano,
@@ -81,7 +81,7 @@ class AlunoControllerIT extends IntegrationTestBase {
                 .andExpect(status().isCreated())
                 .andReturn();
         Long anoLetivoId = objectMapper.readTree(anoResult.getResponse().getContentAsString()).get("id").asLong();
-        mockMvc.perform(post("/api/v1/anos-letivos/" + anoLetivoId + "/ativar")).andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/anos-letivos/" + anoLetivoId + "/ativar").header("Authorization", bearerCoordenador())).andExpect(status().isOk());
         return anoLetivoId;
     }
 
@@ -89,7 +89,7 @@ class AlunoControllerIT extends IntegrationTestBase {
         Map<String, Object> payload = new java.util.HashMap<>(Map.of(
                 "nome", "Turma " + anoLetivoId + "-" + professorId, "serie", 3, "anoLetivoId", anoLetivoId));
         payload.put("professorId", professorId);
-        MvcResult turmaResult = mockMvc.perform(post("/api/v1/turmas")
+        MvcResult turmaResult = mockMvc.perform(post("/api/v1/turmas").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isCreated())
@@ -106,7 +106,7 @@ class AlunoControllerIT extends IntegrationTestBase {
     }
 
     private Long criarAluno(String nome, Long turmaId) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/v1/alunos")
+        MvcResult result = mockMvc.perform(post("/api/v1/alunos").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of("nome", nome, "turmaId", turmaId))))
                 .andExpect(status().isCreated())
@@ -119,7 +119,7 @@ class AlunoControllerIT extends IntegrationTestBase {
         Long professorId = novoProfessor("Professor Criacao");
         Long turmaId = novaTurmaAtiva(professorId);
 
-        mockMvc.perform(post("/api/v1/alunos")
+        mockMvc.perform(post("/api/v1/alunos").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of("nome", "Aluno Criado", "turmaId", turmaId))))
                 .andExpect(status().isCreated())
@@ -134,7 +134,7 @@ class AlunoControllerIT extends IntegrationTestBase {
         criarAluno("João Busca Silva", turmaId);
         criarAluno("Joana Busca", turmaId);
 
-        mockMvc.perform(get("/api/v1/alunos").param("nome", "joao busca"))
+        mockMvc.perform(get("/api/v1/alunos").header("Authorization", bearerCoordenador()).param("nome", "joao busca"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].nome").value("João Busca Silva"))
@@ -147,7 +147,7 @@ class AlunoControllerIT extends IntegrationTestBase {
 
     @Test
     void getComTermoCurtoRetorna422() throws Exception {
-        mockMvc.perform(get("/api/v1/alunos").param("nome", "a")).andExpect(status().isUnprocessableEntity());
+        mockMvc.perform(get("/api/v1/alunos").header("Authorization", bearerCoordenador()).param("nome", "a")).andExpect(status().isUnprocessableEntity());
     }
 
     @Test
@@ -160,7 +160,7 @@ class AlunoControllerIT extends IntegrationTestBase {
         criarAluno("Escopo Aluno A", turmaA);
         criarAluno("Escopo Aluno B", turmaB);
 
-        mockMvc.perform(get("/api/v1/alunos")
+        mockMvc.perform(get("/api/v1/alunos").header("Authorization", bearerCoordenador())
                         .param("nome", "Escopo")
                         .header("X-Perfil", "PROFESSOR")
                         .header("X-Professor-Id", String.valueOf(professorA)))
@@ -176,7 +176,7 @@ class AlunoControllerIT extends IntegrationTestBase {
         Long turmaId = novaTurmaAtiva(professorId);
         Long alunoId = criarAluno("Nome Original", turmaId);
 
-        mockMvc.perform(put("/api/v1/alunos/" + alunoId)
+        mockMvc.perform(put("/api/v1/alunos/" + alunoId).header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of("nome", "Nome Alterado"))))
                 .andExpect(status().isOk())
@@ -190,7 +190,7 @@ class AlunoControllerIT extends IntegrationTestBase {
         Long alunoId = criarAluno("Nome Bloqueado", turmaId);
         when(historicoAvaliacaoPort.existeAvaliacaoNaoCancelada(alunoId)).thenReturn(true);
 
-        mockMvc.perform(put("/api/v1/alunos/" + alunoId)
+        mockMvc.perform(put("/api/v1/alunos/" + alunoId).header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of("nome", "Nome Tentativa"))))
                 .andExpect(status().isConflict())
@@ -206,7 +206,7 @@ class AlunoControllerIT extends IntegrationTestBase {
         Long turmaId = novaTurmaAtiva(professorId);
         Long alunoId = criarAluno("Aluno Para Inativar", turmaId);
 
-        mockMvc.perform(delete("/api/v1/alunos/" + alunoId)).andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/v1/alunos/" + alunoId).header("Authorization", bearerCoordenador())).andExpect(status().isNoContent());
 
         Optional<Aluno> aluno = alunoRepository.findById(alunoId);
         assertTrue(aluno.isPresent());

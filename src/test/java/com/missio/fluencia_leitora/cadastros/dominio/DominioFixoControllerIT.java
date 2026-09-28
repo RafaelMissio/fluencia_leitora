@@ -24,7 +24,7 @@ class DominioFixoControllerIT extends IntegrationTestBase {
 
     @Test
     void getCiclosRetornaOsTresCiclosDoSeedNaOrdem() throws Exception {
-        mockMvc.perform(get("/api/v1/ciclos"))
+        mockMvc.perform(get("/api/v1/ciclos").header("Authorization", bearerCoordenador()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(3))
                 .andExpect(jsonPath("$[0].codigo").value("ENTRADA"))
@@ -37,7 +37,7 @@ class DominioFixoControllerIT extends IntegrationTestBase {
 
     @Test
     void getTiposLeituraRetornaOsTresTiposDoSeedNaOrdem() throws Exception {
-        mockMvc.perform(get("/api/v1/tipos-leitura"))
+        mockMvc.perform(get("/api/v1/tipos-leitura").header("Authorization", bearerCoordenador()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(3))
                 .andExpect(jsonPath("$[0].codigo").value("PALAVRA"))
@@ -50,7 +50,7 @@ class DominioFixoControllerIT extends IntegrationTestBase {
 
     @Test
     void postEmCiclosRetorna405() throws Exception {
-        mockMvc.perform(post("/api/v1/ciclos"))
+        mockMvc.perform(post("/api/v1/ciclos").header("Authorization", bearerCoordenador()))
                 .andExpect(status().isMethodNotAllowed());
     }
 }

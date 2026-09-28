@@ -1,5 +1,10 @@
 package com.missio.fluencia_leitora.support;
 
+import com.missio.fluencia_leitora.autenticacao.Usuario;
+import com.missio.fluencia_leitora.autenticacao.UsuarioRepository;
+import com.missio.fluencia_leitora.common.security.JwtService;
+import com.missio.fluencia_leitora.common.security.Perfil;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -37,5 +42,26 @@ public abstract class IntegrationTestBase {
         registry.add("spring.datasource.username", mysql::getUsername);
         registry.add("spring.datasource.password", mysql::getPassword);
         registry.add("APP_JWT_SECRET", () -> "segredo-de-integracao-com-mais-de-32-bytes");
+    }
+
+    private static final String EMAIL_COORDENADOR_TESTE = "coordenador.it@escola.com";
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private JwtService jwtService;
+
+    /**
+     * Valor do header {@code Authorization} de um COORDENADOR de teste, com um
+     * JWT real emitido pelo {@link JwtService}. O usuário é criado na primeira
+     * chamada; a senha nunca é usada (o login não passa por aqui), por isso o
+     * hash é um valor fixo.
+     */
+    protected String bearerCoordenador() {
+        Usuario coordenador = usuarioRepository.findByEmailIgnoreCase(EMAIL_COORDENADOR_TESTE)
+                .orElseGet(() -> usuarioRepository.save(
+                        new Usuario(EMAIL_COORDENADOR_TESTE, "hash-nao-usado", Perfil.COORDENADOR, null)));
+        return "Bearer " + jwtService.emitir(coordenador.getId());
     }
 }

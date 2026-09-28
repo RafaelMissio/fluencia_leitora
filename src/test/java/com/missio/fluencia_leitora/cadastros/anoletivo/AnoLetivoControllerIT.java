@@ -61,7 +61,7 @@ class AnoLetivoControllerIT extends IntegrationTestBase {
     }
 
     private Long criarAnoLetivo(int ano) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/v1/anos-letivos")
+        MvcResult result = mockMvc.perform(post("/api/v1/anos-letivos").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(criarAnoLetivoPayload(ano)))
                 .andExpect(status().isCreated())
@@ -92,7 +92,7 @@ class AnoLetivoControllerIT extends IntegrationTestBase {
         int ano = proximoAno();
         criarAnoLetivo(ano);
 
-        mockMvc.perform(post("/api/v1/anos-letivos")
+        mockMvc.perform(post("/api/v1/anos-letivos").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(criarAnoLetivoPayload(ano)))
                 .andExpect(status().isConflict())
@@ -105,7 +105,7 @@ class AnoLetivoControllerIT extends IntegrationTestBase {
                 "ano", 1999,
                 "dataInicio", "1999-02-01",
                 "dataFim", "1999-12-15"));
-        mockMvc.perform(post("/api/v1/anos-letivos").contentType("application/json").content(anoForaDaFaixa))
+        mockMvc.perform(post("/api/v1/anos-letivos").header("Authorization", bearerCoordenador()).contentType("application/json").content(anoForaDaFaixa))
                 .andExpect(status().isUnprocessableEntity());
 
         int ano = proximoAno();
@@ -113,7 +113,7 @@ class AnoLetivoControllerIT extends IntegrationTestBase {
                 "ano", ano,
                 "dataInicio", "%d-12-15".formatted(ano),
                 "dataFim", "%d-02-01".formatted(ano)));
-        mockMvc.perform(post("/api/v1/anos-letivos")
+        mockMvc.perform(post("/api/v1/anos-letivos").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(dataFimAnteriorADataInicio))
                 .andExpect(status().isUnprocessableEntity());
@@ -122,10 +122,10 @@ class AnoLetivoControllerIT extends IntegrationTestBase {
     @Test
     void postAtivarEncerraOAtivoAnteriorEAtivaONovo() throws Exception {
         Long idAntigo = criarAnoLetivo(proximoAno());
-        mockMvc.perform(post("/api/v1/anos-letivos/" + idAntigo + "/ativar")).andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/anos-letivos/" + idAntigo + "/ativar").header("Authorization", bearerCoordenador())).andExpect(status().isOk());
 
         Long idNovo = criarAnoLetivo(proximoAno());
-        mockMvc.perform(post("/api/v1/anos-letivos/" + idNovo + "/ativar"))
+        mockMvc.perform(post("/api/v1/anos-letivos/" + idNovo + "/ativar").header("Authorization", bearerCoordenador()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.situacao").value("ATIVO"));
 
@@ -140,7 +140,7 @@ class AnoLetivoControllerIT extends IntegrationTestBase {
                 "quantidadeMinima", 10,
                 "quantidadeMaxima", 25));
 
-        mockMvc.perform(put("/api/v1/anos-letivos/" + id + "/configuracoes/1")
+        mockMvc.perform(put("/api/v1/anos-letivos/" + id + "/configuracoes/1").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(payload))
                 .andExpect(status().isOk())
@@ -155,7 +155,7 @@ class AnoLetivoControllerIT extends IntegrationTestBase {
                 "quantidadeMinima", 30,
                 "quantidadeMaxima", 20));
 
-        mockMvc.perform(put("/api/v1/anos-letivos/" + id + "/configuracoes/1")
+        mockMvc.perform(put("/api/v1/anos-letivos/" + id + "/configuracoes/1").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(payloadInvalido))
                 .andExpect(status().isUnprocessableEntity())
@@ -171,7 +171,7 @@ class AnoLetivoControllerIT extends IntegrationTestBase {
     void deleteRetorna204EMantemALinhaComAtivoFalse() throws Exception {
         Long id = criarAnoLetivo(proximoAno());
 
-        mockMvc.perform(delete("/api/v1/anos-letivos/" + id)).andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/v1/anos-letivos/" + id).header("Authorization", bearerCoordenador())).andExpect(status().isNoContent());
 
         Optional<AnoLetivo> anoLetivo = anoLetivoRepository.findById(id);
         assertTrue(anoLetivo.isPresent());
@@ -210,7 +210,7 @@ class AnoLetivoControllerIT extends IntegrationTestBase {
 
     private MockHttpServletResponse putConfiguracao(Long id, String payload, CyclicBarrier barrier) throws Exception {
         barrier.await();
-        return mockMvc.perform(put("/api/v1/anos-letivos/" + id + "/configuracoes/1")
+        return mockMvc.perform(put("/api/v1/anos-letivos/" + id + "/configuracoes/1").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(payload))
                 .andReturn()

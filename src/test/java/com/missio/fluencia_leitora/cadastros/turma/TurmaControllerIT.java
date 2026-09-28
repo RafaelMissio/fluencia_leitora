@@ -52,7 +52,7 @@ class TurmaControllerIT extends IntegrationTestBase {
 
     private Long novoAnoLetivo() throws Exception {
         int ano = proximoAno();
-        MvcResult result = mockMvc.perform(post("/api/v1/anos-letivos")
+        MvcResult result = mockMvc.perform(post("/api/v1/anos-letivos").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "ano", ano,
@@ -81,7 +81,7 @@ class TurmaControllerIT extends IntegrationTestBase {
         Long anoLetivoId = novoAnoLetivo();
         Long professorId = novoProfessor("Maria Silva");
 
-        mockMvc.perform(post("/api/v1/turmas")
+        mockMvc.perform(post("/api/v1/turmas").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(turmaPayload("Turma A", 3, anoLetivoId, professorId)))
                 .andExpect(status().isCreated())
@@ -95,12 +95,12 @@ class TurmaControllerIT extends IntegrationTestBase {
     @Test
     void postComNomeDuplicadoNoMesmoAnoRetorna409() throws Exception {
         Long anoLetivoId = novoAnoLetivo();
-        mockMvc.perform(post("/api/v1/turmas")
+        mockMvc.perform(post("/api/v1/turmas").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(turmaPayload("Turma B", 1, anoLetivoId, null)))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(post("/api/v1/turmas")
+        mockMvc.perform(post("/api/v1/turmas").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(turmaPayload("turma b", 2, anoLetivoId, null)))
                 .andExpect(status().isConflict())
@@ -109,7 +109,7 @@ class TurmaControllerIT extends IntegrationTestBase {
 
     @Test
     void postComAnoLetivoInexistenteRetorna422() throws Exception {
-        mockMvc.perform(post("/api/v1/turmas")
+        mockMvc.perform(post("/api/v1/turmas").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(turmaPayload("Turma C", 1, 999999L, null)))
                 .andExpect(status().isUnprocessableEntity())
@@ -121,14 +121,14 @@ class TurmaControllerIT extends IntegrationTestBase {
         Long anoLetivoId = novoAnoLetivo();
         Long professorOriginal = novoProfessor("Original");
         Long novoProfessorId = novoProfessor("Substituto");
-        MvcResult result = mockMvc.perform(post("/api/v1/turmas")
+        MvcResult result = mockMvc.perform(post("/api/v1/turmas").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(turmaPayload("Turma D", 4, anoLetivoId, professorOriginal)))
                 .andExpect(status().isCreated())
                 .andReturn();
         Long turmaId = objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
 
-        mockMvc.perform(put("/api/v1/turmas/" + turmaId)
+        mockMvc.perform(put("/api/v1/turmas/" + turmaId).header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of("professorId", novoProfessorId))))
                 .andExpect(status().isOk())
@@ -141,14 +141,14 @@ class TurmaControllerIT extends IntegrationTestBase {
     @Test
     void deleteRetorna204EMantemALinhaComAtivoFalse() throws Exception {
         Long anoLetivoId = novoAnoLetivo();
-        MvcResult result = mockMvc.perform(post("/api/v1/turmas")
+        MvcResult result = mockMvc.perform(post("/api/v1/turmas").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(turmaPayload("Turma E", 5, anoLetivoId, null)))
                 .andExpect(status().isCreated())
                 .andReturn();
         Long turmaId = objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
 
-        mockMvc.perform(delete("/api/v1/turmas/" + turmaId)).andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/v1/turmas/" + turmaId).header("Authorization", bearerCoordenador())).andExpect(status().isNoContent());
 
         Optional<Turma> turma = turmaRepository.findById(turmaId);
         assertTrue(turma.isPresent());

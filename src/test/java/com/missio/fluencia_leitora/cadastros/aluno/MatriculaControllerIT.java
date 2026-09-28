@@ -56,7 +56,7 @@ class MatriculaControllerIT extends IntegrationTestBase {
 
     private Long novoAnoLetivoAtivo() throws Exception {
         int ano = proximoAno();
-        MvcResult anoResult = mockMvc.perform(post("/api/v1/anos-letivos")
+        MvcResult anoResult = mockMvc.perform(post("/api/v1/anos-letivos").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "ano", ano,
@@ -65,7 +65,7 @@ class MatriculaControllerIT extends IntegrationTestBase {
                 .andExpect(status().isCreated())
                 .andReturn();
         Long anoLetivoId = objectMapper.readTree(anoResult.getResponse().getContentAsString()).get("id").asLong();
-        mockMvc.perform(post("/api/v1/anos-letivos/" + anoLetivoId + "/ativar")).andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/anos-letivos/" + anoLetivoId + "/ativar").header("Authorization", bearerCoordenador())).andExpect(status().isOk());
         return anoLetivoId;
     }
 
@@ -79,7 +79,7 @@ class MatriculaControllerIT extends IntegrationTestBase {
                 "serie", 3,
                 "anoLetivoId", anoLetivoId));
         payload.put("professorId", professorId);
-        MvcResult result = mockMvc.perform(post("/api/v1/turmas")
+        MvcResult result = mockMvc.perform(post("/api/v1/turmas").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isCreated())
@@ -88,7 +88,7 @@ class MatriculaControllerIT extends IntegrationTestBase {
     }
 
     private Long criarAluno(String nome, Long turmaId) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/v1/alunos")
+        MvcResult result = mockMvc.perform(post("/api/v1/alunos").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of("nome", nome, "turmaId", turmaId))))
                 .andExpect(status().isCreated())
@@ -103,7 +103,7 @@ class MatriculaControllerIT extends IntegrationTestBase {
         Long alunoId = criarAluno("Aluno Duas Matriculas", turma2026Id);
         Long turma2027Id = novaTurma(novoAnoLetivoAtivo(), professorId);
 
-        mockMvc.perform(post("/api/v1/alunos/" + alunoId + "/matriculas")
+        mockMvc.perform(post("/api/v1/alunos/" + alunoId + "/matriculas").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of("turmaId", turma2027Id))))
                 .andExpect(status().isCreated())
@@ -121,7 +121,7 @@ class MatriculaControllerIT extends IntegrationTestBase {
         Long outraTurmaId = novaTurma(anoLetivoId, professorId);
         Long alunoId = criarAluno("Aluno Duplicado", turmaId);
 
-        mockMvc.perform(post("/api/v1/alunos/" + alunoId + "/matriculas")
+        mockMvc.perform(post("/api/v1/alunos/" + alunoId + "/matriculas").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of("turmaId", outraTurmaId))))
                 .andExpect(status().isConflict())
@@ -138,7 +138,7 @@ class MatriculaControllerIT extends IntegrationTestBase {
         Long alunoId = criarAluno("Aluno Patch", turmaOriginal);
         Long matriculaId = matriculaRepository.findByAlunoId(alunoId).get(0).getId();
 
-        mockMvc.perform(patch("/api/v1/matriculas/" + matriculaId)
+        mockMvc.perform(patch("/api/v1/matriculas/" + matriculaId).header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(
                                 Map.of("professorId", professorNovo, "turmaId", turmaNova))))
@@ -157,7 +157,7 @@ class MatriculaControllerIT extends IntegrationTestBase {
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("anoFinalizado", true);
-        mockMvc.perform(patch("/api/v1/matriculas/" + matriculaId)
+        mockMvc.perform(patch("/api/v1/matriculas/" + matriculaId).header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isOk())

@@ -54,7 +54,7 @@ class ProfessorControllerIT extends IntegrationTestBase {
     }
 
     private Long criarProfessor(String nome) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/v1/professores")
+        MvcResult result = mockMvc.perform(post("/api/v1/professores").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of("nome", nome))))
                 .andExpect(status().isCreated())
@@ -64,7 +64,7 @@ class ProfessorControllerIT extends IntegrationTestBase {
 
     @Test
     void postCriaProfessorComSucesso() throws Exception {
-        mockMvc.perform(post("/api/v1/professores")
+        mockMvc.perform(post("/api/v1/professores").header("Authorization", bearerCoordenador())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(Map.of("nome", "Maria Silva"))))
                 .andExpect(status().isCreated())
@@ -83,7 +83,7 @@ class ProfessorControllerIT extends IntegrationTestBase {
         turmaInativa.setAtivo(false);
         turmaRepository.save(turmaInativa);
 
-        mockMvc.perform(get("/api/v1/professores/" + professorId))
+        mockMvc.perform(get("/api/v1/professores/" + professorId).header("Authorization", bearerCoordenador()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.turmas.length()").value(1))
                 .andExpect(jsonPath("$.turmas[0].nome").value("Turma A"));
@@ -93,7 +93,7 @@ class ProfessorControllerIT extends IntegrationTestBase {
     void deleteRetorna204EMantemALinhaComAtivoFalseQuandoSemTurmaAtiva() throws Exception {
         Long professorId = criarProfessor("Sem Turma");
 
-        mockMvc.perform(delete("/api/v1/professores/" + professorId)).andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/v1/professores/" + professorId).header("Authorization", bearerCoordenador())).andExpect(status().isNoContent());
 
         Optional<Professor> professor = professorRepository.findById(professorId);
         assertTrue(professor.isPresent());
@@ -108,7 +108,7 @@ class ProfessorControllerIT extends IntegrationTestBase {
         Professor professor = professorRepository.findById(professorId).orElseThrow();
         turmaRepository.save(new Turma("Turma C", 1, anoLetivo, professor));
 
-        mockMvc.perform(delete("/api/v1/professores/" + professorId))
+        mockMvc.perform(delete("/api/v1/professores/" + professorId).header("Authorization", bearerCoordenador()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("PROFESSOR_COM_TURMA_ATIVA"));
 
