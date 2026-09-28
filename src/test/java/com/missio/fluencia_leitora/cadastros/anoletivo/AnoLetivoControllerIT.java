@@ -1,6 +1,12 @@
 package com.missio.fluencia_leitora.cadastros.anoletivo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.missio.fluencia_leitora.autenticacao.Usuario;
+import com.missio.fluencia_leitora.autenticacao.UsuarioRepository;
+import com.missio.fluencia_leitora.cadastros.professor.Professor;
+import com.missio.fluencia_leitora.cadastros.professor.ProfessorRepository;
+import com.missio.fluencia_leitora.common.security.JwtService;
+import com.missio.fluencia_leitora.common.security.Perfil;
 import com.missio.fluencia_leitora.support.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +18,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,7 +35,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * CAD-01/CAD-02/CAD-03/CAD-04/CAD-06/CAD-19/CAD-20: exercises the whole
- * AnoLetivoController surface against real MySQL.
+ * AnoLetivoController surface against real MySQL. AUTH-07: PROFESSOR gets
+ * 403 on every write endpoint.
  */
 @AutoConfigureMockMvc
 class AnoLetivoControllerIT extends IntegrationTestBase {
@@ -43,6 +51,15 @@ class AnoLetivoControllerIT extends IntegrationTestBase {
 
     @Autowired
     private ConfiguracaoAvaliacaoRepository configuracaoAvaliacaoRepository;
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private ProfessorRepository professorRepository;
+
+    @Autowired
+    private JwtService jwtService;
 
     // static: JUnit creates a fresh test instance per @Test method, but every
     // method shares the same (non-rolled-back) database, so the counter must
@@ -206,6 +223,36 @@ class AnoLetivoControllerIT extends IntegrationTestBase {
         } finally {
             executor.shutdown();
         }
+    }
+
+    @Test
+    void professorRecebe403EmTodosOsEndpointsDeEscritaSemAlterarNada() throws Exception {
+        Professor professor = professorRepository.save(new Professor("Professor Ano Letivo"));
+        Usuario usuario = usuarioRepository.save(new Usuario(
+                "prof-" + UUID.randomUUID() + "@escola.com", "hash-nao-usado", Perfil.PROFESSOR, professor.getId()));
+        String bearerProfessor = "Bearer " + jwtService.emitir(usuario.getId());
+        int anoNaoCriado = proximoAno();
+        Long id = criarAnoLetivo(proximoAno());
+
+        mockMvc.perform(post("/api/v1/anos-letivos").header("Authorization", bearerProfessor)
+                        .contentType("application/json")
+                        .content(criarAnoLetivoPayload(anoNaoCriado)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"));
+        mockMvc.perform(post("/api/v1/anos-letivos/" + id + "/ativar").header("Authorization", bearerProfessor))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(put("/api/v1/anos-letivos/" + id + "/configuracoes/1").header("Authorization", bearerProfessor)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of("quantidadeMinima", 10, "quantidadeMaxima", 25))))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(delete("/api/v1/anos-letivos/" + id).header("Authorization", bearerProfessor))
+                .andExpect(status().isForbidden());
+
+        assertFalse(anoLetivoRepository.existsByAno(anoNaoCriado));
+        AnoLetivo anoLetivo = anoLetivoRepository.findById(id).orElseThrow();
+        assertTrue(anoLetivo.isAtivo());
+        assertTrue(anoLetivo.getSituacao() != SituacaoAnoLetivo.ATIVO);
+        assertEquals(15, configuracaoAvaliacaoRepository.findByAnoLetivoIdAndSerie(id, 1).orElseThrow().getQuantidadeMinima());
     }
 
     private MockHttpServletResponse putConfiguracao(Long id, String payload, CyclicBarrier barrier) throws Exception {

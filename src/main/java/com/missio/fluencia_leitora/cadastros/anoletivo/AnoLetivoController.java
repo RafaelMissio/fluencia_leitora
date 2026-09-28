@@ -6,6 +6,7 @@ import com.missio.fluencia_leitora.cadastros.anoletivo.dto.ConfiguracaoAvaliacao
 import com.missio.fluencia_leitora.cadastros.anoletivo.dto.CriarAnoLetivoRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,7 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * CAD-01/CAD-02/CAD-03/CAD-04/CAD-06/CAD-19/CAD-20: CRUD de ano letivo,
- * ativação e configuração de palavras por série.
+ * ativação e configuração de palavras por série. Escrita restrita ao
+ * COORDENADOR (AUTH-07).
  */
 @RestController
 @RequestMapping("/api/v1/anos-letivos")
@@ -33,6 +35,7 @@ public class AnoLetivoController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('COORDENADOR')")
     @ResponseStatus(HttpStatus.CREATED)
     public AnoLetivoResponse criar(@Valid @RequestBody CriarAnoLetivoRequest request) {
         AnoLetivo criado = anoLetivoService.criar(request.ano(), request.dataInicio(), request.dataFim());
@@ -40,11 +43,13 @@ public class AnoLetivoController {
     }
 
     @PostMapping("/{id}/ativar")
+    @PreAuthorize("hasRole('COORDENADOR')")
     public AnoLetivoResponse ativar(@PathVariable Long id) {
         return AnoLetivoResponse.from(anoLetivoService.ativar(id));
     }
 
     @PutMapping("/{id}/configuracoes/{serie}")
+    @PreAuthorize("hasRole('COORDENADOR')")
     public ConfiguracaoAvaliacaoResponse atualizarConfiguracao(
             @PathVariable Long id, @PathVariable int serie, @RequestBody AtualizarConfiguracaoRequest request) {
         ConfiguracaoAvaliacao atualizada = configuracaoAvaliacaoService.atualizar(
@@ -53,6 +58,7 @@ public class AnoLetivoController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('COORDENADOR')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void inativar(@PathVariable Long id) {
         anoLetivoService.inativar(id);

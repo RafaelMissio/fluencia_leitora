@@ -410,10 +410,10 @@ T17
 - Skill: NONE
 
 **Done when**:
-- [ ] Token de PROFESSOR em qualquer endpoint de escrita de ano letivo → 403
-- [ ] Token de COORDENADOR continua funcionando como antes (nenhum teste antigo quebra)
-- [ ] `./mvnw verify` passa
-- [ ] Testes existentes + pelo menos 1 novo caso de 403 por task
+- [x] Token de PROFESSOR em qualquer endpoint de escrita de ano letivo → 403
+- [x] Token de COORDENADOR continua funcionando como antes (nenhum teste antigo quebra)
+- [x] `./mvnw verify` passa (`AnoLetivoControllerIT` 9/9 e todo o resto verdes; a única falha é a pré-existente `AlunoControllerIT.getComPerfilProfessorRetornaSoAlunosDaqueleProfessor`, prevista desde a T7 e corrigida pela T16)
+- [x] Testes existentes + pelo menos 1 novo caso de 403 por task
 
 **Tests**: integration
 **Gate**: full
