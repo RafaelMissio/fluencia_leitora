@@ -73,6 +73,16 @@ public class AlunoService {
         return pagina.map(aluno -> new AlunoBusca(aluno, matriculaAtivaDe(aluno.getId())));
     }
 
+    /**
+     * AUTH-09: aluno por id com a matrícula do ano letivo ATIVO (ou
+     * {@code null}), usada pelo controller para checar se o PROFESSOR é o dono.
+     */
+    @Transactional(readOnly = true)
+    public AlunoBusca buscarPorId(Long id) {
+        Aluno aluno = buscarAlunoExistente(id);
+        return new AlunoBusca(aluno, matriculaAtivaDe(id));
+    }
+
     private Matricula matriculaAtivaDe(Long alunoId) {
         return matriculaRepository.findByAlunoId(alunoId).stream()
                 .filter(matricula -> matricula.getAnoLetivo().getSituacao() == SituacaoAnoLetivo.ATIVO)

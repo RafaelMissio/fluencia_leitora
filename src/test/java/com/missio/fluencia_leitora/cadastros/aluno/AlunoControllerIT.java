@@ -1,12 +1,16 @@
 package com.missio.fluencia_leitora.cadastros.aluno;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.missio.fluencia_leitora.autenticacao.Usuario;
+import com.missio.fluencia_leitora.autenticacao.UsuarioRepository;
 import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivo;
 import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivoRepository;
 import com.missio.fluencia_leitora.cadastros.professor.Professor;
 import com.missio.fluencia_leitora.cadastros.professor.ProfessorRepository;
 import com.missio.fluencia_leitora.cadastros.turma.Turma;
 import com.missio.fluencia_leitora.cadastros.turma.TurmaRepository;
+import com.missio.fluencia_leitora.common.security.JwtService;
+import com.missio.fluencia_leitora.common.security.Perfil;
 import com.missio.fluencia_leitora.support.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +21,9 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
@@ -29,8 +35,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * CAD-11/CAD-15/CAD-16/CAD-19: exercises the whole AlunoController surface
- * against real MySQL.
+ * CAD-11/CAD-15/CAD-16/CAD-19 + AUTH-07/AUTH-09: exercises the whole
+ * AlunoController surface against real MySQL, authenticating each profile
+ * with a real JWT (no more X-Perfil/X-Professor-Id headers). PROFESSOR gets
+ * 403 on writes; GET /alunos/{id} answers 200 to COORDENADOR and to the
+ * owning PROFESSOR, and 404 to any other PROFESSOR.
  */
 @AutoConfigureMockMvc
 class AlunoControllerIT extends IntegrationTestBase {
@@ -51,6 +60,12 @@ class AlunoControllerIT extends IntegrationTestBase {
 
     @Autowired
     private AlunoRepository alunoRepository;
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private JwtService jwtService;
 
     @MockitoBean
     private HistoricoAvaliacaoPort historicoAvaliacaoPort;
@@ -103,6 +118,13 @@ class AlunoControllerIT extends IntegrationTestBase {
 
     private Long novoProfessor(String nome) {
         return professorRepository.save(new Professor(nome)).getId();
+    }
+
+    /** Authorization header of a real PROFESSOR user linked to {@code professorId}. */
+    private String bearerProfessor(Long professorId) {
+        Usuario usuario = usuarioRepository.save(new Usuario(
+                "prof-" + UUID.randomUUID() + "@escola.com", "hash-nao-usado", Perfil.PROFESSOR, professorId));
+        return "Bearer " + jwtService.emitir(usuario.getId());
     }
 
     private Long criarAluno(String nome, Long turmaId) throws Exception {
@@ -160,10 +182,8 @@ class AlunoControllerIT extends IntegrationTestBase {
         criarAluno("Escopo Aluno A", turmaA);
         criarAluno("Escopo Aluno B", turmaB);
 
-        mockMvc.perform(get("/api/v1/alunos").header("Authorization", bearerCoordenador())
-                        .param("nome", "Escopo")
-                        .header("X-Perfil", "PROFESSOR")
-                        .header("X-Professor-Id", String.valueOf(professorA)))
+        mockMvc.perform(get("/api/v1/alunos").header("Authorization", bearerProfessor(professorA))
+                        .param("nome", "Escopo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].nome").value("Escopo Aluno A"));
@@ -211,5 +231,68 @@ class AlunoControllerIT extends IntegrationTestBase {
         Optional<Aluno> aluno = alunoRepository.findById(alunoId);
         assertTrue(aluno.isPresent());
         assertFalse(aluno.get().isAtivo());
+    }
+
+    @Test
+    void professorRecebe403EmPostPutEDeleteSemAlterarNada() throws Exception {
+        Long professorId = novoProfessor("Professor Sem Escrita");
+        Long turmaId = novaTurmaAtiva(professorId);
+        Long alunoId = criarAluno("Aluno Intocado", turmaId);
+        String bearerProfessor = bearerProfessor(professorId);
+        long totalAntes = alunoRepository.count();
+
+        mockMvc.perform(post("/api/v1/alunos").header("Authorization", bearerProfessor)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of("nome", "Aluno Proibido", "turmaId", turmaId))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"));
+        mockMvc.perform(put("/api/v1/alunos/" + alunoId).header("Authorization", bearerProfessor)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of("nome", "Nome Proibido"))))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(delete("/api/v1/alunos/" + alunoId).header("Authorization", bearerProfessor))
+                .andExpect(status().isForbidden());
+
+        assertEquals(totalAntes, alunoRepository.count());
+        Aluno aluno = alunoRepository.findById(alunoId).orElseThrow();
+        assertEquals("Aluno Intocado", aluno.getNome());
+        assertTrue(aluno.isAtivo());
+    }
+
+    @Test
+    void getPorIdComCoordenadorRetorna200ParaQualquerAluno() throws Exception {
+        Long professorId = novoProfessor("Professor Qualquer");
+        Long alunoId = criarAluno("Aluno Do Coordenador", novaTurmaAtiva(professorId));
+
+        mockMvc.perform(get("/api/v1/alunos/" + alunoId).header("Authorization", bearerCoordenador()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.alunoId").value(alunoId))
+                .andExpect(jsonPath("$.nome").value("Aluno Do Coordenador"))
+                .andExpect(jsonPath("$.professor").value("Professor Qualquer"));
+    }
+
+    @Test
+    void getPorIdComProfessorDonoDaMatriculaAtivaRetorna200() throws Exception {
+        Long professorDono = novoProfessor("Professor Dono");
+        Long alunoId = criarAluno("Aluno Do Dono", novaTurmaAtiva(professorDono));
+
+        mockMvc.perform(get("/api/v1/alunos/" + alunoId).header("Authorization", bearerProfessor(professorDono)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.alunoId").value(alunoId))
+                .andExpect(jsonPath("$.nome").value("Aluno Do Dono"));
+    }
+
+    @Test
+    void getPorIdComProfessorQueNaoEDonoRetorna404() throws Exception {
+        Long professorDono = novoProfessor("Professor Dono Real");
+        Long outroProfessor = novoProfessor("Professor Intruso");
+        Long anoLetivoAtivo = novoAnoLetivoAtivo();
+        novaTurma(anoLetivoAtivo, outroProfessor);
+        Long alunoId = criarAluno("Aluno Alheio", novaTurma(anoLetivoAtivo, professorDono));
+
+        mockMvc.perform(get("/api/v1/alunos/" + alunoId).header("Authorization", bearerProfessor(outroProfessor)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"))
+                .andExpect(jsonPath("$.nome").doesNotExist());
     }
 }

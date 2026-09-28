@@ -460,13 +460,13 @@ T17
 - Skill: NONE
 
 **Done when**:
-- [ ] Token de PROFESSOR em `POST`/`PUT`/`DELETE` de aluno → 403
-- [ ] `GET /alunos/{id}` com token de COORDENADOR → 200 para qualquer aluno
-- [ ] `GET /alunos/{id}` com token de PROFESSOR dono do aluno (via matrícula ativa) → 200
-- [ ] `GET /alunos/{id}` com token de PROFESSOR que não é o dono → 404
-- [ ] Todos os testes antigos de `AlunoControllerIT` continuam passando, agora com JWT real por perfil em vez de headers
-- [ ] `./mvnw verify` passa
-- [ ] Testes existentes + pelo menos 4 novos casos (403 escrita, 200 coordenador, 200 dono, 404 não-dono)
+- [x] Token de PROFESSOR em `POST`/`PUT`/`DELETE` de aluno → 403
+- [x] `GET /alunos/{id}` com token de COORDENADOR → 200 para qualquer aluno
+- [x] `GET /alunos/{id}` com token de PROFESSOR dono do aluno (via matrícula ativa) → 200
+- [x] `GET /alunos/{id}` com token de PROFESSOR que não é o dono → 404
+- [x] Todos os testes antigos de `AlunoControllerIT` continuam passando, agora com JWT real por perfil em vez de headers
+- [x] `./mvnw verify` passa (suíte completa verde: 71 unit + 69 IT, JaCoCo ok; a falha interina da T7 em `AlunoControllerIT` foi resolvida)
+- [x] Testes existentes + pelo menos 4 novos casos (403 escrita, 200 coordenador, 200 dono, 404 não-dono)
 
 **Tests**: integration
 **Gate**: full
