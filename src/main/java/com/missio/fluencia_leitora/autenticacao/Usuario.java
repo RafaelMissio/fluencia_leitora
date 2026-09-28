@@ -100,6 +100,13 @@ public class Usuario {
         this.ativo = ativo;
     }
 
+    /** AUTH-11: troca o hash da senha e desbloqueia a conta (zera falhas e bloqueio). */
+    public void redefinirSenha(String novoSenhaHash) {
+        this.senhaHash = novoSenhaHash;
+        this.tentativasFalhas = 0;
+        this.bloqueadoAte = null;
+    }
+
     public int getTentativasFalhas() {
         return tentativasFalhas;
     }

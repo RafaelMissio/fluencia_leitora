@@ -333,13 +333,15 @@ T17
 - Skill: NONE
 
 **Done when**:
-- [ ] `criar` grava com sucesso (sem retornar senha/hash)
-- [ ] PROFESSOR sem `professorId` válido/ativo → 422; COORDENADOR com `professorId` → 422
-- [ ] E-mail duplicado (case-insensitive) → 409 `EMAIL_DUPLICADO`
-- [ ] Senha < 8 caracteres → 422
-- [ ] `alterarSenha` grava o novo hash e zera o bloqueio
-- [ ] `./mvnw test` passa
-- [ ] 6 testes cobrindo os pontos acima
+- [x] `criar` grava com sucesso (sem retornar senha/hash)
+- [x] PROFESSOR sem `professorId` válido/ativo → 422; COORDENADOR com `professorId` → 422
+- [x] E-mail duplicado (case-insensitive) → 409 `EMAIL_DUPLICADO`
+- [x] Senha < 8 caracteres → 422
+- [x] `alterarSenha` grava o novo hash e zera o bloqueio
+- [x] `./mvnw test` passa
+- [x] 6 testes cobrindo os pontos acima (7: +1 para senha curta em `alterarSenha`)
+
+> SPEC_DEVIATION: `criar` recebe os campos soltos (o `CriarUsuarioRequest` só nasce na T12) e devolve `UsuarioResumo` (sem senha/hash). `Usuario.java` ganhou `redefinirSenha(hash)` (troca o hash e zera falhas/bloqueio): a entidade não tinha como alterar esses campos.
 
 **Tests**: unit
 **Gate**: quick
