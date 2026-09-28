@@ -219,7 +219,18 @@ class RegraClassificacaoControllerIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.code").value("FAIXA_NIVEL_INCOERENTE"));
     }
 
-    // --- GET /historico (T14, REG-15) - série 4, exclusiva do teste de 3 grupos abaixo. ---
+    @Test
+    void putComQuantidadeMinimaAcertosNegativaRetorna422ValidacaoInvalida() throws Exception {
+        Map<String, Object> payload = Map.of("faixas", List.of(faixa(-1, null, "LEITOR_FLUENTE", null)));
+
+        mockMvc.perform(put("/api/v1/regras-classificacao/series/1").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+    }
+
+    // --- GET /historico (T14, REG-15) ---
 
     @Test
     void historicoComProfessorRetorna200() throws Exception {
