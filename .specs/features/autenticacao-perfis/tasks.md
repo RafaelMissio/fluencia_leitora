@@ -258,11 +258,11 @@ T17
 - Skill: NONE
 
 **Done when**:
-- [ ] PROFESSOR com `professorIdDoRecurso` diferente do seu → 404
-- [ ] PROFESSOR com `professorIdDoRecurso` igual ao seu → passa sem lançar
-- [ ] COORDENADOR → passa sem lançar, independente do `professorIdDoRecurso`
-- [ ] `./mvnw test` passa
-- [ ] 3 testes cobrindo os pontos acima (com `ContextoUsuarioPort` mockado)
+- [x] PROFESSOR com `professorIdDoRecurso` diferente do seu → 404
+- [x] PROFESSOR com `professorIdDoRecurso` igual ao seu → passa sem lançar
+- [x] COORDENADOR → passa sem lançar, independente do `professorIdDoRecurso`
+- [x] `./mvnw test` passa
+- [x] 3 testes cobrindo os pontos acima (com `ContextoUsuarioPort` mockado)
 
 **Tests**: unit
 **Gate**: quick
