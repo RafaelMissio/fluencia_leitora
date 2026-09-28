@@ -302,8 +302,8 @@ T14 -> T15
 
 **Done when**:
 
-- [ ] As três classes compilam com as anotações de validação acima
-- [ ] Gate check passes: `./mvnw compile`
+- [x] As três classes compilam com as anotações de validação acima
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
