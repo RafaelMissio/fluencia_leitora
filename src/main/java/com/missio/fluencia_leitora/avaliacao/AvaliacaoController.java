@@ -1,5 +1,6 @@
 package com.missio.fluencia_leitora.avaliacao;
 
+import com.missio.fluencia_leitora.avaliacao.dto.AvaliacaoAuditoriaResponse;
 import com.missio.fluencia_leitora.avaliacao.dto.AvaliacaoResponse;
 import com.missio.fluencia_leitora.avaliacao.dto.MarcarPalavraRequest;
 import com.missio.fluencia_leitora.avaliacao.dto.MarcarPalavrasRequest;
@@ -7,6 +8,7 @@ import com.missio.fluencia_leitora.avaliacao.dto.NovaAvaliacaoRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -15,11 +17,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * AVA-01..AVA-08: criação da avaliação; AVA-09..AVA-14: transições de
- * status; AVA-15, AVA-18, AVA-19: marcação das palavras. As ações são restritas ao PROFESSOR (SDD §17). O pertencimento
- * (AUTH-09) é verificado no service, que é quem conhece a matrícula e a
- * avaliação.
+ * status; AVA-15, AVA-18, AVA-19: marcação das palavras; AVA-23, AVA-26:
+ * consultas. As ações são restritas ao PROFESSOR (SDD §17); as consultas
+ * também são abertas ao COORDENADOR. O pertencimento (AUTH-09) é
+ * verificado no service, que é quem conhece a matrícula e a avaliação.
  */
 @RestController
 @RequestMapping("/api/v1/avaliacoes")
@@ -79,5 +84,17 @@ public class AvaliacaoController {
     @PreAuthorize("hasRole('PROFESSOR')")
     public AvaliacaoResponse marcarPalavras(@PathVariable Long id, @Valid @RequestBody MarcarPalavrasRequest request) {
         return AvaliacaoResponse.from(avaliacaoService.marcarPalavras(id, request.itens()));
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
+    public AvaliacaoResponse buscar(@PathVariable Long id) {
+        return AvaliacaoResponse.from(avaliacaoService.buscar(id));
+    }
+
+    @GetMapping("/{id}/auditoria")
+    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
+    public List<AvaliacaoAuditoriaResponse> consultarAuditoria(@PathVariable Long id) {
+        return avaliacaoService.consultarAuditoria(id).stream().map(AvaliacaoAuditoriaResponse::from).toList();
     }
 }

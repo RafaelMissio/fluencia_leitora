@@ -663,11 +663,11 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] `GET /{id}` retorna config + status + cópias + palavras, e o resultado completo só quando `FINALIZADA` (teste dos dois ramos - lição L-014)
-- [ ] `GET /{id}/auditoria` acessível pelo professor dono e por COORDENADOR; professor de outro aluno recebe 404 em ambas as rotas
-- [ ] `id` inexistente → 404 em ambas
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 8 testes novos
+- [x] `GET /{id}` retorna config + status + cópias + palavras, e o resultado completo só quando `FINALIZADA` (teste dos dois ramos - lição L-014)
+- [x] `GET /{id}/auditoria` acessível pelo professor dono e por COORDENADOR; professor de outro aluno recebe 404 em ambas as rotas
+- [x] `id` inexistente → 404 em ambas
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 8 testes novos
 
 **Tests**: integration
 **Gate**: full

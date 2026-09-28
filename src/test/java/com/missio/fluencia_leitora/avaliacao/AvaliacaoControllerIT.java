@@ -60,6 +60,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -73,7 +74,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * AVA-25: rotas de transição - tabela de status inteira, efeitos de tempo e
  * reset, exemplo do SDD §13 com a seed real, finalização preguiçosa e
  * conflito de versão. AVA-15, AVA-18, AVA-19: marcação individual e em
- * lote, rollback do lote e auditoria depois de finalizar.
+ * lote, rollback do lote e auditoria depois de finalizar. AVA-23, AVA-26:
+ * consulta da avaliação (os dois ramos do resultado - lição L-014) e da
+ * auditoria, para o professor dono e o COORDENADOR.
  *
  * <p>Cada teste cria o seu próprio ano letivo e o ativa (encerrando o ativo
  * anterior - CAD-04), com período de hoje-60 a hoje+60 dias, para que
@@ -992,5 +995,182 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(put("/api/v1/avaliacoes/1/palavras").contentType("application/json").content("{\"itens\":[]}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // ---- Consultas (AVA-23, AVA-26) --------------------------------------
+
+    private ResultActions buscar(String bearer, Long id) throws Exception {
+        return mockMvc.perform(get("/api/v1/avaliacoes/" + id).header("Authorization", bearer));
+    }
+
+    private ResultActions auditoria(String bearer, Long id) throws Exception {
+        return mockMvc.perform(get("/api/v1/avaliacoes/" + id + "/auditoria").header("Authorization", bearer));
+    }
+
+    @Test
+    void getDeAvaliacaoNaoFinalizadaRetornaConfiguracaoCopiasEPalavrasSemResultado() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Matricula matricula = novaMatricula(1, professor);
+        Long id = criarAvaliacao(bearer, matricula, 15);
+        acao(bearer, id, "iniciar").andExpect(status().isOk());
+        marcar(bearer, id, 1, "CORRETA").andExpect(status().isOk());
+
+        buscar(bearer, id)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.status").value("EM_ANDAMENTO"))
+                .andExpect(jsonPath("$.alunoId").value(matricula.getAluno().getId()))
+                .andExpect(jsonPath("$.professorId").value(professor.getId()))
+                .andExpect(jsonPath("$.professorNome").value(professor.getNome()))
+                .andExpect(jsonPath("$.turmaId").value(matricula.getTurma().getId()))
+                .andExpect(jsonPath("$.turmaNome").value(matricula.getTurma().getNome()))
+                .andExpect(jsonPath("$.serie").value(1))
+                .andExpect(jsonPath("$.anoLetivoId").value(anoLetivo.getId()))
+                .andExpect(jsonPath("$.cicloId").value(cicloId))
+                .andExpect(jsonPath("$.tipoLeitura").value("PALAVRA"))
+                .andExpect(jsonPath("$.dataAvaliacao").value(hoje.toString()))
+                .andExpect(jsonPath("$.tempoConfiguradoSegundos").value(60))
+                .andExpect(jsonPath("$.quantidadeTotal").value(15))
+                .andExpect(jsonPath("$.iniciadoEm").value(notNullValue()))
+                .andExpect(jsonPath("$.palavras.length()").value(15))
+                .andExpect(jsonPath("$.palavras[0].ordem").value(1))
+                .andExpect(jsonPath("$.palavras[0].palavra").value("palavraa"))
+                .andExpect(jsonPath("$.palavras[0].status").value("CORRETA"))
+                .andExpect(jsonPath("$.palavras[1].status").value("PENDENTE"))
+                .andExpect(jsonPath("$.finalizadoEm").value(nullValue()))
+                .andExpect(jsonPath("$.tempoUtilizadoSegundos").value(nullValue()))
+                .andExpect(jsonPath("$.quantidadeCorretas").value(nullValue()))
+                .andExpect(jsonPath("$.quantidadeIncorretas").value(nullValue()))
+                .andExpect(jsonPath("$.quantidadeNaoLidas").value(nullValue()))
+                .andExpect(jsonPath("$.quantidadeLidas").value(nullValue()))
+                .andExpect(jsonPath("$.percentualAcerto").value(nullValue()))
+                .andExpect(jsonPath("$.fase").value(nullValue()))
+                .andExpect(jsonPath("$.nivel").value(nullValue()))
+                .andExpect(jsonPath("$.classificacaoPendente").value(false));
+    }
+
+    @Test
+    void getDeAvaliacaoFinalizadaRetornaOResultadoCompleto() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+        marcarLote(bearer, id, List.of(
+                        Map.of("ordem", 1, "status", "CORRETA"),
+                        Map.of("ordem", 2, "status", "CORRETA"),
+                        Map.of("ordem", 3, "status", "INCORRETA")))
+                .andExpect(status().isOk());
+        acao(bearer, id, "finalizar").andExpect(status().isOk());
+
+        buscar(bearer, id)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FINALIZADA"))
+                .andExpect(jsonPath("$.finalizadoEm").value(notNullValue()))
+                .andExpect(jsonPath("$.tempoUtilizadoSegundos").value(notNullValue()))
+                .andExpect(jsonPath("$.quantidadeTotal").value(15))
+                .andExpect(jsonPath("$.quantidadeCorretas").value(2))
+                .andExpect(jsonPath("$.quantidadeIncorretas").value(1))
+                .andExpect(jsonPath("$.quantidadeNaoLidas").value(12))
+                .andExpect(jsonPath("$.quantidadeLidas").value(3))
+                .andExpect(jsonPath("$.percentualAcerto").value(13.33))
+                .andExpect(jsonPath("$.fase").value("PRE_LEITOR"))
+                .andExpect(jsonPath("$.nivel").value(1))
+                .andExpect(jsonPath("$.classificacaoPendente").value(false))
+                .andExpect(jsonPath("$.palavras[3].status").value("NAO_LIDA"));
+    }
+
+    @Test
+    void getDeAvaliacaoEmAndamentoComTempoEsgotadoRetornaEGravaFinalizada() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+        alterar(id, avaliacao -> avaliacao.setIniciadoEm(Instant.now().minusSeconds(75)));
+
+        buscar(bearer, id)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FINALIZADA"))
+                .andExpect(jsonPath("$.tempoUtilizadoSegundos").value(60))
+                .andExpect(jsonPath("$.quantidadeNaoLidas").value(15));
+
+        assertEquals(StatusAvaliacao.FINALIZADA, avaliacaoRepository.findById(id).orElseThrow().getStatus());
+    }
+
+    @Test
+    void getComoCoordenadorRetornaAvaliacaoDeQualquerProfessor() throws Exception {
+        Professor professor = novoProfessor();
+        Long id = avaliacaoNoStatus(bearerProfessor(professor), professor, StatusAvaliacao.CRIADA);
+
+        buscar(bearerCoordenador(), id)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.professorId").value(professor.getId()));
+    }
+
+    @Test
+    void getAuditoriaDepoisDeDuasAlteracoesRetornaOsDoisRegistrosEmOrdemCronologica() throws Exception {
+        Professor professor = novoProfessor();
+        Usuario usuario = usuarioRepository.save(new Usuario(
+                "prof-aval-" + UUID.randomUUID() + "@escola.com", "hash-nao-usado", Perfil.PROFESSOR, professor.getId()));
+        String bearer = "Bearer " + jwtService.emitir(usuario.getId());
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.FINALIZADA);
+        marcar(bearer, id, 5, "CORRETA").andExpect(status().isOk());
+        marcar(bearer, id, 3, "INCORRETA").andExpect(status().isOk());
+
+        auditoria(bearer, id)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].usuario").value(usuario.getId()))
+                .andExpect(jsonPath("$[0].dataHora").value(notNullValue()))
+                .andExpect(jsonPath("$[0].acao").value("MARCACAO_PALAVRA"))
+                .andExpect(jsonPath("$[0].valorAnterior").value("palavra 5: NAO_LIDA"))
+                .andExpect(jsonPath("$[0].valorNovo").value("palavra 5: CORRETA"))
+                .andExpect(jsonPath("$[0].justificativa").value(nullValue()))
+                .andExpect(jsonPath("$[1].usuario").value(usuario.getId()))
+                .andExpect(jsonPath("$[1].acao").value("MARCACAO_PALAVRA"))
+                .andExpect(jsonPath("$[1].valorAnterior").value("palavra 3: NAO_LIDA"))
+                .andExpect(jsonPath("$[1].valorNovo").value("palavra 3: INCORRETA"));
+    }
+
+    @Test
+    void getAuditoriaComoCoordenadorRetornaOsRegistros() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.FINALIZADA);
+        marcar(bearer, id, 1, "CORRETA").andExpect(status().isOk());
+
+        auditoria(bearerCoordenador(), id)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].valorNovo").value("palavra 1: CORRETA"));
+    }
+
+    @Test
+    void getDeAvaliacaoDeOutroProfessorRetorna404NasDuasRotas() throws Exception {
+        Professor dono = novoProfessor();
+        Long id = avaliacaoNoStatus(bearerProfessor(dono), dono, StatusAvaliacao.FINALIZADA);
+        String outro = bearerProfessor(novoProfessor());
+
+        buscar(outro, id)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+        auditoria(outro, id)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+    }
+
+    @Test
+    void getDeAvaliacaoInexistenteRetorna404NasDuasRotas() throws Exception {
+        buscar(bearerCoordenador(), Long.MAX_VALUE)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+        auditoria(bearerCoordenador(), Long.MAX_VALUE)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+    }
+
+    @Test
+    void getSemAutenticacaoRetorna401NasDuasRotas() throws Exception {
+        mockMvc.perform(get("/api/v1/avaliacoes/1")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/avaliacoes/1/auditoria")).andExpect(status().isUnauthorized());
     }
 }
