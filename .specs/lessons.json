@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 25,
+  "next_id": 28,
   "lessons": [
     {
       "id": "L-001",
@@ -440,6 +440,60 @@
       ],
       "created": "2026-09-28T10:38:38Z",
       "last_seen": "2026-09-28T10:38:38Z"
+    },
+    {
+      "id": "L-025",
+      "key": "surviving_mutant::when proving a pessimistic lock with two real transactions capture each transaction s completion timestamp from inside its own worker thread not from the main thread s sequential future get calls per thread nanotime monotonicity makes back to back get then nanotime comparisons pass regardless of whether blocking occurred",
+      "text": "When proving a pessimistic lock with two real transactions, capture each transaction's completion timestamp from inside its own worker thread, not from the main thread's sequential Future.get() calls - per-thread nanoTime monotonicity makes back-to-back get()-then-nanoTime() comparisons pass regardless of whether blocking occurred.",
+      "signal": "surviving_mutant",
+      "scope": "concurrency-tests",
+      "status": "candidate",
+      "features": [
+        "regras-classificacao"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/test/java/com/missio/fluencia_leitora/regrasclassificacao/RegraClassificacaoRepositoryIT.java:130,133,138 (concurrency-tests)"
+      ],
+      "created": "2026-09-28T14:25:26Z",
+      "last_seen": "2026-09-28T14:25:26Z"
+    },
+    {
+      "id": "L-026",
+      "key": "ac_gap::when a numeric field s negative value rejection is delegated entirely to a bean validation annotation instead of custom service logic still add an explicit end to end test proving the framework enforces it for that exact field",
+      "text": "When a numeric field's negative-value rejection is delegated entirely to a Bean Validation annotation instead of custom service logic, still add an explicit end-to-end test proving the framework enforces it for that exact field.",
+      "signal": "ac_gap",
+      "scope": "dto-validation",
+      "status": "candidate",
+      "features": [
+        "regras-classificacao"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md Edge Cases - quantidadeMinimaAcertos negativo (dto-validation)"
+      ],
+      "created": "2026-09-28T14:25:26Z",
+      "last_seen": "2026-09-28T14:25:26Z"
+    },
+    {
+      "id": "L-027",
+      "key": "spec_deviation::when two integration tests in the same class mutate the same shared row identifier without a guaranteed run order assert a relative before after delta instead of an absolute total and confirm no parallel execution config exists that could actually race them",
+      "text": "When two integration tests in the same class mutate the same shared row/identifier without a guaranteed run order, assert a relative before/after delta instead of an absolute total, and confirm no parallel-execution config exists that could actually race them.",
+      "signal": "spec_deviation",
+      "scope": "integration-tests",
+      "status": "candidate",
+      "features": [
+        "regras-classificacao"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "tasks.md T14 Deviations found during implementation - historicoAposDuasSubstituicoesGanhaDoisGruposNovosComOCorrentePrimeiro (integration-tests)"
+      ],
+      "created": "2026-09-28T14:25:26Z",
+      "last_seen": "2026-09-28T14:25:26Z"
     }
   ]
 }

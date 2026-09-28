@@ -9,7 +9,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/regras-classificacao/design.md`
-**Status**: In Progress
+**Status**: Done - Verifier PASS na iteração 2/3 (2026-09-28), `.specs/features/regras-classificacao/validation.md`
 
 ---
 

@@ -156,6 +156,24 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: PAL-05 vs TEXTO_CURTO zero tokens -> 201 (spec)
 - last seen: 2026-09-28T10:38:38Z
 
+### L-025 - When proving a pessimistic lock with two real transactions, capture each transaction's completion timestamp from inside its own worker thread, not from the main thread's sequential Future.get() calls - per-thread nanoTime monotonicity makes back-to-back get()-then-nanoTime() comparisons pass regardless of whether blocking occurred.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `concurrency-tests` · harmful: 0
+- features: regras-classificacao
+- evidence: src/test/java/com/missio/fluencia_leitora/regrasclassificacao/RegraClassificacaoRepositoryIT.java:130,133,138 (concurrency-tests)
+- last seen: 2026-09-28T14:25:26Z
+
+### L-026 - When a numeric field's negative-value rejection is delegated entirely to a Bean Validation annotation instead of custom service logic, still add an explicit end-to-end test proving the framework enforces it for that exact field.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `dto-validation` · harmful: 0
+- features: regras-classificacao
+- evidence: spec.md Edge Cases - quantidadeMinimaAcertos negativo (dto-validation)
+- last seen: 2026-09-28T14:25:26Z
+
+### L-027 - When two integration tests in the same class mutate the same shared row/identifier without a guaranteed run order, assert a relative before/after delta instead of an absolute total, and confirm no parallel-execution config exists that could actually race them.
+- signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `integration-tests` · harmful: 0
+- features: regras-classificacao
+- evidence: tasks.md T14 Deviations found during implementation - historicoAposDuasSubstituicoesGanhaDoisGruposNovosComOCorrentePrimeiro (integration-tests)
+- last seen: 2026-09-28T14:25:26Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

@@ -168,6 +168,7 @@ O professor precisa aplicar uma avaliação cronometrada de leitura (palavras, p
 - IF uma avaliação ficar EM_ANDAMENTO por mais de 24 horas sem nenhum comando THEN o sistema SHALL finalizá-la numa rotina agendada de hora em hora, com `tempoUtilizado = tempoConfigurado`.
 - The system SHALL NOT permitir excluir fisicamente uma avaliação (RNF006); a única forma de removê-la é o cancelamento.
 - WHEN o coordenador altera ou inativa uma `lista_palavras` depois que uma avaliação já copiou as palavras dela (AVA-01) THEN o sistema SHALL manter as palavras da avaliação inalteradas (PAL-06, `banco-palavras`; `.specs/features/banco-palavras/spec.md`) - a cópia feita na criação é a única fonte usada por essa avaliação.
+- WHEN o coordenador substitui as faixas de uma série em `regras-classificacao` THEN o sistema SHALL manter `fase` e `nivel` já gravados numa avaliação `FINALIZADA` inalterados, a menos que um recálculo seja disparado explicitamente por uma mudança de palavra (AC 6 acima) - a substituição de faixas, sozinha, não escreve em `avaliacao` (REG-14, `regras-classificacao`; `.specs/features/regras-classificacao/spec.md`).
 
 ### Tabela de status
 
