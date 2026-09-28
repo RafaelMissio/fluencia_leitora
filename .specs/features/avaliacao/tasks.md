@@ -354,8 +354,8 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Os dois repositórios existem com os métodos acima
-- [ ] Gate check passes: `./mvnw compile`
+- [x] Os dois repositórios existem com os métodos acima
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
