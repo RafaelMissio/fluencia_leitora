@@ -67,7 +67,7 @@ O sistema guarda dados de crianças e áudios de leitura, então todo acesso pre
 **Acceptance Criteria**:
 1. IF uma requisição a `/api/v1/**` (exceto `/auth/login`) vier sem token, com token inválido ou com token expirado THEN o sistema SHALL retornar 401.
 2. IF um PROFESSOR chamar um endpoint de escrita de cadastros, regras de classificação, listas de palavras ou usuários THEN o sistema SHALL retornar 403.
-3. IF um COORDENADOR chamar um endpoint de execução de avaliação (criar, transições de status, marcar palavra, enviar áudio) THEN o sistema SHALL retornar 403.
+3. IF um COORDENADOR chamar um endpoint de execução de avaliação (criar, transições de status, marcar palavra, enviar áudio) THEN o sistema SHALL retornar 403. **Deferred**: nenhum endpoint de execução de avaliação existe ainda nesta feature (`avaliacao`/`audio-avaliacao` não implementadas) - o mecanismo (`@PreAuthorize("hasRole('PROFESSOR')")`) já está comprovado por AUTH-07 (mesmo mecanismo, papel diferente); a aplicação concreta deste AC, com teste real, é tarefa das features `avaliacao`/`audio-avaliacao` (ver `.specs/features/autenticacao-perfis/design.md` linha 168).
 4. IF um PROFESSOR acessar um aluno, avaliação ou áudio cuja matrícula no ano ATIVO não tenha o `professorId` dele THEN o sistema SHALL retornar 404.
 5. IF o usuário dono do token tiver sido inativado depois da emissão THEN o sistema SHALL retornar 401 na próxima requisição.
 6. The system SHALL liberar sem autenticação apenas `/api/v1/auth/login`, `/v3/api-docs/**`, `/swagger-ui/**` e `/actuator/health`.

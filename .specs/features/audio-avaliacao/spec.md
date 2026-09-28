@@ -58,6 +58,7 @@ O áudio da leitura prova o desempenho do aluno e permite que o professor revise
 6. WHEN já existe um áudio e um novo envio é bem-sucedido THEN o sistema SHALL substituir os metadados, remover o arquivo antigo depois de confirmar a transação e gerar auditoria `AUDIO_SUBSTITUIDO` com os dois nomes de arquivo.
 7. IF gravar o arquivo em disco falhar THEN o sistema SHALL retornar 503 com código `ARMAZENAMENTO_INDISPONIVEL` e SHALL NOT gravar metadados.
 8. IF gravar os metadados no banco falhar depois de o arquivo ter sido escrito THEN o sistema SHALL remover o arquivo recém-escrito e retornar 500.
+9. IF um COORDENADOR enviar `PUT /api/v1/avaliacoes/{id}/audio` THEN o sistema SHALL retornar 403 (AUTH-08 - mecanismo `@PreAuthorize("hasRole('PROFESSOR')")` já comprovado por AUTH-07/AUTH-08 em `autenticacao-perfis`; esta feature só aplica o `@PreAuthorize` ao endpoint).
 
 **Independent Test**: Finalizar uma avaliação, enviar um webm de 100 KB e conferir os metadados e o arquivo no diretório configurado.
 
@@ -97,7 +98,7 @@ O áudio da leitura prova o desempenho do aluno e permite que o professor revise
 | Input validation & bounds | AUD-03..AUD-05 |
 | Failure / partial-failure | AUD-07, AUD-08; o arquivo antigo só é apagado depois da confirmação (AUD-06) |
 | Idempotency / duplicates | Reenviar substitui o áudio (AUD-06) |
-| Auth boundaries & rate limits | AUD-13, AUD-14; limite de tamanho (AUD-04) |
+| Auth boundaries & rate limits | AUD-13, AUD-14 (AUTH-08, AUTH-09); limite de tamanho (AUD-04) |
 | Concurrency / ordering | Lock otimista na avaliação; o arquivo órfão é removido |
 | Data lifecycle | Sem expiração (AD-003); mantido mesmo em cancelamento |
 | Observability | Log ERROR em arquivo ausente (AUD-12); log INFO em cada envio com tamanho e MIME |

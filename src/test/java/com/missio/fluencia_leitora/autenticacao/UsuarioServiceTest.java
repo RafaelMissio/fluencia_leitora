@@ -126,6 +126,21 @@ class UsuarioServiceTest {
     }
 
     @Test
+    void senhaComExatamente8CaracteresEAceita() {
+        when(usuarioRepository.findByEmailIgnoreCase(any())).thenReturn(Optional.empty());
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> {
+            Usuario usuario = invocation.getArgument(0);
+            ReflectionTestUtils.setField(usuario, "id", 1L);
+            return usuario;
+        });
+
+        UsuarioResumo resumo = service().criar("c@escola.com", "12345678", Perfil.COORDENADOR, null);
+
+        assertEquals(Perfil.COORDENADOR, resumo.perfil());
+        verify(usuarioRepository).save(any(Usuario.class));
+    }
+
+    @Test
     void alterarSenhaGravaNovoHashEDesbloqueiaAConta() {
         Usuario bloqueado = new Usuario("p@escola.com", ENCODER.encode("SenhaAntiga1"), Perfil.COORDENADOR, null);
         ReflectionTestUtils.setField(bloqueado, "tentativasFalhas", 5);

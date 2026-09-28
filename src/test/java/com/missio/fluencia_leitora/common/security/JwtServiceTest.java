@@ -16,13 +16,15 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * AUTH-01/AUTH-06 + edge cases "JWT com assinatura adulterada" e
  * "APP_JWT_SECRET com menos de 32 bytes": emissão HS256 com validade de 8h,
  * validação que devolve vazio (sem lançar) para token adulterado, expirado ou
- * malformado, e falha de inicialização com segredo curto.
+ * malformado, e falha de inicialização com segredo curto (segredo de
+ * exatamente 32 bytes é o limite aceito).
  */
 class JwtServiceTest {
 
@@ -99,5 +101,16 @@ class JwtServiceTest {
                     assertInstanceOf(IllegalStateException.class, causa);
                     assertTrue(causa.getMessage().contains("APP_JWT_SECRET"));
                 });
+    }
+
+    @Test
+    void segredoComExatamente32BytesNaoFalhaAoSubir() {
+        String segredoNoLimite = "a".repeat(32);
+        assertEquals(32, segredoNoLimite.getBytes(StandardCharsets.UTF_8).length);
+
+        new ApplicationContextRunner()
+                .withUserConfiguration(JwtService.class)
+                .withPropertyValues("APP_JWT_SECRET=" + segredoNoLimite)
+                .run(context -> assertNull(context.getStartupFailure()));
     }
 }

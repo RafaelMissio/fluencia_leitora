@@ -67,7 +67,7 @@ class AdminBootstrapTest {
 
     @Test
     void bancoComUsuariosNaoFazNada() throws Exception {
-        when(usuarioRepository.count()).thenReturn(3L);
+        when(usuarioRepository.count()).thenReturn(1L);
 
         executar("admin@escola.com", "SenhaAdmin#1");
 
