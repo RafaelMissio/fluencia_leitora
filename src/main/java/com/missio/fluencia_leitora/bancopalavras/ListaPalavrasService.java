@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -203,7 +204,7 @@ public class ListaPalavrasService {
                     HttpStatus.UNPROCESSABLE_ENTITY,
                     "NAO_CANONICA_PROIBIDA_1_ANO",
                     "Lista do 1º ano não pode conter palavra não canônica",
-                    java.util.Map.of("posicoes", posicoesInvalidas));
+                    Map.of("posicoes", posicoesInvalidas));
         }
     }
 

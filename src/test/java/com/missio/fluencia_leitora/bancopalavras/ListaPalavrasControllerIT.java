@@ -13,6 +13,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import static org.hamcrest.Matchers.nullValue;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -81,6 +83,7 @@ class ListaPalavrasControllerIT extends IntegrationTestBase {
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.nome").value(payload.get("nome")))
+                .andExpect(jsonPath("$.ativo").value(true))
                 .andExpect(jsonPath("$.quantidadePalavras").value(2))
                 .andExpect(jsonPath("$.itens[0].palavra").value("gato"))
                 .andExpect(jsonPath("$.itens[0].ordem").value(1))
@@ -360,5 +363,126 @@ class ListaPalavrasControllerIT extends IntegrationTestBase {
     void getPorIdDeIdInexistenteRetorna404() throws Exception {
         mockMvc.perform(get("/api/v1/listas-palavras/999999999").header("Authorization", bearerCoordenador()))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void postTextoCurtoValidoRetorna201ComQuantidadePalavrasEGetPorIdRetornaTextoEItensEmOrdem() throws Exception {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("nome", "Texto Curto Válido " + UUID.randomUUID());
+        payload.put("serie", 2);
+        payload.put("tipoLeitura", "TEXTO_CURTO");
+        payload.put("tipoPalavra", "CANONICA");
+        payload.put("texto", "O gato, a bola.");
+
+        MvcResult result = mockMvc.perform(post("/api/v1/listas-palavras").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.quantidadePalavras").value(4))
+                .andReturn();
+        long id = objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
+
+        mockMvc.perform(get("/api/v1/listas-palavras/" + id).header("Authorization", bearerCoordenador()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.texto").value("O gato, a bola."))
+                .andExpect(jsonPath("$.quantidadePalavras").value(4))
+                .andExpect(jsonPath("$.itens[0].palavra").value("O"))
+                .andExpect(jsonPath("$.itens[0].ordem").value(1))
+                .andExpect(jsonPath("$.itens[1].palavra").value("gato"))
+                .andExpect(jsonPath("$.itens[1].ordem").value(2))
+                .andExpect(jsonPath("$.itens[2].palavra").value("a"))
+                .andExpect(jsonPath("$.itens[2].ordem").value(3))
+                .andExpect(jsonPath("$.itens[3].palavra").value("bola"))
+                .andExpect(jsonPath("$.itens[3].ordem").value(4));
+    }
+
+    @Test
+    void getPorIdDeListaPalavraRetornaTextoNulo() throws Exception {
+        JsonNode criada = criarListaERetornarCorpo(
+                "Lista Sem Texto " + UUID.randomUUID(), 2, List.of(item("gato", "CANONICA")));
+        long id = criada.get("id").asLong();
+
+        mockMvc.perform(get("/api/v1/listas-palavras/" + id).header("Authorization", bearerCoordenador()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.texto").value(nullValue()));
+    }
+
+    @Test
+    void postComPalavraComEspacosNoInicioENoFimRemoveOsAntesDeGravar() throws Exception {
+        Map<String, Object> payload = payloadPalavra(
+                "Lista Com Espaços " + UUID.randomUUID(), 2, List.of(item("  gato ", "CANONICA")));
+
+        mockMvc.perform(post("/api/v1/listas-palavras").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.itens[0].palavra").value("gato"));
+    }
+
+    @Test
+    void postComPalavraDuplicadaPorEspacosECaixaRetorna422PalavraDuplicada() throws Exception {
+        Map<String, Object> payload = payloadPalavra(
+                "Lista Duplicada Por Trim " + UUID.randomUUID(), 2,
+                List.of(item("gato", "CANONICA"), item(" GATO ", "CANONICA")));
+
+        mockMvc.perform(post("/api/v1/listas-palavras").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("PALAVRA_DUPLICADA"));
+    }
+
+    @Test
+    void postComPalavraVaziaRetorna422PorFormatoInvalido() throws Exception {
+        Map<String, Object> payload = payloadPalavra(
+                "Lista Palavra Vazia " + UUID.randomUUID(), 2, List.of(item("", "CANONICA")));
+
+        mockMvc.perform(post("/api/v1/listas-palavras").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+    }
+
+    @Test
+    void postComPalavraComMaisDe60CaracteresRetorna422PorFormatoInvalido() throws Exception {
+        String palavraLonga = "a".repeat(61);
+        Map<String, Object> payload = payloadPalavra(
+                "Lista Palavra Longa " + UUID.randomUUID(), 2, List.of(item(palavraLonga, "CANONICA")));
+
+        mockMvc.perform(post("/api/v1/listas-palavras").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+    }
+
+    @Test
+    void postComPalavrasAcentuadasEComHifenSaoAceitas() throws Exception {
+        Map<String, Object> payload = payloadPalavra(
+                "Lista Acentos E Hífen " + UUID.randomUUID(), 2,
+                List.of(item("Ação", "CANONICA"), item("pé-de-moleque", "CANONICA")));
+
+        mockMvc.perform(post("/api/v1/listas-palavras").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.itens[0].palavra").value("Ação"))
+                .andExpect(jsonPath("$.itens[1].palavra").value("pé-de-moleque"));
+    }
+
+    @Test
+    void postComMaisDe200ItensRetorna422PorTamanhoForaDaFaixa() throws Exception {
+        List<Map<String, Object>> itens = new ArrayList<>();
+        for (int i = 0; i < 201; i++) {
+            itens.add(item("palavra" + i, "CANONICA"));
+        }
+        Map<String, Object> payload = payloadPalavra("Lista Com 201 Itens " + UUID.randomUUID(), 2, itens);
+
+        mockMvc.perform(post("/api/v1/listas-palavras").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
     }
 }
