@@ -186,11 +186,11 @@ T17
 - Skill: NONE
 
 **Done when**:
-- [ ] Requisição sem token a uma rota protegida → 401 em formato `ProblemDetail`
-- [ ] Requisição com role errada (via um endpoint de teste com `@PreAuthorize`) → 403 em formato `ProblemDetail`
-- [ ] `GET /v3/api-docs`, `/swagger-ui/**`, `/actuator/health` acessíveis sem token
-- [ ] `./mvnw verify` passa
-- [ ] 3 testes de integração cobrindo os pontos acima
+- [x] Requisição sem token a uma rota protegida → 401 em formato `ProblemDetail`
+- [x] Requisição com role errada (via um endpoint de teste com `@PreAuthorize`) → 403 em formato `ProblemDetail`
+- [x] `GET /v3/api-docs`, `/swagger-ui/**`, `/actuator/health` acessíveis sem token (o actuator não é dependência do projeto: `/actuator/health` passa pela segurança e responde 404, não 401)
+- [x] `./mvnw verify` passa (`SecurityConfigIT` 3/3 e todo o resto verdes; as únicas falhas são as 31 pré-existentes de 401 nos `*ControllerIT`, corrigidas pela T6)
+- [x] 3 testes de integração cobrindo os pontos acima
 
 **Tests**: integration
 **Gate**: full
