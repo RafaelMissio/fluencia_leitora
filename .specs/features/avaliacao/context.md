@@ -32,6 +32,13 @@ O professor cria, executa (iniciar/pausar/continuar/resetar/finalizar) e cancela
 
 - Cancelamento permitido a partir de qualquer status, exceto `CANCELADA`, incluindo `FINALIZADA` - com justificativa de 10 a 500 caracteres, gerando registro de auditoria com o status anterior.
 
+### Envio e download do áudio (gap encontrado durante o Design, resolvido antes de continuar)
+
+- `audio-avaliacao/spec.md` deferiu explicitamente o endpoint HTTP e a tabela `avaliacao_audio` para esta feature (RF015); o spec.md original não tinha essa AC - foi adicionada agora (AVA-27..AVA-32) em vez de deixar RF015 sem dono.
+- Upload só é aceito numa avaliação `FINALIZADA` (grava-se continuamente no navegador; um único `POST` no fim).
+- Escrita única: um segundo `POST` para a mesma avaliação retorna 409 `AUDIO_JA_ENVIADO`; não há substituição.
+- Cancelar uma avaliação com áudio não apaga o arquivo (AD-003: áudio não expira).
+
 ### Agent's Discretion
 
 Nenhuma - todas as áreas discutidas foram decididas explicitamente pelo usuário.

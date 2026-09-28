@@ -1,6 +1,6 @@
 # Avaliação de Leitura Specification
 
-> Origem: SDD §6, §7, §9, §13, §20, RF006, RF007, RF009, RF010, RF011, RNF004, RNF005. Decisões: AD-001, AD-002, AD-004, AD-005.
+> Origem: SDD §6, §7, §8, §9, §13, §20, RF006, RF007, RF008, RF009, RF010, RF011, RF015, RNF003, RNF004, RNF005. Decisões: AD-001, AD-002, AD-003, AD-004, AD-005.
 
 ## Problem Statement
 
@@ -12,12 +12,14 @@ O professor precisa aplicar uma avaliação cronometrada de leitura (palavras, p
 - [ ] Ao finalizar, o resultado (SDD §13) e a classificação ficam gravados sem cálculo manual.
 - [ ] Toda alteração numa avaliação FINALIZADA gera um registro de auditoria com usuário, data/hora, valor anterior e novo.
 - [ ] Nenhuma transição de status inválida é aceita.
+- [ ] Depois de finalizar, o professor consegue baixar o áudio gravado pelo navegador (RF015), sem cálculo manual de onde o arquivo está.
 
 ## Out of Scope
 
 | Feature | Reason |
 | ------- | ------ |
-| Gravação e download de áudio | Feature `audio-avaliacao` |
+| Gravação em si (captura do microfone) e reprodução no navegador | Feature `frontend-web`; esta feature só recebe os bytes já gravados e os devolve de volta |
+| Armazenamento físico dos bytes de áudio (disco, formato, limite de tamanho) | Feature `audio-avaliacao` (`AudioStoragePort`); esta feature só chama `armazenar`/`recuperar` e persiste a referência em `avaliacao_audio` (deferido de `audio-avaliacao/spec.md`, Out of Scope) |
 | Cronômetro visual e microfone no navegador | Feature `frontend-web` |
 | Reconhecimento automático de fala | AD-002; é evolução futura (SDD §25) |
 | Histórico, evolução e comparação anual | Feature `historico-evolucao` |
@@ -44,6 +46,8 @@ O professor precisa aplicar uma avaliação cronometrada de leitura (palavras, p
 | Cópias na avaliação | `turmaId`, `turmaNome`, `serie`, `professorId`, `professorNome` e `anoLetivoId` copiados da matrícula ao criar | RNF005 e AD-005 | y |
 | Palavras digitadas sem `tipoPalavra` | Aceitas com `tipoPalavra = null`; a restrição do 1º ano só vale quando o tipo é informado | Exigir o tipo em cada palavra digitada seria trabalho demais para o professor | y |
 | Cancelamento | Permitido em qualquer status, exceto CANCELADA, com justificativa de 10 a 500 caracteres; cancelar uma FINALIZADA gera auditoria | Permite corrigir uma avaliação feita por engano (RNF004; decisão do usuário) | y |
+| Quando o áudio pode ser enviado (RF015, deferido de `audio-avaliacao/spec.md`) | Só numa avaliação `FINALIZADA`, um único `POST` por avaliação | O SDD §8 grava continuamente durante a leitura e só oferece reproduzir/baixar depois de finalizar; um único arquivo por avaliação mantém o modelo simples (decisão do usuário) | y |
+| Reenvio do áudio | Não permitido; um segundo `POST` para a mesma avaliação retorna 409 | Mesmo padrão de imutabilidade do AD-003 (áudio não expira) e do RNF006 (decisão do usuário) | y |
 
 **Open questions:** none - all resolved or logged above.
 
@@ -146,6 +150,25 @@ O professor precisa aplicar uma avaliação cronometrada de leitura (palavras, p
 
 ---
 
+### P1: Enviar e baixar o áudio ⭐ MVP
+
+**User Story**: Como professor, quero enviar o áudio gravado pelo navegador ao finalizar a avaliação e poder baixá-lo depois, para ouvir a leitura do aluno (SDD §8, RF008, RF015).
+
+**Why P1**: RF015 é requisito funcional explícito do SDD; sem este endpoint o `AudioStoragePort` de `audio-avaliacao` fica sem consumidor.
+
+**Acceptance Criteria**:
+1. WHEN o professor envia `POST /api/v1/avaliacoes/{id}/audio` com o conteúdo binário e o `mimeType` numa avaliação `FINALIZADA` que ainda não tem áudio THEN o sistema SHALL chamar `AudioStoragePort.armazenar`, gravar um registro em `avaliacao_audio` (`avaliacaoId`, referência retornada, `mimeType`, `tamanhoBytes`) e retornar 201.
+2. IF a avaliação não estiver `FINALIZADA` THEN o sistema SHALL retornar 409 com código `AUDIO_ENVIO_NAO_PERMITIDO` e o `statusAtual`.
+3. IF a avaliação já tiver um áudio gravado THEN o sistema SHALL retornar 409 com código `AUDIO_JA_ENVIADO`.
+4. IF `AudioStoragePort.armazenar` lançar `AudioFormatoInvalidoException` THEN o sistema SHALL retornar 422 com código `AUDIO_FORMATO_INVALIDO`.
+5. IF `AudioStoragePort.armazenar` lançar `AudioTamanhoInvalidoException` THEN o sistema SHALL retornar 422 com código `AUDIO_TAMANHO_INVALIDO`.
+6. WHEN o professor dono da avaliação ou um COORDENADOR envia `GET /api/v1/avaliacoes/{id}/audio` numa avaliação com áudio gravado THEN o sistema SHALL chamar `AudioStoragePort.recuperar` e retornar os bytes com `Content-Type` igual ao `mimeType` gravado e status 200.
+7. IF a avaliação não tiver áudio gravado THEN o sistema SHALL retornar 404.
+
+**Independent Test**: Finalizar uma avaliação, enviar um áudio (201), baixá-lo e comparar os bytes; enviar de novo para a mesma avaliação retorna 409.
+
+---
+
 ### P2: Consultar auditoria
 
 **User Story**: Como coordenador, quero ver o que mudou numa avaliação finalizada, para garantir a confiabilidade dos dados (RNF004).
@@ -169,6 +192,8 @@ O professor precisa aplicar uma avaliação cronometrada de leitura (palavras, p
 - The system SHALL NOT permitir excluir fisicamente uma avaliação (RNF006); a única forma de removê-la é o cancelamento.
 - WHEN o coordenador altera ou inativa uma `lista_palavras` depois que uma avaliação já copiou as palavras dela (AVA-01) THEN o sistema SHALL manter as palavras da avaliação inalteradas (PAL-06, `banco-palavras`; `.specs/features/banco-palavras/spec.md`) - a cópia feita na criação é a única fonte usada por essa avaliação.
 - WHEN o coordenador substitui as faixas de uma série em `regras-classificacao` THEN o sistema SHALL manter `fase` e `nivel` já gravados numa avaliação `FINALIZADA` inalterados, a menos que um recálculo seja disparado explicitamente por uma mudança de palavra (AC 6 acima) - a substituição de faixas, sozinha, não escreve em `avaliacao` (REG-14, `regras-classificacao`; `.specs/features/regras-classificacao/spec.md`).
+- WHEN uma avaliação `FINALIZADA` com áudio é `CANCELADA` THEN o sistema SHALL manter o registro de `avaliacao_audio` e o arquivo continuam recuperáveis - cancelar não aciona `AudioStoragePort` de forma alguma (AD-003: áudio não expira).
+- IF `AudioStoragePort.armazenar` lançar `AudioArmazenamentoException` (falha de escrita em disco) THEN o sistema SHALL retornar 500 sem gravar `avaliacao_audio` - é uma falha de infraestrutura, não um erro de negócio.
 
 ### Tabela de status
 
@@ -191,7 +216,7 @@ O professor precisa aplicar uma avaliação cronometrada de leitura (palavras, p
 | Concurrency / ordering | Lock otimista com 409 `CONFLITO_DE_VERSAO` |
 | Data lifecycle | Sem exclusão física; cancelamento com justificativa; finalização automática das esquecidas (> 24h) |
 | Observability | Log de transições (AVA-16) |
-| External-dependency failure | N/A because a classificação é local; o áudio fica na feature própria |
+| External-dependency failure | `AudioStoragePort.armazenar`/`recuperar` (disco local via `audio-avaliacao`) podem falhar (`AudioArmazenamentoException` → 500, `AudioNaoEncontradoException` → 500 já que a referência gravada deveria sempre existir); a classificação é local, sem chamada externa |
 | State-transition integrity | Tabela de status + AVA-13 + AVA-17 |
 
 ---
@@ -226,8 +251,14 @@ O professor precisa aplicar uma avaliação cronometrada de leitura (palavras, p
 | AVA-24 | P1: Cancelamento com justificativa | - | Pending |
 | AVA-25 | P1: Lock otimista | - | Pending |
 | AVA-26 | P2: Consulta da auditoria | - | Pending |
+| AVA-27 | P1: Envio do áudio (201, grava `avaliacao_audio`) | - | Pending |
+| AVA-28 | P1: Envio bloqueado fora de FINALIZADA | - | Pending |
+| AVA-29 | P1: Envio duplicado bloqueado | - | Pending |
+| AVA-30 | P1: Formato/tamanho de áudio inválido | - | Pending |
+| AVA-31 | P1: Download do áudio | - | Pending |
+| AVA-32 | P1: Download sem áudio gravado (404) | - | Pending |
 
-**Coverage:** 26 total, 0 mapped to tasks, 26 unmapped ⚠️
+**Coverage:** 32 total, 0 mapped to tasks, 32 unmapped ⚠️
 
 ---
 
