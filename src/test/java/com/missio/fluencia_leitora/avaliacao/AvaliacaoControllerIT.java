@@ -31,6 +31,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -62,8 +65,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -91,6 +97,13 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
 
     private static synchronized int proximoAno() {
         return anoSequencial++;
+    }
+
+    /** AVA-27..AVA-32: grava o áudio de teste num diretório temporário, em vez do `data/audios` real do projeto. */
+    @DynamicPropertySource
+    static void audioStorageProperties(DynamicPropertyRegistry registry) {
+        registry.add("APP_AUDIO_STORAGE_DIR",
+                () -> System.getProperty("java.io.tmpdir") + "/fluencia-leitora-audio-it-" + UUID.randomUUID());
     }
 
     @Autowired
@@ -1294,5 +1307,122 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
     void getSemAutenticacaoRetorna401NasDuasRotas() throws Exception {
         mockMvc.perform(get("/api/v1/avaliacoes/1")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/v1/avaliacoes/1/auditoria")).andExpect(status().isUnauthorized());
+    }
+
+    // ---- Áudio (AVA-27..AVA-32) -------------------------------------------
+
+    private ResultActions enviarAudio(String bearer, Long id, byte[] conteudo, String mimeType) throws Exception {
+        MockMultipartFile arquivo = new MockMultipartFile("audio", "gravacao.wav", mimeType, conteudo);
+        return mockMvc.perform(multipart("/api/v1/avaliacoes/" + id + "/audio")
+                .file(arquivo)
+                .header("Authorization", bearer));
+    }
+
+    private ResultActions baixarAudio(String bearer, Long id) throws Exception {
+        return mockMvc.perform(get("/api/v1/avaliacoes/" + id + "/audio").header("Authorization", bearer));
+    }
+
+    @Test
+    void enviarAudioNumaFinalizadaRetorna201EDownloadDevolveOsMesmosBytesComOContentTypeCorreto() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.FINALIZADA);
+        byte[] conteudo = "conteudo-de-audio-fake".getBytes();
+
+        enviarAudio(bearer, id, conteudo, "audio/wav").andExpect(status().isCreated());
+
+        baixarAudio(bearer, id)
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "audio/wav"))
+                .andExpect(content().bytes(conteudo));
+    }
+
+    @Test
+    void enviarAudioDuasVezesNaMesmaAvaliacaoRetorna409NoSegundoEnvio() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.FINALIZADA);
+        enviarAudio(bearer, id, "primeiro".getBytes(), "audio/wav").andExpect(status().isCreated());
+
+        enviarAudio(bearer, id, "segundo".getBytes(), "audio/wav")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("AUDIO_JA_ENVIADO"));
+    }
+
+    @Test
+    void enviarAudioForaDeFinalizadaRetorna409AudioEnvioNaoPermitido() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.CRIADA);
+
+        enviarAudio(bearer, id, "conteudo".getBytes(), "audio/wav")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("AUDIO_ENVIO_NAO_PERMITIDO"))
+                .andExpect(jsonPath("$.statusAtual").value("CRIADA"));
+    }
+
+    @Test
+    void enviarAudioComMimeTypeNaoPermitidoRetorna422AudioFormatoInvalido() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.FINALIZADA);
+
+        enviarAudio(bearer, id, "conteudo".getBytes(), "text/plain")
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("AUDIO_FORMATO_INVALIDO"));
+    }
+
+    @Test
+    void baixarAudioSemAudioGravadoRetorna404() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.FINALIZADA);
+
+        baixarAudio(bearer, id)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+    }
+
+    @Test
+    void audioDeAvaliacaoDeOutroProfessorRetorna404NasDuasRotas() throws Exception {
+        Professor dono = novoProfessor();
+        Long id = avaliacaoNoStatus(bearerProfessor(dono), dono, StatusAvaliacao.FINALIZADA);
+        String outro = bearerProfessor(novoProfessor());
+
+        enviarAudio(outro, id, "conteudo".getBytes(), "audio/wav")
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+        baixarAudio(outro, id)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+    }
+
+    @Test
+    void baixarAudioComoCoordenadorRetornaOsBytes() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.FINALIZADA);
+        byte[] conteudo = "conteudo".getBytes();
+        enviarAudio(bearer, id, conteudo, "audio/wav").andExpect(status().isCreated());
+
+        baixarAudio(bearerCoordenador(), id)
+                .andExpect(status().isOk())
+                .andExpect(content().bytes(conteudo));
+    }
+
+    @Test
+    void enviarAudioComoCoordenadorRetorna403() throws Exception {
+        Professor professor = novoProfessor();
+        Long id = avaliacaoNoStatus(bearerProfessor(professor), professor, StatusAvaliacao.FINALIZADA);
+
+        enviarAudio(bearerCoordenador(), id, "conteudo".getBytes(), "audio/wav")
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void audioSemAutenticacaoRetorna401NasDuasRotas() throws Exception {
+        MockMultipartFile arquivo = new MockMultipartFile("audio", "gravacao.wav", "audio/wav", "conteudo".getBytes());
+        mockMvc.perform(multipart("/api/v1/avaliacoes/1/audio").file(arquivo)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/avaliacoes/1/audio")).andExpect(status().isUnauthorized());
     }
 }

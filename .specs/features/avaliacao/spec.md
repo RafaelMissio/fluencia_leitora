@@ -251,12 +251,12 @@ O professor precisa aplicar uma avaliação cronometrada de leitura (palavras, p
 | AVA-24 | P1: Cancelamento com justificativa | T22, T23 | Done |
 | AVA-25 | P1: Lock otimista | T16 | Done |
 | AVA-26 | P2: Consulta da auditoria | T20, T21 | Done |
-| AVA-27 | P1: Envio do áudio (201, grava `avaliacao_audio`) | - | Pending |
-| AVA-28 | P1: Envio bloqueado fora de FINALIZADA | - | Pending |
-| AVA-29 | P1: Envio duplicado bloqueado | - | Pending |
-| AVA-30 | P1: Formato/tamanho de áudio inválido | - | Pending |
-| AVA-31 | P1: Download do áudio | - | Pending |
-| AVA-32 | P1: Download sem áudio gravado (404) | - | Pending |
+| AVA-27 | P1: Envio do áudio (201, grava `avaliacao_audio`) | T24, T25 | Done |
+| AVA-28 | P1: Envio bloqueado fora de FINALIZADA | T24, T25 | Done |
+| AVA-29 | P1: Envio duplicado bloqueado | T24, T25 | Done |
+| AVA-30 | P1: Formato/tamanho de áudio inválido | T24, T25 | Done |
+| AVA-31 | P1: Download do áudio | T24, T25 | Done |
+| AVA-32 | P1: Download sem áudio gravado (404) | T24, T25 | Done |
 
 **Coverage:** 32 total, 0 mapped to tasks, 32 unmapped ⚠️
 

@@ -767,11 +767,11 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Upload de um áudio pequeno (ex.: WAV de poucos KB) numa avaliação `FINALIZADA` → 201; download devolve os mesmos bytes com o `Content-Type` correto
-- [ ] Segundo upload → 409; upload fora de `FINALIZADA` → 409; mimeType não permitido → 422; download sem áudio → 404
-- [ ] Professor de outro aluno recebe 404 em ambas as rotas
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 8 testes novos
+- [x] Upload de um áudio pequeno (ex.: WAV de poucos KB) numa avaliação `FINALIZADA` → 201; download devolve os mesmos bytes com o `Content-Type` correto
+- [x] Segundo upload → 409; upload fora de `FINALIZADA` → 409; mimeType não permitido → 422; download sem áudio → 404
+- [x] Professor de outro aluno recebe 404 em ambas as rotas
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 8 testes novos
 
 **Tests**: integration
 **Gate**: full
