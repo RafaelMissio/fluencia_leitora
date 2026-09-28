@@ -589,10 +589,10 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Caminho feliz individual e em lote (201/200 conforme o AC), 404 para `ordem` inexistente, 409 para status bloqueado, 422 para `PENDENTE` pós-finalização
-- [ ] Professor de outro aluno recebe 404
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 10 testes novos
+- [x] Caminho feliz individual e em lote (201/200 conforme o AC), 404 para `ordem` inexistente, 409 para status bloqueado, 422 para `PENDENTE` pós-finalização
+- [x] Professor de outro aluno recebe 404
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 10 testes novos
 
 **Tests**: integration
 **Gate**: full

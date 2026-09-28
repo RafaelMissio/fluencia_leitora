@@ -239,11 +239,11 @@ O professor precisa aplicar uma avaliação cronometrada de leitura (palavras, p
 | AVA-12 | P1: Finalizar | T15, T16 | Done |
 | AVA-13 | P1: Transição inválida 409 | T14, T16 | In Progress |
 | AVA-14 | P1: Transições idempotentes | T14, T15, T16 | In Progress |
-| AVA-15 | P1: Marcar palavra individual e em lote | T17 | In Progress |
+| AVA-15 | P1: Marcar palavra individual e em lote | T17, T18 | Done |
 | AVA-16 | P1: Log de transições | T14 | Done |
 | AVA-17 | P1: Finalização automática pelo servidor (tempo esgotado e > 24h) | T14, T15, T16 | In Progress |
-| AVA-18 | P1: Marcação bloqueada em CRIADA ou CANCELADA | T17 | In Progress |
-| AVA-19 | P1: Alteração depois de finalizar com auditoria e recálculo | T17 | In Progress |
+| AVA-18 | P1: Marcação bloqueada em CRIADA ou CANCELADA | T17, T18 | Done |
+| AVA-19 | P1: Alteração depois de finalizar com auditoria e recálculo | T17, T18 | Done |
 | AVA-20 | P1: Cálculo do resultado | T15, T16 | Done |
 | AVA-21 | P1: Classificação na finalização | T15, T16 | Done |
 | AVA-22 | P1: Classificação pendente | T15, T16 | Done |

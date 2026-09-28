@@ -1,12 +1,15 @@
 package com.missio.fluencia_leitora.avaliacao;
 
 import com.missio.fluencia_leitora.avaliacao.dto.AvaliacaoResponse;
+import com.missio.fluencia_leitora.avaliacao.dto.MarcarPalavraRequest;
+import com.missio.fluencia_leitora.avaliacao.dto.MarcarPalavrasRequest;
 import com.missio.fluencia_leitora.avaliacao.dto.NovaAvaliacaoRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -14,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * AVA-01..AVA-08: criação da avaliação; AVA-09..AVA-14: transições de
- * status. As ações são restritas ao PROFESSOR (SDD §17). O pertencimento
+ * status; AVA-15, AVA-18, AVA-19: marcação das palavras. As ações são restritas ao PROFESSOR (SDD §17). O pertencimento
  * (AUTH-09) é verificado no service, que é quem conhece a matrícula e a
  * avaliação.
  */
@@ -63,5 +66,18 @@ public class AvaliacaoController {
     @PreAuthorize("hasRole('PROFESSOR')")
     public AvaliacaoResponse finalizar(@PathVariable Long id) {
         return AvaliacaoResponse.from(avaliacaoService.finalizar(id));
+    }
+
+    @PutMapping("/{id}/palavras/{ordem}")
+    @PreAuthorize("hasRole('PROFESSOR')")
+    public AvaliacaoResponse marcarPalavra(
+            @PathVariable Long id, @PathVariable int ordem, @Valid @RequestBody MarcarPalavraRequest request) {
+        return AvaliacaoResponse.from(avaliacaoService.marcarPalavra(id, ordem, request.status()));
+    }
+
+    @PutMapping("/{id}/palavras")
+    @PreAuthorize("hasRole('PROFESSOR')")
+    public AvaliacaoResponse marcarPalavras(@PathVariable Long id, @Valid @RequestBody MarcarPalavrasRequest request) {
+        return AvaliacaoResponse.from(avaliacaoService.marcarPalavras(id, request.itens()));
     }
 }

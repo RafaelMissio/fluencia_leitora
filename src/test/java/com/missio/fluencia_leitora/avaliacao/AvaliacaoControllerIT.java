@@ -61,6 +61,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -71,7 +72,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * PROFESSOR cria: 403) e autenticação (401). AVA-09..AVA-14, AVA-17,
  * AVA-25: rotas de transição - tabela de status inteira, efeitos de tempo e
  * reset, exemplo do SDD §13 com a seed real, finalização preguiçosa e
- * conflito de versão.
+ * conflito de versão. AVA-15, AVA-18, AVA-19: marcação individual e em
+ * lote, rollback do lote e auditoria depois de finalizar.
  *
  * <p>Cada teste cria o seu próprio ano letivo e o ativa (encerrando o ativo
  * anterior - CAD-04), com período de hoje-60 a hoje+60 dias, para que
@@ -122,6 +124,9 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
 
     @Autowired
     private PlatformTransactionManager transactionManager;
+
+    @Autowired
+    private AvaliacaoAuditoriaRepository avaliacaoAuditoriaRepository;
 
     @MockitoSpyBean
     private PertencimentoProfessorGuard pertencimentoProfessorGuard;
@@ -762,5 +767,230 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
             executor.shutdownNow();
         }
         assertEquals(StatusAvaliacao.PAUSADA, avaliacaoRepository.findById(id).orElseThrow().getStatus());
+    }
+
+    // ---- Marcação de palavras (AVA-15, AVA-18, AVA-19) -------------------
+
+    private ResultActions marcar(String bearer, Long id, int ordem, Object status) throws Exception {
+        Map<String, Object> corpo = new HashMap<>();
+        corpo.put("status", status);
+        return mockMvc.perform(put("/api/v1/avaliacoes/" + id + "/palavras/" + ordem).header("Authorization", bearer)
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(corpo)));
+    }
+
+    private ResultActions marcarLote(String bearer, Long id, List<?> itens) throws Exception {
+        Map<String, Object> corpo = new HashMap<>();
+        corpo.put("itens", itens);
+        return mockMvc.perform(put("/api/v1/avaliacoes/" + id + "/palavras").header("Authorization", bearer)
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(corpo)));
+    }
+
+    private List<StatusPalavra> statusGravados(Long id) {
+        return new TransactionTemplate(transactionManager).execute(tx -> avaliacaoRepository.findById(id).orElseThrow()
+                .getPalavras().stream().map(PalavraAvaliacao::getStatus).toList());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"EM_ANDAMENTO", "PAUSADA"})
+    void putPalavraEmAndamentoOuPausadaRetorna200ComOStatusGravado(StatusAvaliacao status) throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, status);
+
+        marcar(bearer, id, 2, "CORRETA")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(status.name()))
+                .andExpect(jsonPath("$.palavras[0].status").value("PENDENTE"))
+                .andExpect(jsonPath("$.palavras[1].status").value("CORRETA"));
+
+        assertEquals(StatusPalavra.CORRETA, statusGravados(id).get(1));
+        assertEquals(StatusPalavra.PENDENTE, statusGravados(id).get(0));
+        assertTrue(avaliacaoAuditoriaRepository.findByAvaliacaoIdOrderByDataHoraAsc(id).isEmpty());
+    }
+
+    @Test
+    void putPalavrasEmLoteRetorna200ComTodosOsItensGravados() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+
+        marcarLote(bearer, id, List.of(
+                        Map.of("ordem", 1, "status", "CORRETA"),
+                        Map.of("ordem", 2, "status", "INCORRETA"),
+                        Map.of("ordem", 3, "status", "NAO_LIDA")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.palavras[0].status").value("CORRETA"))
+                .andExpect(jsonPath("$.palavras[1].status").value("INCORRETA"))
+                .andExpect(jsonPath("$.palavras[2].status").value("NAO_LIDA"));
+
+        assertEquals(List.of(StatusPalavra.CORRETA, StatusPalavra.INCORRETA, StatusPalavra.NAO_LIDA),
+                statusGravados(id).subList(0, 3));
+    }
+
+    @Test
+    void putPalavrasEmLoteComUmaOrdemInexistenteRetorna404ENaoGravaNenhum() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+
+        marcarLote(bearer, id, List.of(
+                        Map.of("ordem", 1, "status", "CORRETA"),
+                        Map.of("ordem", 99, "status", "CORRETA")))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"))
+                .andExpect(jsonPath("$.ordem").value(99));
+
+        assertTrue(statusGravados(id).stream().allMatch(status -> status == StatusPalavra.PENDENTE));
+    }
+
+    @Test
+    void putPalavrasEmLoteNumaFinalizadaComUmPendenteRetorna422ENaoGravaNemAudita() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.FINALIZADA);
+
+        marcarLote(bearer, id, List.of(
+                        Map.of("ordem", 1, "status", "CORRETA"),
+                        Map.of("ordem", 2, "status", "PENDENTE")))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("STATUS_PALAVRA_INVALIDO"));
+
+        assertEquals(StatusPalavra.NAO_LIDA, statusGravados(id).get(0));
+        assertEquals(0, avaliacaoRepository.findById(id).orElseThrow().getQuantidadeCorretas());
+        assertTrue(avaliacaoAuditoriaRepository.findByAvaliacaoIdOrderByDataHoraAsc(id).isEmpty());
+    }
+
+    @Test
+    void putPalavraComOrdemInexistenteRetorna404() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+
+        marcar(bearer, id, 16, "CORRETA")
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"CRIADA", "CANCELADA"})
+    void putPalavraEmCriadaOuCanceladaRetorna409MarcacaoNaoPermitida(StatusAvaliacao status) throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, status);
+
+        marcar(bearer, id, 1, "CORRETA")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("MARCACAO_NAO_PERMITIDA"))
+                .andExpect(jsonPath("$.statusAtual").value(status.name()));
+
+        assertEquals(StatusPalavra.PENDENTE, statusGravados(id).get(0));
+    }
+
+    @Test
+    void putPalavraPendenteNumaFinalizadaRetorna422() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.FINALIZADA);
+
+        marcar(bearer, id, 1, "PENDENTE")
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("STATUS_PALAVRA_INVALIDO"));
+
+        assertEquals(StatusPalavra.NAO_LIDA, statusGravados(id).get(0));
+    }
+
+    @Test
+    void putPalavraNumaFinalizadaDeNaoLidaParaCorretaAumentaCorretasEGeraUmaAuditoria() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.FINALIZADA);
+
+        marcar(bearer, id, 3, "CORRETA")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FINALIZADA"))
+                .andExpect(jsonPath("$.palavras[2].status").value("CORRETA"))
+                .andExpect(jsonPath("$.quantidadeCorretas").value(1))
+                .andExpect(jsonPath("$.quantidadeNaoLidas").value(14));
+
+        List<AvaliacaoAuditoria> auditorias = avaliacaoAuditoriaRepository.findByAvaliacaoIdOrderByDataHoraAsc(id);
+        assertEquals(1, auditorias.size());
+        assertEquals(AcaoAuditoria.MARCACAO_PALAVRA, auditorias.get(0).getAcao());
+        assertEquals("palavra 3: NAO_LIDA", auditorias.get(0).getValorAnterior());
+        assertEquals("palavra 3: CORRETA", auditorias.get(0).getValorNovo());
+        assertNotNull(auditorias.get(0).getDataHora());
+        assertEquals(1, avaliacaoRepository.findById(id).orElseThrow().getQuantidadeCorretas());
+    }
+
+    @Test
+    void putPalavraComOStatusAtualNumaFinalizadaRetorna200SemAuditoria() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.FINALIZADA);
+
+        marcar(bearer, id, 3, "NAO_LIDA").andExpect(status().isOk());
+
+        assertTrue(avaliacaoAuditoriaRepository.findByAvaliacaoIdOrderByDataHoraAsc(id).isEmpty());
+    }
+
+    @Test
+    void putPalavraSemStatusRetorna422() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+
+        marcar(bearer, id, 1, null)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+    }
+
+    @Test
+    void putPalavrasComItemNuloRetorna422() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+        List<Object> itens = new ArrayList<>();
+        itens.add(null);
+
+        marcarLote(bearer, id, itens)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+    }
+
+    @Test
+    void putPalavrasEmAvaliacaoDeOutroProfessorRetorna404NasDuasRotas() throws Exception {
+        Professor dono = novoProfessor();
+        Long id = avaliacaoNoStatus(bearerProfessor(dono), dono, StatusAvaliacao.EM_ANDAMENTO);
+        String outro = bearerProfessor(novoProfessor());
+
+        marcar(outro, id, 1, "CORRETA")
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+        marcarLote(outro, id, List.of(Map.of("ordem", 1, "status", "CORRETA")))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+
+        assertEquals(StatusPalavra.PENDENTE, statusGravados(id).get(0));
+    }
+
+    @Test
+    void putPalavrasComoCoordenadorRetorna403NasDuasRotas() throws Exception {
+        Professor professor = novoProfessor();
+        Long id = avaliacaoNoStatus(bearerProfessor(professor), professor, StatusAvaliacao.EM_ANDAMENTO);
+
+        marcar(bearerCoordenador(), id, 1, "CORRETA").andExpect(status().isForbidden());
+        marcarLote(bearerCoordenador(), id, List.of(Map.of("ordem", 1, "status", "CORRETA")))
+                .andExpect(status().isForbidden());
+
+        assertEquals(StatusPalavra.PENDENTE, statusGravados(id).get(0));
+    }
+
+    @Test
+    void putPalavrasSemAutenticacaoRetorna401NasDuasRotas() throws Exception {
+        mockMvc.perform(put("/api/v1/avaliacoes/1/palavras/1").contentType("application/json").content("{\"status\":\"CORRETA\"}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(put("/api/v1/avaliacoes/1/palavras").contentType("application/json").content("{\"itens\":[]}"))
+                .andExpect(status().isUnauthorized());
     }
 }
