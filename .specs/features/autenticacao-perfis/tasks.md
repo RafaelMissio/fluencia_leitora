@@ -386,11 +386,11 @@ T17
 - Skill: NONE
 
 **Done when**:
-- [ ] Banco vazio + variáveis definidas → cria o COORDENADOR
-- [ ] Banco vazio + variáveis ausentes → loga WARN e não lança, aplicação sobe
-- [ ] Banco não vazio → não faz nada
-- [ ] `./mvnw test` passa
-- [ ] 3 testes com `ApplicationContextRunner`/repositório mockado (sem precisar de Docker)
+- [x] Banco vazio + variáveis definidas → cria o COORDENADOR
+- [x] Banco vazio + variáveis ausentes → loga WARN e não lança, aplicação sobe
+- [x] Banco não vazio → não faz nada
+- [x] `./mvnw test` passa
+- [x] 3 testes com `ApplicationContextRunner`/repositório mockado (sem precisar de Docker) - usado repositório mockado + captura de log
 
 **Tests**: unit
 **Gate**: quick
