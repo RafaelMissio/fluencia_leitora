@@ -60,11 +60,11 @@
 
 ## Handoff
 
-- **Feature**: `cadastros-base` - **Done**. `autenticacao-perfis` - Specify → Design → Tasks concluídos e aprovados; Execute **em andamento, pausado para reinício da máquina** (2026-09-27).
-- **Phase / Task**: `autenticacao-perfis/tasks.md` tem 16 tasks (T1-T16) em 3 fases, nenhuma marcada `[x]` ainda - um batch sub-agent tinha sido disparado para T1-T7 (Phase 1: infra de segurança JWT) mas **não chegou a comitar nada** antes da pausa (git estava limpo). Retomar do zero em T1.
-- **Completed**: `cadastros-base` (29/29 tasks, Verifier PASS). Ordem de dependência do restante do backend: `autenticacao-perfis` → `banco-palavras` → `regras-classificacao` → `audio-avaliacao` → `avaliacao` → `historico-evolucao`; `frontend-web` por último (decisão do usuário, 2026-09-27).
-- **In-progress** (file:line): none - nenhum código de `autenticacao-perfis` foi escrito ainda, só os specs (`spec.md`, `design.md`, `tasks.md`, todos committed em `da4f034`)
-- **Next step**: Re-disparar a execução de `autenticacao-perfis` a partir de T1 (Phase 1), seguindo o plano de lotes já definido em `tasks.md` (Lote 1 = T1-T7, Lote 2 = T8-T16, sub-agentes em lote - já confirmado pelo usuário)
-- **Blockers**: none - pausa foi só por reinício da máquina do usuário, não por erro
+- **Feature**: `cadastros-base` - **Done**. `autenticacao-perfis` - **Done** (Verifier PASS na iteração 2/3, 2026-09-28). Próxima feature: `banco-palavras` (ainda não iniciada - só tem `spec.md`).
+- **Phase / Task**: `autenticacao-perfis` fechada - todas as 17 tasks `[x]`, `validate_state.py autenticacao-perfis` exit 0. `banco-palavras` não tem Design/Tasks ainda.
+- **Completed**: `cadastros-base` (29/29 tasks, Verifier PASS). `autenticacao-perfis` (17/17 tasks + 1 commit de fix pós-Verifier `442a190`, 143 testes, Verifier PASS - `.specs/features/autenticacao-perfis/validation.md`). Ordem de dependência do restante do backend: `autenticacao-perfis` → `banco-palavras` → `regras-classificacao` → `audio-avaliacao` → `avaliacao` → `historico-evolucao`; `frontend-web` por último (decisão do usuário, 2026-09-27).
+- **In-progress** (file:line): none
+- **Next step**: Iniciar `banco-palavras` pela skill `tlc-spec-driven` - `spec.md` já existe, falta Design/Tasks/Execute. Follow-ups menores e não bloqueantes registrados no validation.md de `autenticacao-perfis` (opcionais, ver lições L-005..L-010 em `.specs/LESSONS.md`): (1) log de login sem IP; (2) promover o AUTH-08 a AC numerado em `.specs/features/avaliacao/spec.md` quando essa feature chegar ao Design.
+- **Blockers**: none
 - **Uncommitted files**: none
-- **Branch**: `master` (repo git local, sem remoto; 34 commits, o mais recente `da4f034`)
+- **Branch**: `master` (repo git local, sem remoto)

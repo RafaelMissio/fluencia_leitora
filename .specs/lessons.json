@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 5,
+  "next_id": 11,
   "lessons": [
     {
       "id": "L-001",
@@ -76,6 +76,114 @@
       ],
       "created": "2026-09-27T19:41:55Z",
       "last_seen": "2026-09-27T19:41:55Z"
+    },
+    {
+      "id": "L-005",
+      "key": "surviving_mutant::for every numeric threshold in a spec rule test the exact boundary value on the accepted side not only a value clearly below and one clearly above",
+      "text": "For every numeric threshold in a spec rule, test the exact boundary value on the accepted side, not only a value clearly below and one clearly above.",
+      "signal": "surviving_mutant",
+      "scope": "boundary-tests",
+      "status": "candidate",
+      "features": [
+        "autenticacao-perfis"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md M11/M12/M13: JwtService.java:38, UsuarioService.java:62, AdminBootstrap.java:40 (boundary-tests)"
+      ],
+      "created": "2026-09-28T03:19:27Z",
+      "last_seen": "2026-09-28T03:19:27Z"
+    },
+    {
+      "id": "L-006",
+      "key": "ac_gap::when an ac cannot be exercised because its endpoints belong to a later feature record the deferral in spec md traceability and add the ac to the owning feature spec in the same change",
+      "text": "When an AC cannot be exercised because its endpoints belong to a later feature, record the deferral in spec.md traceability and add the AC to the owning feature spec in the same change.",
+      "signal": "ac_gap",
+      "scope": "traceability",
+      "status": "candidate",
+      "features": [
+        "autenticacao-perfis"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AUTH-08 (no endpoint exists; design.md Risks promised spec.md deferral note) (traceability)"
+      ],
+      "created": "2026-09-28T03:19:27Z",
+      "last_seen": "2026-09-28T03:19:27Z"
+    },
+    {
+      "id": "L-007",
+      "key": "spec_precision_gap::for a lockout rule state whether the failure counter resets when the lock expires",
+      "text": "For a lockout rule, state whether the failure counter resets when the lock expires.",
+      "signal": "spec_precision_gap",
+      "scope": "auth",
+      "status": "candidate",
+      "features": [
+        "autenticacao-perfis"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AUTH-03: UsuarioRepository.java:29 counter not reset on lock expiry (auth)"
+      ],
+      "created": "2026-09-28T03:19:27Z",
+      "last_seen": "2026-09-28T03:19:27Z"
+    },
+    {
+      "id": "L-008",
+      "key": "spec_precision_gap::before listing a framework endpoint as public in a spec confirm the dependency that serves it is in the build",
+      "text": "Before listing a framework endpoint as public in a spec, confirm the dependency that serves it is in the build.",
+      "signal": "spec_precision_gap",
+      "scope": "security-config",
+      "status": "candidate",
+      "features": [
+        "autenticacao-perfis"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AUTH-15: SecurityConfigIT.java:86-87 /actuator/health returns 404, actuator not a dependency (security-config)"
+      ],
+      "created": "2026-09-28T03:19:27Z",
+      "last_seen": "2026-09-28T03:19:27Z"
+    },
+    {
+      "id": "L-009",
+      "key": "spec_deviation::when a task adds a fail fast required config property register a test value in the shared integration test base in the same task",
+      "text": "When a task adds a fail-fast required config property, register a test value in the shared integration test base in the same task.",
+      "signal": "spec_deviation",
+      "scope": "test-infra",
+      "status": "candidate",
+      "features": [
+        "autenticacao-perfis"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "tasks.md:145 T3 SPEC_DEVIATION (test APP_JWT_SECRET in IntegrationTestBase) (test-infra)"
+      ],
+      "created": "2026-09-28T03:19:27Z",
+      "last_seen": "2026-09-28T03:19:27Z"
+    },
+    {
+      "id": "L-010",
+      "key": "spec_deviation::when a service task precedes the task that creates its request dto plan the service signature with primitive parameters in tasks md instead of naming the dto",
+      "text": "When a service task precedes the task that creates its request DTO, plan the service signature with primitive parameters in tasks.md instead of naming the DTO.",
+      "signal": "spec_deviation",
+      "scope": "task-planning",
+      "status": "candidate",
+      "features": [
+        "autenticacao-perfis"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "tasks.md:344 T11 SPEC_DEVIATION (UsuarioService.criar loose params before T12 DTO) (task-planning)"
+      ],
+      "created": "2026-09-28T03:19:27Z",
+      "last_seen": "2026-09-28T03:19:27Z"
     }
   ]
 }

@@ -121,23 +121,23 @@ O sistema guarda dados de crianças e áudios de leitura, então todo acesso pre
 
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
-| AUTH-01 | P1: Login - emissão de JWT | - | Pending |
-| AUTH-02 | P1: Login - credenciais inválidas | - | Pending |
-| AUTH-03 | P1: Login - bloqueio após 5 falhas | - | Pending |
-| AUTH-04 | P1: Login - usuário inativo | - | Pending |
-| AUTH-05 | P1: Senha com hash e fora dos logs | - | Pending |
-| AUTH-06 | P1: 401 sem token ou com token inválido | - | Pending |
-| AUTH-07 | P1: 403 para professor em endpoints de coordenador | - | Pending |
-| AUTH-08 | P1: 403 para coordenador em execução de avaliação | - | Pending |
-| AUTH-09 | P1: 404 para recurso de outro professor | - | Pending |
-| AUTH-10 | P1: Revogação por inativação | - | Pending |
-| AUTH-11 | P1: CRUD de usuários ligado ao professor | - | Pending |
-| AUTH-12 | P1: E-mail único | - | Pending |
-| AUTH-13 | P1: Política de senha | - | Pending |
-| AUTH-14 | P1: Bootstrap do coordenador | - | Pending |
-| AUTH-15 | P1: Rotas públicas | - | Pending |
+| AUTH-01 | P1: Login - emissão de JWT | Execute | ✅ Verified |
+| AUTH-02 | P1: Login - credenciais inválidas | Execute | ✅ Verified |
+| AUTH-03 | P1: Login - bloqueio após 5 falhas | Execute | ✅ Verified (spec-precision gap: contador após expirar o bloqueio) |
+| AUTH-04 | P1: Login - usuário inativo | Execute | ✅ Verified |
+| AUTH-05 | P1: Senha com hash e fora dos logs | Execute | ✅ Verified |
+| AUTH-06 | P1: 401 sem token ou com token inválido | Execute | ✅ Verified |
+| AUTH-07 | P1: 403 para professor em endpoints de coordenador | Execute | ✅ Verified (todos os endpoints de escrita existentes) |
+| AUTH-08 | P1: 403 para coordenador em execução de avaliação | Execute | ⏭️ Deferred → `avaliacao` / `audio-avaliacao` (ver nota no AC) |
+| AUTH-09 | P1: 404 para recurso de outro professor | Execute | ✅ Verified (escopo aluno) |
+| AUTH-10 | P1: Revogação por inativação | Execute | ✅ Verified |
+| AUTH-11 | P1: CRUD de usuários ligado ao professor | Execute | ✅ Verified |
+| AUTH-12 | P1: E-mail único | Execute | ✅ Verified |
+| AUTH-13 | P1: Política de senha | Execute | ✅ Verified |
+| AUTH-14 | P1: Bootstrap do coordenador | Execute | ✅ Verified |
+| AUTH-15 | P1: Rotas públicas | Execute | ✅ Verified (spec-precision gap: actuator ausente do projeto) |
 
-**Coverage:** 15 total, 0 mapped to tasks, 15 unmapped ⚠️
+**Coverage:** 15 total, 14 verified, 1 deferred (AUTH-08 → `avaliacao`/`audio-avaliacao`). Verifier report: `.specs/features/autenticacao-perfis/validation.md` (PASS, iteration 2/3).
 
 ---
 

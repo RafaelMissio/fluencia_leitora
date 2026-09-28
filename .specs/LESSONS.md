@@ -38,6 +38,42 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/main/java/com/missio/fluencia_leitora/cadastros/aluno/dto/AlunoBuscaItemResponse.java:12-18 (CAD-16 AC4) (dto)
 - last seen: 2026-09-27T19:41:55Z
 
+### L-005 - For every numeric threshold in a spec rule, test the exact boundary value on the accepted side, not only a value clearly below and one clearly above.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `boundary-tests` · harmful: 0
+- features: autenticacao-perfis
+- evidence: validation.md M11/M12/M13: JwtService.java:38, UsuarioService.java:62, AdminBootstrap.java:40 (boundary-tests)
+- last seen: 2026-09-28T03:19:27Z
+
+### L-006 - When an AC cannot be exercised because its endpoints belong to a later feature, record the deferral in spec.md traceability and add the AC to the owning feature spec in the same change.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `traceability` · harmful: 0
+- features: autenticacao-perfis
+- evidence: AUTH-08 (no endpoint exists; design.md Risks promised spec.md deferral note) (traceability)
+- last seen: 2026-09-28T03:19:27Z
+
+### L-007 - For a lockout rule, state whether the failure counter resets when the lock expires.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `auth` · harmful: 0
+- features: autenticacao-perfis
+- evidence: AUTH-03: UsuarioRepository.java:29 counter not reset on lock expiry (auth)
+- last seen: 2026-09-28T03:19:27Z
+
+### L-008 - Before listing a framework endpoint as public in a spec, confirm the dependency that serves it is in the build.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `security-config` · harmful: 0
+- features: autenticacao-perfis
+- evidence: AUTH-15: SecurityConfigIT.java:86-87 /actuator/health returns 404, actuator not a dependency (security-config)
+- last seen: 2026-09-28T03:19:27Z
+
+### L-009 - When a task adds a fail-fast required config property, register a test value in the shared integration test base in the same task.
+- signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `test-infra` · harmful: 0
+- features: autenticacao-perfis
+- evidence: tasks.md:145 T3 SPEC_DEVIATION (test APP_JWT_SECRET in IntegrationTestBase) (test-infra)
+- last seen: 2026-09-28T03:19:27Z
+
+### L-010 - When a service task precedes the task that creates its request DTO, plan the service signature with primitive parameters in tasks.md instead of naming the DTO.
+- signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `task-planning` · harmful: 0
+- features: autenticacao-perfis
+- evidence: tasks.md:344 T11 SPEC_DEVIATION (UsuarioService.criar loose params before T12 DTO) (task-planning)
+- last seen: 2026-09-28T03:19:27Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
