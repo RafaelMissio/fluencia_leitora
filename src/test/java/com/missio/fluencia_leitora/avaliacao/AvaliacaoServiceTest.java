@@ -1236,4 +1236,75 @@ class AvaliacaoServiceTest {
 
         assertEquals(StatusPalavra.PENDENTE, avaliacao.getPalavras().get(0).getStatus());
     }
+
+    // ---- Consulta (AVA-23) ----------------------------------------------
+
+    @Test
+    void buscarRetornaAAvaliacaoSemAlterar() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.PAUSADA);
+        avaliacao.setTempoAcumuladoSegundos(70);
+        Instant ultimaAtividade = avaliacao.getUltimaAtividadeEm();
+
+        Avaliacao resultado = service.buscar(AVALIACAO_ID);
+
+        assertSame(avaliacao, resultado);
+        assertEquals(StatusAvaliacao.PAUSADA, resultado.getStatus());
+        assertNull(resultado.getFinalizadoEm());
+        assertEquals(ultimaAtividade, resultado.getUltimaAtividadeEm());
+    }
+
+    @Test
+    void buscarAvaliacaoInexistenteRetorna404() {
+        when(avaliacaoRepository.findById(AVALIACAO_ID)).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.buscar(AVALIACAO_ID));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("RECURSO_NAO_ENCONTRADO", exception.getCode());
+    }
+
+    @Test
+    void buscarEmAndamentoComTempoEsgotadoFinalizaAntesDeRetornar() {
+        Avaliacao avaliacao = avaliacaoComPalavras(StatusAvaliacao.EM_ANDAMENTO, 9, 4, 0, 7);
+        avaliacao.setIniciadoEm(Instant.now().minusSeconds(60));
+        when(regraClassificacaoService.classificar(1, 9))
+                .thenReturn(new ClassificacaoResultado(Fase.LEITOR_INICIANTE, null));
+
+        Avaliacao resultado = service.buscar(AVALIACAO_ID);
+
+        assertEquals(StatusAvaliacao.FINALIZADA, resultado.getStatus());
+        assertEquals(60, resultado.getTempoUtilizadoSegundos());
+        assertTrue(resultado.getFinalizadoEm() != null);
+        assertEquals(7, resultado.getQuantidadeNaoLidas());
+        assertEquals(Fase.LEITOR_INICIANTE, resultado.getFase());
+    }
+
+    @Test
+    void buscarEmAndamentoComTempoRestanteNaoFinaliza() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.EM_ANDAMENTO);
+        avaliacao.setIniciadoEm(Instant.now().minusSeconds(59));
+
+        Avaliacao resultado = service.buscar(AVALIACAO_ID);
+
+        assertEquals(StatusAvaliacao.EM_ANDAMENTO, resultado.getStatus());
+        assertNull(resultado.getFinalizadoEm());
+    }
+
+    @Test
+    void buscarAvaliacaoDeOutroProfessorRetorna404() {
+        avaliacaoExistente(StatusAvaliacao.CRIADA);
+        when(contextoUsuario.professorIdAtual()).thenReturn(PROFESSOR_ID + 1);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.buscar(AVALIACAO_ID));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+    }
+
+    @Test
+    void buscarComoCoordenadorRetornaAvaliacaoDeQualquerProfessor() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.CRIADA);
+        when(contextoUsuario.perfilAtual()).thenReturn(Perfil.COORDENADOR);
+
+        assertSame(avaliacao, service.buscar(AVALIACAO_ID));
+    }
 }

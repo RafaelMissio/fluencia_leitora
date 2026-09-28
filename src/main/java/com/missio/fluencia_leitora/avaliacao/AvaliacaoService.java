@@ -45,7 +45,8 @@ import java.util.stream.IntStream;
  * Ciclo de vida da avaliação de leitura (design.md, Components): criação
  * (AVA-01..AVA-08), transições de status (AVA-09..AVA-14, AVA-16, AVA-17)
  * cálculo do resultado/classificação (AVA-20..AVA-22) e marcação das
- * palavras com auditoria depois de finalizar (AVA-15, AVA-18, AVA-19).
+ * palavras com auditoria depois de finalizar (AVA-15, AVA-18, AVA-19) e
+ * consulta (AVA-23).
  */
 @Service
 public class AvaliacaoService {
@@ -273,6 +274,19 @@ public class AvaliacaoService {
     private static String classificacao(Avaliacao avaliacao) {
         return (avaliacao.getFase() == null ? "-" : avaliacao.getFase().name())
                 + "/" + (avaliacao.getNivel() == null ? "-" : avaliacao.getNivel());
+    }
+
+    /**
+     * AVA-23: a avaliação completa. Uma EM_ANDAMENTO com o tempo já esgotado
+     * é finalizada antes de retornar, para a leitura não mostrar um status
+     * vencido (design.md, Tech Decisions). Uma leitura não conta como
+     * atividade ({@code ultimaAtividadeEm} não muda).
+     */
+    @Transactional
+    public Avaliacao buscar(Long id) {
+        Avaliacao avaliacao = carregar(id);
+        finalizarSeTempoEsgotado(avaliacao);
+        return avaliacao;
     }
 
     /**

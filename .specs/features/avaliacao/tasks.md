@@ -614,10 +614,10 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] `id` inexistente lança exceção que o controller mapeia para 404 (T21)
-- [ ] Avaliação `EM_ANDAMENTO` com tempo já esgotado é finalizada silenciosamente antes de retornar (teste dedicado - evita a leitura mentir sobre o estado)
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 3 testes novos
+- [x] `id` inexistente lança exceção que o controller mapeia para 404 (T21)
+- [x] Avaliação `EM_ANDAMENTO` com tempo já esgotado é finalizada silenciosamente antes de retornar (teste dedicado - evita a leitura mentir sobre o estado)
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 3 testes novos
 
 **Tests**: unit
 **Gate**: quick
