@@ -247,11 +247,11 @@ T13 -> T14
 
 **Done when**:
 
-- [ ] `findBySerieAndAtivoTrueOrderByQuantidadeMinimaAcertosAsc` retorna só as faixas `ativo=true` da série, ordenadas por `quantidadeMinimaAcertos`
-- [ ] `buscarHistoricoPorSerie` retorna todas as faixas (ativas e inativas) da série, com o grupo corrente (`alteradoEm=null`) primeiro, depois `alteradoEm DESC`
-- [ ] **Teste de concorrência real**: duas transações concorrentes (threads/`TransactionTemplate` distintos, não duas chamadas sequenciais no mesmo thread) chamando `buscarAtivasParaAtualizarComLock` na mesma série - a segunda só prossegue depois que a primeira comita/faz rollback (lock pessimista provado, não apenas presumido)
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 4 tests pass em `RegraClassificacaoRepositoryIT`
+- [x] `findBySerieAndAtivoTrueOrderByQuantidadeMinimaAcertosAsc` retorna só as faixas `ativo=true` da série, ordenadas por `quantidadeMinimaAcertos`
+- [x] `buscarHistoricoPorSerie` retorna todas as faixas (ativas e inativas) da série, com o grupo corrente (`alteradoEm=null`) primeiro, depois `alteradoEm DESC`
+- [x] **Teste de concorrência real**: duas transações concorrentes (threads/`TransactionTemplate` distintos, não duas chamadas sequenciais no mesmo thread) chamando `buscarAtivasParaAtualizarComLock` na mesma série - a segunda só prossegue depois que a primeira comita/faz rollback (lock pessimista provado, não apenas presumido)
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 4 tests pass em `RegraClassificacaoRepositoryIT`
 
 **Tests**: integration
 **Gate**: full

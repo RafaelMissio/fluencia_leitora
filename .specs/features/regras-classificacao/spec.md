@@ -121,10 +121,10 @@ O aluno é classificado em Pré-Leitor (níveis 1–4), Leitor Iniciante ou Leit
 | -------------- | ----- | ----- | ------ |
 | REG-01 | P1: Seed das faixas do 1º ano | T3 | Implementing |
 | REG-02 | P1: Seed das faixas do 2º ao 5º ano | T3 | Implementing |
-| REG-03 | P1: Classificação usa só faixas ativas | - | Pending |
+| REG-03 | P1: Classificação usa só faixas ativas | T6 | Implementing |
 | REG-04 | P1: Mesma regra para os 3 tipos | - | Pending |
 | REG-05 | P1: Sem classificação quando não há cobertura | - | Pending |
-| REG-06 | P1: Consulta de faixas | - | Pending |
+| REG-06 | P1: Consulta de faixas | T6 | Implementing |
 | REG-07 | P1: Substituição atômica | - | Pending |
 | REG-08 | P1: Validação - início em zero | - | Pending |
 | REG-09 | P1: Validação - lacuna | - | Pending |
@@ -133,7 +133,7 @@ O aluno é classificado em Pré-Leitor (níveis 1–4), Leitor Iniciante ou Leit
 | REG-12 | P1: Falha preserva faixas anteriores | - | Pending |
 | REG-13 | P1: Rastreabilidade de quem alterou | - | Pending |
 | REG-14 | P1: Avaliações finalizadas não são reclassificadas | - | Pending |
-| REG-15 | P2: Histórico de regras | - | Pending |
+| REG-15 | P2: Histórico de regras | T6 | Implementing |
 
 **Coverage:** 15 total, 0 mapped to tasks, 15 unmapped ⚠️
 
