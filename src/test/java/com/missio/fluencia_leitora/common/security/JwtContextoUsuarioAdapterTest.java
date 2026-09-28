@@ -44,4 +44,11 @@ class JwtContextoUsuarioAdapterTest {
         assertEquals(Perfil.PROFESSOR, adapter.perfilAtual());
         assertEquals(42L, adapter.professorIdAtual());
     }
+
+    @Test
+    void usuarioIdAtualRetornaUsuarioIdDoPrincipalAutenticado() {
+        autenticar(new UsuarioAutenticado(7L, Perfil.COORDENADOR, null));
+
+        assertEquals(7L, adapter.usuarioIdAtual());
+    }
 }

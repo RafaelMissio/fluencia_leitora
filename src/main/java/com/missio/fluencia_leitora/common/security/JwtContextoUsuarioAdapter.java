@@ -21,6 +21,11 @@ public class JwtContextoUsuarioAdapter implements ContextoUsuarioPort {
         return usuarioAtual().professorId();
     }
 
+    @Override
+    public Long usuarioIdAtual() {
+        return usuarioAtual().usuarioId();
+    }
+
     private UsuarioAutenticado usuarioAtual() {
         return (UsuarioAutenticado) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
