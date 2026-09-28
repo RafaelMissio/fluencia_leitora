@@ -1307,4 +1307,49 @@ class AvaliacaoServiceTest {
 
         assertSame(avaliacao, service.buscar(AVALIACAO_ID));
     }
+
+    // ---- Consulta da auditoria (AVA-26) ----------------------------------
+
+    @Test
+    void consultarAuditoriaDepoisDeDuasAlteracoesRetornaOsDoisRegistrosEmOrdem() {
+        finalizadaComPalavras(9, 4, 7, Fase.LEITOR_INICIANTE, null);
+        when(regraClassificacaoService.classificar(anyInt(), anyInt()))
+                .thenReturn(new ClassificacaoResultado(Fase.LEITOR_INICIANTE, null));
+        service.marcarPalavra(AVALIACAO_ID, 14, StatusPalavra.CORRETA);
+        service.marcarPalavra(AVALIACAO_ID, 15, StatusPalavra.INCORRETA);
+        ArgumentCaptor<AvaliacaoAuditoria> captor = ArgumentCaptor.forClass(AvaliacaoAuditoria.class);
+        verify(avaliacaoAuditoriaRepository, times(2)).save(captor.capture());
+        when(avaliacaoAuditoriaRepository.findByAvaliacaoIdOrderByDataHoraAsc(AVALIACAO_ID))
+                .thenReturn(captor.getAllValues());
+
+        List<AvaliacaoAuditoria> auditorias = service.consultarAuditoria(AVALIACAO_ID);
+
+        assertEquals(2, auditorias.size());
+        assertEquals("palavra 14: CORRETA", auditorias.get(0).getValorNovo());
+        assertEquals("palavra 15: INCORRETA", auditorias.get(1).getValorNovo());
+    }
+
+    @Test
+    void consultarAuditoriaDeAvaliacaoInexistenteRetorna404() {
+        when(avaliacaoRepository.findById(AVALIACAO_ID)).thenReturn(Optional.empty());
+
+        BusinessException exception =
+                assertThrows(BusinessException.class, () -> service.consultarAuditoria(AVALIACAO_ID));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("RECURSO_NAO_ENCONTRADO", exception.getCode());
+        verify(avaliacaoAuditoriaRepository, never()).findByAvaliacaoIdOrderByDataHoraAsc(any());
+    }
+
+    @Test
+    void consultarAuditoriaDeAvaliacaoDeOutroProfessorRetorna404() {
+        avaliacaoExistente(StatusAvaliacao.FINALIZADA);
+        when(contextoUsuario.professorIdAtual()).thenReturn(PROFESSOR_ID + 1);
+
+        BusinessException exception =
+                assertThrows(BusinessException.class, () -> service.consultarAuditoria(AVALIACAO_ID));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        verify(avaliacaoAuditoriaRepository, never()).findByAvaliacaoIdOrderByDataHoraAsc(any());
+    }
 }

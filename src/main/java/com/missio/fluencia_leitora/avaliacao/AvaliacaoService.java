@@ -46,7 +46,7 @@ import java.util.stream.IntStream;
  * (AVA-01..AVA-08), transições de status (AVA-09..AVA-14, AVA-16, AVA-17)
  * cálculo do resultado/classificação (AVA-20..AVA-22) e marcação das
  * palavras com auditoria depois de finalizar (AVA-15, AVA-18, AVA-19) e
- * consulta (AVA-23).
+ * consultas da avaliação e da auditoria (AVA-23, AVA-26).
  */
 @Service
 public class AvaliacaoService {
@@ -287,6 +287,13 @@ public class AvaliacaoService {
         Avaliacao avaliacao = carregar(id);
         finalizarSeTempoEsgotado(avaliacao);
         return avaliacao;
+    }
+
+    /** AVA-26: registros de auditoria da avaliação, em ordem cronológica. */
+    @Transactional(readOnly = true)
+    public List<AvaliacaoAuditoria> consultarAuditoria(Long id) {
+        carregar(id);
+        return avaliacaoAuditoriaRepository.findByAvaliacaoIdOrderByDataHoraAsc(id);
     }
 
     /**

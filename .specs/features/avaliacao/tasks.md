@@ -639,9 +639,9 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Depois de 2 alterações, retorna 2 registros em ordem cronológica (teste 1:1 com o Independent Test do spec)
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 2 testes novos
+- [x] Depois de 2 alterações, retorna 2 registros em ordem cronológica (teste 1:1 com o Independent Test do spec)
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 2 testes novos
 
 **Tests**: unit
 **Gate**: quick

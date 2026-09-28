@@ -250,7 +250,7 @@ O professor precisa aplicar uma avaliação cronometrada de leitura (palavras, p
 | AVA-23 | P1: Consulta da avaliação | T19 | In Progress |
 | AVA-24 | P1: Cancelamento com justificativa | - | Pending |
 | AVA-25 | P1: Lock otimista | T16 | Done |
-| AVA-26 | P2: Consulta da auditoria | - | Pending |
+| AVA-26 | P2: Consulta da auditoria | T20 | In Progress |
 | AVA-27 | P1: Envio do áudio (201, grava `avaliacao_audio`) | - | Pending |
 | AVA-28 | P1: Envio bloqueado fora de FINALIZADA | - | Pending |
 | AVA-29 | P1: Envio duplicado bloqueado | - | Pending |
