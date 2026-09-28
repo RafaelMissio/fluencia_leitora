@@ -85,13 +85,16 @@ public class ListaPalavras {
     }
 
     /**
-     * Substitui toda a coleção de itens: os antigos são removidos (o
-     * {@code orphanRemoval} cuida da exclusão) e os novos são associados a
-     * esta lista.
+     * Remove todos os itens da coleção (o {@code orphanRemoval} cuida da
+     * exclusão física). Usado por {@code ListaPalavrasService.atualizar}
+     * antes de adicionar os novos itens - entre os dois passos, o service
+     * força um flush para que os DELETEs dos itens antigos sejam executados
+     * antes dos INSERTs dos novos, evitando colidir com a constraint
+     * {@code uk_item_lista_palavras_ordem} quando a nova lista reusa as
+     * mesmas posições de {@code ordem} da antiga.
      */
-    public void substituirItens(List<ItemListaPalavras> novosItens) {
+    public void limparItens() {
         itens.clear();
-        novosItens.forEach(item -> itens.add(new ItemListaPalavras(this, item.getPalavra(), item.getTipoPalavra(), item.getOrdem())));
     }
 
     public Long getId() {

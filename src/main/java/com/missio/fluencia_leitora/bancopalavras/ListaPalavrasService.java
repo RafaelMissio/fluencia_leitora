@@ -49,11 +49,11 @@ public class ListaPalavrasService {
 
     /**
      * PAL-06/PAL-12: reaplica as mesmas validações de {@link #criar} sobre o
-     * novo conteúdo e substitui a coleção de itens (o {@code orphanRemoval}
-     * de {@link ListaPalavras#substituirItens} cuida da exclusão dos
-     * antigos). O {@code version} do request precisa bater com o persistido
-     * - divergente dispara {@link ObjectOptimisticLockingFailureException}
-     * (409 {@code CONFLITO_DE_VERSAO} via {@code GlobalExceptionHandler}).
+     * novo conteúdo e substitui a coleção de itens (limpa + flush + adiciona
+     * os novos - ver comentário no corpo do método). O {@code version} do
+     * request precisa bater com o persistido - divergente dispara
+     * {@link ObjectOptimisticLockingFailureException} (409
+     * {@code CONFLITO_DE_VERSAO} via {@code GlobalExceptionHandler}).
      */
     @Transactional
     public ListaPalavras atualizar(Long id, AtualizarListaPalavrasRequest request) {
@@ -72,10 +72,13 @@ public class ListaPalavrasService {
         lista.setTipoPalavra(request.tipoPalavra());
         lista.setTexto(request.texto());
 
-        List<ItemListaPalavras> novosItens = itensDados.stream()
-                .map(item -> new ItemListaPalavras(lista, item.palavra(), item.tipoPalavra(), item.ordem()))
-                .toList();
-        lista.substituirItens(novosItens);
+        // Limpa e força o flush antes de adicionar os novos itens: sem isso,
+        // Hibernate processa INSERTs antes dos DELETEs de orphanRemoval no
+        // mesmo flush, e a nova lista colide com a constraint
+        // uk_item_lista_palavras_ordem quando reusa as mesmas posições.
+        lista.limparItens();
+        repository.saveAndFlush(lista);
+        itensDados.forEach(item -> lista.adicionarItem(item.palavra(), item.tipoPalavra(), item.ordem()));
 
         return repository.save(lista);
     }
