@@ -97,9 +97,9 @@ T3 -> T4
 
 **Done when**:
 
-- [ ] As 5 classes compilam; as 4 subclasses estendem `AudioStorageException`
-- [ ] `AudioArmazenamentoException` tem um construtor `(String, Throwable)` para embrulhar `IOException`
-- [ ] Gate check passes: `./mvnw compile`
+- [x] As 5 classes compilam; as 4 subclasses estendem `AudioStorageException`
+- [x] `AudioArmazenamentoException` tem um construtor `(String, Throwable)` para embrulhar `IOException`
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
