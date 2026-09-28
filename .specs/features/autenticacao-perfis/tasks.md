@@ -233,10 +233,12 @@ T17
 - Skill: NONE
 
 **Done when**:
-- [ ] `JwtContextoUsuarioAdapter.perfilAtual()`/`professorIdAtual()` retornam os valores do `UsuarioAutenticado` do contexto atual
-- [ ] `ContextoUsuarioHeaderAdapter` e seu teste não existem mais no código
-- [ ] `./mvnw test` passa
-- [ ] 2 testes (perfil COORDENADOR e PROFESSOR) com um `Authentication` mockado no `SecurityContext`
+- [x] `JwtContextoUsuarioAdapter.perfilAtual()`/`professorIdAtual()` retornam os valores do `UsuarioAutenticado` do contexto atual
+- [x] `ContextoUsuarioHeaderAdapter` e seu teste não existem mais no código
+- [x] `./mvnw test` passa
+- [x] 2 testes (perfil COORDENADOR e PROFESSOR) com um `Authentication` mockado no `SecurityContext`
+
+> Efeito previsto até a T16: sem o adapter de headers, `AlunoControllerIT.getComPerfilProfessorRetornaSoAlunosDaqueleProfessor` deixa de simular PROFESSOR via `X-Perfil`/`X-Professor-Id` e falha no gate `full` até a T16 reescrevê-lo com JWT real de PROFESSOR. O teste não foi alterado.
 
 **Tests**: unit
 **Gate**: quick
