@@ -689,11 +689,11 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Cancela a partir de todo status não-`CANCELADA`, inclusive `FINALIZADA` com áudio já enviado (áudio continua recuperável - teste dedicado)
-- [ ] `CANCELADA` → 409 `TRANSICAO_INVALIDA` em qualquer ação subsequente (não só cancelar de novo)
-- [ ] Justificativa fora de 10-500 rejeitada (o `@Size` do DTO cobre o formato; teste aqui cobre o efeito de negócio)
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 6 testes novos
+- [x] Cancela a partir de todo status não-`CANCELADA`, inclusive `FINALIZADA` com áudio já enviado (áudio continua recuperável - teste dedicado em T23, a nível de integração, já que o `AvaliacaoService` só ganha dependência de áudio em T24)
+- [x] `CANCELADA` → 409 `TRANSICAO_INVALIDA` em qualquer ação subsequente (não só cancelar de novo)
+- [x] Justificativa fora de 10-500 rejeitada (o `@Size` do DTO cobre o formato; teste aqui cobre o efeito de negócio)
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 6 testes novos
 
 **Tests**: unit
 **Gate**: quick

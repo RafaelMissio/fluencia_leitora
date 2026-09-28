@@ -44,9 +44,10 @@ import java.util.stream.IntStream;
 /**
  * Ciclo de vida da avaliação de leitura (design.md, Components): criação
  * (AVA-01..AVA-08), transições de status (AVA-09..AVA-14, AVA-16, AVA-17)
- * cálculo do resultado/classificação (AVA-20..AVA-22) e marcação das
- * palavras com auditoria depois de finalizar (AVA-15, AVA-18, AVA-19) e
- * consultas da avaliação e da auditoria (AVA-23, AVA-26).
+ * cálculo do resultado/classificação (AVA-20..AVA-22), marcação das
+ * palavras com auditoria depois de finalizar (AVA-15, AVA-18, AVA-19),
+ * consultas da avaliação e da auditoria (AVA-23, AVA-26) e cancelamento
+ * (AVA-24).
  */
 @Service
 public class AvaliacaoService {
@@ -57,6 +58,8 @@ public class AvaliacaoService {
     private static final int TEMPO_MAXIMO_SEGUNDOS = 600;
     private static final int SERIE_PROIBE_NAO_CANONICA = 1;
     private static final int LIMITE_CARACTERES_PALAVRA = 60;
+    private static final int JUSTIFICATIVA_MINIMO_CARACTERES = 10;
+    private static final int JUSTIFICATIVA_MAXIMO_CARACTERES = 500;
     private static final Pattern FORMATO_PALAVRA = Pattern.compile("^[\\p{L}-]+$");
 
     private final AvaliacaoRepository avaliacaoRepository;
@@ -168,6 +171,45 @@ public class AvaliacaoService {
     @Transactional(noRollbackFor = BusinessException.class)
     public Avaliacao finalizar(Long id) {
         return executar(id, Transicao.FINALIZAR, this::aplicarFinalizacao);
+    }
+
+    /**
+     * AVA-24: permitido a partir de qualquer status, exceto {@code
+     * CANCELADA} - a própria tabela de status trata "cancelar" repetido
+     * numa já {@code CANCELADA} como idempotente (mesmo mecanismo de
+     * AVA-14). Grava uma {@link AvaliacaoAuditoria} ({@code CANCELAMENTO})
+     * com o status anterior e a justificativa; nunca chama {@code
+     * AudioStoragePort} - um áudio já enviado continua recuperável
+     * (spec.md, Edge Cases).
+     */
+    @Transactional(noRollbackFor = BusinessException.class)
+    public Avaliacao cancelar(Long id, String justificativa) {
+        validarJustificativa(justificativa);
+        return executar(id, Transicao.CANCELAR, avaliacao -> registrarCancelamento(avaliacao, justificativa));
+    }
+
+    /** AVA-24 (AC 1): o status anterior é lido antes de {@link #mudarStatus} mudar para CANCELADA. */
+    private void registrarCancelamento(Avaliacao avaliacao, String justificativa) {
+        avaliacaoAuditoriaRepository.save(new AvaliacaoAuditoria(
+                avaliacao,
+                contextoUsuario.usuarioIdAtual(),
+                AcaoAuditoria.CANCELAMENTO,
+                avaliacao.getStatus().name(),
+                StatusAvaliacao.CANCELADA.name(),
+                justificativa));
+    }
+
+    /** AVA-24 (AC 2): 10-500 caracteres (o {@code @Size} do DTO cobre a mesma regra na borda HTTP). */
+    private void validarJustificativa(String justificativa) {
+        if (justificativa == null
+                || justificativa.length() < JUSTIFICATIVA_MINIMO_CARACTERES
+                || justificativa.length() > JUSTIFICATIVA_MAXIMO_CARACTERES) {
+            throw new BusinessException(
+                    HttpStatus.UNPROCESSABLE_ENTITY,
+                    "JUSTIFICATIVA_INVALIDA",
+                    "justificativa deve ter entre " + JUSTIFICATIVA_MINIMO_CARACTERES + " e "
+                            + JUSTIFICATIVA_MAXIMO_CARACTERES + " caracteres");
+        }
     }
 
     /** AVA-15: marca uma palavra ({@code PUT .../palavras/{ordem}}). */
@@ -576,7 +618,10 @@ public class AvaliacaoService {
         RESETAR("resetar", StatusAvaliacao.CRIADA, false,
                 EnumSet.of(StatusAvaliacao.EM_ANDAMENTO, StatusAvaliacao.PAUSADA)),
         FINALIZAR("finalizar", StatusAvaliacao.FINALIZADA, true,
-                EnumSet.of(StatusAvaliacao.EM_ANDAMENTO, StatusAvaliacao.PAUSADA));
+                EnumSet.of(StatusAvaliacao.EM_ANDAMENTO, StatusAvaliacao.PAUSADA)),
+        CANCELAR("cancelar", StatusAvaliacao.CANCELADA, true,
+                EnumSet.of(StatusAvaliacao.CRIADA, StatusAvaliacao.EM_ANDAMENTO, StatusAvaliacao.PAUSADA,
+                        StatusAvaliacao.FINALIZADA));
 
         private final String acao;
         private final StatusAvaliacao destino;

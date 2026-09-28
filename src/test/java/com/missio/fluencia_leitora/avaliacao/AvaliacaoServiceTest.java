@@ -1352,4 +1352,128 @@ class AvaliacaoServiceTest {
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
         verify(avaliacaoAuditoriaRepository, never()).findByAvaliacaoIdOrderByDataHoraAsc(any());
     }
+
+    // ---- Cancelamento (AVA-24) -------------------------------------------
+
+    @ParameterizedTest
+    @EnumSource(value = StatusAvaliacao.class, names = {"CRIADA", "EM_ANDAMENTO", "PAUSADA", "FINALIZADA"})
+    void cancelarAPartirDeQualquerStatusNaoCanceladaMudaParaCanceladaEGravaAuditoria(StatusAvaliacao statusOrigem) {
+        Avaliacao avaliacao = avaliacaoExistente(statusOrigem);
+        Instant antes = Instant.now();
+
+        Avaliacao resultado = service.cancelar(AVALIACAO_ID, "Avaliação criada por engano, cancelando.");
+
+        verify(avaliacaoRepository).save(avaliacao);
+        assertEquals(StatusAvaliacao.CANCELADA, resultado.getStatus());
+        assertEntre(antes, resultado.getUltimaAtividadeEm(), Instant.now());
+        ArgumentCaptor<AvaliacaoAuditoria> captor = ArgumentCaptor.forClass(AvaliacaoAuditoria.class);
+        verify(avaliacaoAuditoriaRepository).save(captor.capture());
+        AvaliacaoAuditoria auditoria = captor.getValue();
+        assertSame(avaliacao, auditoria.getAvaliacao());
+        assertEquals(USUARIO_ID, auditoria.getUsuarioId());
+        assertEquals(AcaoAuditoria.CANCELAMENTO, auditoria.getAcao());
+        assertEquals(statusOrigem.name(), auditoria.getValorAnterior());
+        assertEquals(StatusAvaliacao.CANCELADA.name(), auditoria.getValorNovo());
+        assertEquals("Avaliação criada por engano, cancelando.", auditoria.getJustificativa());
+    }
+
+    @Test
+    void cancelarNumaCanceladaRetorna200IdempotenteSemNovaAuditoria() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.CANCELADA);
+
+        Avaliacao resultado = service.cancelar(AVALIACAO_ID, "Justificativa qualquer com dez chars.");
+
+        assertSame(avaliacao, resultado);
+        assertEquals(StatusAvaliacao.CANCELADA, resultado.getStatus());
+        verify(avaliacaoAuditoriaRepository, never()).save(any());
+    }
+
+    @Test
+    void depoisDeCancelarQualquerOutraAcaoRetorna409TransicaoInvalida() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.EM_ANDAMENTO);
+
+        service.cancelar(AVALIACAO_ID, "Avaliação criada por engano, cancelando.");
+
+        assertTransicaoInvalida(() -> service.iniciar(AVALIACAO_ID), StatusAvaliacao.CANCELADA, "iniciar");
+        assertTransicaoInvalida(() -> service.pausar(AVALIACAO_ID), StatusAvaliacao.CANCELADA, "pausar");
+        assertTransicaoInvalida(() -> service.continuar(AVALIACAO_ID), StatusAvaliacao.CANCELADA, "continuar");
+        assertTransicaoInvalida(() -> service.resetar(AVALIACAO_ID), StatusAvaliacao.CANCELADA, "resetar");
+        assertTransicaoInvalida(() -> service.finalizar(AVALIACAO_ID), StatusAvaliacao.CANCELADA, "finalizar");
+        assertEquals(StatusAvaliacao.CANCELADA, avaliacao.getStatus());
+    }
+
+    @Test
+    void cancelarComTempoEsgotadoFinalizaAntesEGravaOStatusAnteriorComoFinalizada() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.EM_ANDAMENTO);
+        avaliacao.setIniciadoEm(Instant.now().minusSeconds(61));
+
+        Avaliacao resultado = service.cancelar(AVALIACAO_ID, "Avaliação criada por engano, cancelando.");
+
+        assertEquals(StatusAvaliacao.CANCELADA, resultado.getStatus());
+        assertEquals(60, resultado.getTempoUtilizadoSegundos());
+        ArgumentCaptor<AvaliacaoAuditoria> captor = ArgumentCaptor.forClass(AvaliacaoAuditoria.class);
+        verify(avaliacaoAuditoriaRepository).save(captor.capture());
+        assertEquals("FINALIZADA", captor.getValue().getValorAnterior());
+    }
+
+    @Test
+    void cancelarComJustificativaMuitoCurtaRetorna422SemAlterar() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.CRIADA);
+
+        BusinessException exception =
+                assertThrows(BusinessException.class, () -> service.cancelar(AVALIACAO_ID, "curta"));
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+        assertEquals("JUSTIFICATIVA_INVALIDA", exception.getCode());
+        assertEquals(StatusAvaliacao.CRIADA, avaliacao.getStatus());
+        verify(avaliacaoRepository, never()).save(any());
+        verify(avaliacaoAuditoriaRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelarComJustificativaMuitoLongaRetorna422() {
+        avaliacaoExistente(StatusAvaliacao.CRIADA);
+        String justificativaLonga = "a".repeat(501);
+
+        BusinessException exception =
+                assertThrows(BusinessException.class, () -> service.cancelar(AVALIACAO_ID, justificativaLonga));
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+        assertEquals("JUSTIFICATIVA_INVALIDA", exception.getCode());
+        verify(avaliacaoRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelarComJustificativaNulaRetorna422() {
+        avaliacaoExistente(StatusAvaliacao.CRIADA);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.cancelar(AVALIACAO_ID, null));
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+        assertEquals("JUSTIFICATIVA_INVALIDA", exception.getCode());
+    }
+
+    @Test
+    void cancelarAvaliacaoDeOutroProfessorRetorna404SemAlterar() {
+        Avaliacao avaliacao = avaliacaoExistente(StatusAvaliacao.CRIADA);
+        when(contextoUsuario.professorIdAtual()).thenReturn(PROFESSOR_ID + 1);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.cancelar(AVALIACAO_ID, "Avaliação criada por engano, cancelando."));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals(StatusAvaliacao.CRIADA, avaliacao.getStatus());
+        verify(avaliacaoAuditoriaRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelarAvaliacaoInexistenteRetorna404() {
+        when(avaliacaoRepository.findById(AVALIACAO_ID)).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.cancelar(AVALIACAO_ID, "Avaliação criada por engano, cancelando."));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("RECURSO_NAO_ENCONTRADO", exception.getCode());
+    }
 }
