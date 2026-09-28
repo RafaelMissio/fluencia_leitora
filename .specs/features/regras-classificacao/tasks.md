@@ -196,8 +196,8 @@ T13 -> T14
 
 **Done when**:
 
-- [ ] Enum compila com exatamente os 3 valores do `design.md`
-- [ ] Gate check passes: `./mvnw compile`
+- [x] Enum compila com exatamente os 3 valores do `design.md`
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
