@@ -715,10 +715,10 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Caminho feliz (200) a partir de `FINALIZADA`; 422 para justificativa inválida; 409 a partir de `CANCELADA`
-- [ ] Professor de outro aluno recebe 404
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 6 testes novos
+- [x] Caminho feliz (200) a partir de `FINALIZADA`; 422 para justificativa inválida; 409 a partir de `CANCELADA` (nota: repetir "cancelar" numa já `CANCELADA` é 200 idempotente, per a tabela de status - "409 a partir de CANCELADA" é coberto por qualquer OUTRA ação chamada depois do cancelamento, testado dedicadamente)
+- [x] Professor de outro aluno recebe 404
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 6 testes novos
 
 **Tests**: integration
 **Gate**: full

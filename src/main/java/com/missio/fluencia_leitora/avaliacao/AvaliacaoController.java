@@ -2,6 +2,7 @@ package com.missio.fluencia_leitora.avaliacao;
 
 import com.missio.fluencia_leitora.avaliacao.dto.AvaliacaoAuditoriaResponse;
 import com.missio.fluencia_leitora.avaliacao.dto.AvaliacaoResponse;
+import com.missio.fluencia_leitora.avaliacao.dto.CancelarAvaliacaoRequest;
 import com.missio.fluencia_leitora.avaliacao.dto.MarcarPalavraRequest;
 import com.missio.fluencia_leitora.avaliacao.dto.MarcarPalavrasRequest;
 import com.missio.fluencia_leitora.avaliacao.dto.NovaAvaliacaoRequest;
@@ -22,9 +23,10 @@ import java.util.List;
 /**
  * AVA-01..AVA-08: criação da avaliação; AVA-09..AVA-14: transições de
  * status; AVA-15, AVA-18, AVA-19: marcação das palavras; AVA-23, AVA-26:
- * consultas. As ações são restritas ao PROFESSOR (SDD §17); as consultas
- * também são abertas ao COORDENADOR. O pertencimento (AUTH-09) é
- * verificado no service, que é quem conhece a matrícula e a avaliação.
+ * consultas; AVA-24: cancelamento. As ações são restritas ao PROFESSOR
+ * (SDD §17); as consultas também são abertas ao COORDENADOR. O
+ * pertencimento (AUTH-09) é verificado no service, que é quem conhece a
+ * matrícula e a avaliação.
  */
 @RestController
 @RequestMapping("/api/v1/avaliacoes")
@@ -71,6 +73,12 @@ public class AvaliacaoController {
     @PreAuthorize("hasRole('PROFESSOR')")
     public AvaliacaoResponse finalizar(@PathVariable Long id) {
         return AvaliacaoResponse.from(avaliacaoService.finalizar(id));
+    }
+
+    @PostMapping("/{id}/cancelar")
+    @PreAuthorize("hasRole('PROFESSOR')")
+    public AvaliacaoResponse cancelar(@PathVariable Long id, @Valid @RequestBody CancelarAvaliacaoRequest request) {
+        return AvaliacaoResponse.from(avaliacaoService.cancelar(id, request.justificativa()));
     }
 
     @PutMapping("/{id}/palavras/{ordem}")

@@ -248,7 +248,7 @@ O professor precisa aplicar uma avaliação cronometrada de leitura (palavras, p
 | AVA-21 | P1: Classificação na finalização | T15, T16 | Done |
 | AVA-22 | P1: Classificação pendente | T15, T16 | Done |
 | AVA-23 | P1: Consulta da avaliação | T19, T21 | Done |
-| AVA-24 | P1: Cancelamento com justificativa | - | Pending |
+| AVA-24 | P1: Cancelamento com justificativa | T22, T23 | Done |
 | AVA-25 | P1: Lock otimista | T16 | Done |
 | AVA-26 | P2: Consulta da auditoria | T20, T21 | Done |
 | AVA-27 | P1: Envio do áudio (201, grava `avaliacao_audio`) | - | Pending |

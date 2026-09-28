@@ -26,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -130,6 +131,9 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
 
     @Autowired
     private AvaliacaoAuditoriaRepository avaliacaoAuditoriaRepository;
+
+    @Autowired
+    private AvaliacaoAudioRepository avaliacaoAudioRepository;
 
     @MockitoSpyBean
     private PertencimentoProfessorGuard pertencimentoProfessorGuard;
@@ -500,7 +504,7 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
                 tx -> alteracao.accept(avaliacaoRepository.findById(id).orElseThrow()));
     }
 
-    /** Avaliação de 15 palavras do 1º ano levada ao status pedido pela própria API (CANCELADA direto no banco - T22 ainda não existe). */
+    /** Avaliação de 15 palavras do 1º ano levada ao status pedido, pela própria API em cada passo. */
     private Long avaliacaoNoStatus(String bearer, Professor professor, StatusAvaliacao status) throws Exception {
         Long id = criarAvaliacao(bearer, novaMatricula(1, professor), 15);
         switch (status) {
@@ -513,11 +517,129 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
                 acao(bearer, id, "iniciar").andExpect(status().isOk());
                 acao(bearer, id, "finalizar").andExpect(status().isOk());
             }
-            case CANCELADA -> alterar(id, avaliacao -> avaliacao.setStatus(StatusAvaliacao.CANCELADA));
+            case CANCELADA -> cancelar(bearer, id, "Avaliação criada por engano, cancelando para teste.")
+                    .andExpect(status().isOk());
             default -> {
             }
         }
         return id;
+    }
+
+    // ---- Cancelamento (AVA-24) -------------------------------------------
+
+    private ResultActions cancelar(String bearer, Long id, String justificativa) throws Exception {
+        Map<String, Object> corpo = new HashMap<>();
+        corpo.put("justificativa", justificativa);
+        return mockMvc.perform(post("/api/v1/avaliacoes/" + id + "/cancelar").header("Authorization", bearer)
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(corpo)));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = StatusAvaliacao.class, names = {"CRIADA", "EM_ANDAMENTO", "PAUSADA", "FINALIZADA"})
+    void cancelarAPartirDeQualquerStatusNaoCanceladaRetorna200EGravaAuditoria(StatusAvaliacao origem) throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, origem);
+
+        cancelar(bearer, id, "Avaliação aplicada por engano, cancelando.")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELADA"));
+
+        assertEquals(StatusAvaliacao.CANCELADA, avaliacaoRepository.findById(id).orElseThrow().getStatus());
+        List<AvaliacaoAuditoria> auditorias = avaliacaoAuditoriaRepository.findByAvaliacaoIdOrderByDataHoraAsc(id);
+        assertEquals(1, auditorias.size());
+        assertEquals(AcaoAuditoria.CANCELAMENTO, auditorias.get(0).getAcao());
+        assertEquals(origem.name(), auditorias.get(0).getValorAnterior());
+        assertEquals("CANCELADA", auditorias.get(0).getValorNovo());
+        assertEquals("Avaliação aplicada por engano, cancelando.", auditorias.get(0).getJustificativa());
+    }
+
+    @Test
+    void cancelarComJustificativaCurtaRetorna422SemAlterar() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.CRIADA);
+
+        cancelar(bearer, id, "curta")
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+
+        assertEquals(StatusAvaliacao.CRIADA, avaliacaoRepository.findById(id).orElseThrow().getStatus());
+    }
+
+    /** Tabela de status (spec.md): repetir "cancelar" numa já CANCELADA é idempotente (200), não 409. */
+    @Test
+    void cancelarUmaJaCanceladaRetorna200IdempotenteSemNovaAuditoria() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.CANCELADA);
+
+        cancelar(bearer, id, "Avaliação aplicada por engano, cancelando de novo.")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELADA"));
+
+        assertEquals(1, avaliacaoAuditoriaRepository.findByAvaliacaoIdOrderByDataHoraAsc(id).size());
+    }
+
+    /** AVA-24 (AC 3): depois de cancelada, qualquer OUTRA ação continua 409 (a tabela de status já cobre isso em T16). */
+    @Test
+    void depoisDeCancelarQualquerOutraAcaoRetorna409TransicaoInvalida() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+
+        cancelar(bearer, id, "Avaliação aplicada por engano, cancelando.").andExpect(status().isOk());
+
+        acao(bearer, id, "iniciar")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("TRANSICAO_INVALIDA"));
+    }
+
+    @Test
+    void cancelarUmaFinalizadaComAudioMantemORegistroDeAudioRecuperavel() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.FINALIZADA);
+        Avaliacao avaliacao = avaliacaoRepository.findById(id).orElseThrow();
+        avaliacaoAudioRepository.save(new AvaliacaoAudio(avaliacao, "ref-teste.wav", "audio/wav", 1024L));
+
+        cancelar(bearer, id, "Avaliação aplicada por engano, cancelando.")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELADA"));
+
+        assertTrue(avaliacaoAudioRepository.findByAvaliacaoId(id).isPresent());
+    }
+
+    @Test
+    void cancelarAvaliacaoDeOutroProfessorRetorna404SemAlterar() throws Exception {
+        Professor dono = novoProfessor();
+        Long id = avaliacaoNoStatus(bearerProfessor(dono), dono, StatusAvaliacao.CRIADA);
+
+        cancelar(bearerProfessor(novoProfessor()), id, "Avaliação aplicada por engano, cancelando.")
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+
+        assertEquals(StatusAvaliacao.CRIADA, avaliacaoRepository.findById(id).orElseThrow().getStatus());
+    }
+
+    @Test
+    void cancelarComoCoordenadorRetorna403() throws Exception {
+        Professor professor = novoProfessor();
+        Long id = avaliacaoNoStatus(bearerProfessor(professor), professor, StatusAvaliacao.CRIADA);
+
+        cancelar(bearerCoordenador(), id, "Avaliação aplicada por engano, cancelando.")
+                .andExpect(status().isForbidden());
+
+        assertEquals(StatusAvaliacao.CRIADA, avaliacaoRepository.findById(id).orElseThrow().getStatus());
+    }
+
+    @Test
+    void cancelarSemAutenticacaoRetorna401() throws Exception {
+        mockMvc.perform(post("/api/v1/avaliacoes/1/cancelar")
+                        .contentType("application/json")
+                        .content("{\"justificativa\":\"Avaliação aplicada por engano, cancelando.\"}"))
+                .andExpect(status().isUnauthorized());
     }
 
     /** Tabela de status (spec.md), menos a coluna {@code cancelar} (T23): toda célula, com o status gravado depois. */
