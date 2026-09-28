@@ -352,15 +352,15 @@ T14 -> T15
 
 **Done when**:
 
-- [ ] Lista `PALAVRA`/`PSEUDOPALAVRA` válida é criada com os itens na ordem enviada (1..n)
-- [ ] `serie=1` com item `NAO_CANONICA` lança `BusinessException` 422 `NAO_CANONICA_PROIBIDA_1_ANO` com as posições corretas em `details`
-- [ ] Palavra duplicada (case-insensitive, trim) lança 422 `PALAVRA_DUPLICADA`
-- [ ] `itens` com `tipoLeitura=TEXTO_CURTO` (ou `texto`/`tipoPalavra` de lista com `tipoLeitura` != `TEXTO_CURTO`) lança 422 `CONTEUDO_INCOMPATIVEL_COM_TIPO`
-- [ ] `"O gato, a bola."` tokenizado gera itens `[O, gato, a, bola]` com `ordem` 1-4 e o `tipoPalavra` da lista copiado para cada item
-- [ ] Texto que gera mais de 200 tokens lança 422
-- [ ] `serie=1` com `TEXTO_CURTO`/`tipoPalavra=NAO_CANONICA` lança 422 `NAO_CANONICA_PROIBIDA_1_ANO`
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 10 tests pass em `ListaPalavrasServiceTest` (método `criar`)
+- [x] Lista `PALAVRA`/`PSEUDOPALAVRA` válida é criada com os itens na ordem enviada (1..n)
+- [x] `serie=1` com item `NAO_CANONICA` lança `BusinessException` 422 `NAO_CANONICA_PROIBIDA_1_ANO` com as posições corretas em `details`
+- [x] Palavra duplicada (case-insensitive, trim) lança 422 `PALAVRA_DUPLICADA`
+- [x] `itens` com `tipoLeitura=TEXTO_CURTO` (ou `texto`/`tipoPalavra` de lista com `tipoLeitura` != `TEXTO_CURTO`) lança 422 `CONTEUDO_INCOMPATIVEL_COM_TIPO`
+- [x] `"O gato, a bola."` tokenizado gera itens `[O, gato, a, bola]` com `ordem` 1-4 e o `tipoPalavra` da lista copiado para cada item
+- [x] Texto que gera mais de 200 tokens lança 422
+- [x] `serie=1` com `TEXTO_CURTO`/`tipoPalavra=NAO_CANONICA` lança 422 `NAO_CANONICA_PROIBIDA_1_ANO`
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 10 tests pass em `ListaPalavrasServiceTest` (método `criar`)
 
 **Tests**: unit
 **Gate**: quick
