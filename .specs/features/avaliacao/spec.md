@@ -32,18 +32,18 @@ O professor precisa aplicar uma avaliação cronometrada de leitura (palavras, p
 | Marcação das palavras (SDD §24 item 5) | Manual, pelo professor | Opção escolhida pelo usuário (AD-002) | y |
 | Mais de uma avaliação por tipo e ciclo (SDD §24 item 7) | Permitida; a evolução usa a mais recente | Opção escolhida pelo usuário (AD-004) | y |
 | Origem das palavras | Exatamente uma entre: `listaPalavrasId`, `palavras[]` digitadas ou `texto` digitado (só em TEXTO_CURTO); o conteúdo é copiado para a avaliação | Opção "banco + digitação" escolhida pelo usuário | y |
-| Quem controla o tempo | O servidor soma o tempo de execução pelos timestamps de iniciar, pausar e continuar; `tempoUtilizado = min(tempo somado, tempoConfigurado)` | O cliente não é confiável para o tempo; o frontend só exibe a contagem regressiva | n |
-| Finalização automática no tempo zero (SDD §7.4) | O frontend chama `finalizar` com `motivo=TEMPO_ESGOTADO`. Se qualquer comando chegar numa avaliação EM_ANDAMENTO com tempo somado ≥ tempo configurado, o servidor finaliza antes de processar o comando | Garante o encerramento mesmo se o navegador fechar ou perder a conexão | n |
-| Regra do Resetar (SDD §7.3, "conforme regra definida") | Volta para CRIADA, zera o tempo somado e volta todas as palavras para PENDENTE | É a interpretação mais simples de "reiniciar o estado" | n |
-| Palavras PENDENTE na finalização | Viram NAO_LIDA | O SDD §13 conta "não lidas" como tudo o que não foi marcado | n |
-| Marcação depois de finalizar (SDD §9, "durante ou após") | Permitida em FINALIZADA; cada mudança gera auditoria e recalcula o resultado | Atende o SDD §9 e o RNF004 ao mesmo tempo | n |
-| Regra usada no recálculo depois de finalizar | As faixas ativas no momento do recálculo; a auditoria guarda a classificação anterior e a nova | O modelo não guarda cópia da versão da regra | n |
-| Percentual de acerto | `corretas / total × 100`, com 2 casas decimais e arredondamento HALF_UP | Bate com o exemplo do SDD §13 (9/20 = 45%) | n |
-| Tempo configurável | De 10 a 600 segundos, padrão 60 | O SDD dá 60 s como exemplo; o limite evita valores absurdos | n |
-| Data da avaliação | Dentro do período do ano letivo ATIVO e nunca no futuro | Coerência do histórico | n |
+| Quem controla o tempo | O servidor soma o tempo de execução pelos timestamps de iniciar, pausar e continuar; `tempoUtilizado = min(tempo somado, tempoConfigurado)` | O cliente não é confiável para o tempo; o frontend só exibe a contagem regressiva | y |
+| Finalização automática no tempo zero (SDD §7.4) | Finalização preguiçosa: se qualquer comando chegar numa avaliação EM_ANDAMENTO com tempo somado ≥ tempo configurado, o servidor finaliza antes de processar o comando; além disso, uma rotina agendada de hora em hora finaliza avaliações EM_ANDAMENTO paradas há mais de 24h | Garante o encerramento mesmo se o navegador fechar ou perder a conexão e nenhum novo comando chegar (decisão do usuário) | y |
+| Regra do Resetar (SDD §7.3, "conforme regra definida") | Volta para CRIADA, zera o tempo somado e volta todas as palavras para PENDENTE | É a interpretação mais simples de "reiniciar o estado" (decisão do usuário) | y |
+| Palavras PENDENTE na finalização | Viram NAO_LIDA | O SDD §13 conta "não lidas" como tudo o que não foi marcado | y |
+| Marcação depois de finalizar (SDD §9, "durante ou após") | Permitida em FINALIZADA; cada mudança gera auditoria e recalcula o resultado | Atende o SDD §9 e o RNF004 ao mesmo tempo (decisão do usuário) | y |
+| Regra usada no recálculo depois de finalizar | As faixas ativas no momento do recálculo; a auditoria guarda a classificação anterior e a nova | O modelo não guarda cópia da versão da regra (decisão do usuário) | y |
+| Percentual de acerto | `corretas / total × 100`, com 2 casas decimais e arredondamento HALF_UP | Bate com o exemplo do SDD §13 (9/20 = 45%) | y |
+| Tempo configurável | De 10 a 600 segundos, padrão 60 | O SDD dá 60 s como exemplo; o limite evita valores absurdos | y |
+| Data da avaliação | Dentro do período do ano letivo ATIVO e nunca no futuro | Coerência do histórico | y |
 | Cópias na avaliação | `turmaId`, `turmaNome`, `serie`, `professorId`, `professorNome` e `anoLetivoId` copiados da matrícula ao criar | RNF005 e AD-005 | y |
-| Palavras digitadas sem `tipoPalavra` | Aceitas com `tipoPalavra = null`; a restrição do 1º ano só vale quando o tipo é informado | Exigir o tipo em cada palavra digitada seria trabalho demais para o professor | n |
-| Cancelamento | Permitido em qualquer status, exceto CANCELADA, com justificativa de 10 a 500 caracteres; cancelar uma FINALIZADA gera auditoria | Permite corrigir uma avaliação feita por engano (RNF004) | n |
+| Palavras digitadas sem `tipoPalavra` | Aceitas com `tipoPalavra = null`; a restrição do 1º ano só vale quando o tipo é informado | Exigir o tipo em cada palavra digitada seria trabalho demais para o professor | y |
+| Cancelamento | Permitido em qualquer status, exceto CANCELADA, com justificativa de 10 a 500 caracteres; cancelar uma FINALIZADA gera auditoria | Permite corrigir uma avaliação feita por engano (RNF004; decisão do usuário) | y |
 
 **Open questions:** none - all resolved or logged above.
 
