@@ -162,11 +162,11 @@ T17
 - Skill: NONE
 
 **Done when**:
-- [ ] Token válido de usuário ativo → `SecurityContext` populado com perfil/professorId corretos (lidos do banco, não do claim)
-- [ ] Token válido de usuário que foi inativado depois da emissão → `SecurityContext` não é populado (a cadeia segue sem autenticação, o que resulta em 401 mais adiante)
-- [ ] Sem header `Authorization` → segue sem autenticação, sem lançar
-- [ ] `./mvnw test` passa
-- [ ] 3 testes cobrindo os pontos acima (com `UsuarioRepository` mockado)
+- [x] Token válido de usuário ativo → `SecurityContext` populado com perfil/professorId corretos (lidos do banco, não do claim)
+- [x] Token válido de usuário que foi inativado depois da emissão → `SecurityContext` não é populado (a cadeia segue sem autenticação, o que resulta em 401 mais adiante)
+- [x] Sem header `Authorization` → segue sem autenticação, sem lançar
+- [x] `./mvnw test` passa
+- [x] 3 testes cobrindo os pontos acima (com `UsuarioRepository` mockado)
 
 **Tests**: unit
 **Gate**: quick
