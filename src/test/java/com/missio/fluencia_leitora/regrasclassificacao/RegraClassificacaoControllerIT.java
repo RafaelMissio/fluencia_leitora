@@ -1,5 +1,6 @@
 package com.missio.fluencia_leitora.regrasclassificacao;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.missio.fluencia_leitora.autenticacao.Usuario;
 import com.missio.fluencia_leitora.autenticacao.UsuarioRepository;
 import com.missio.fluencia_leitora.common.security.JwtService;
@@ -10,17 +11,27 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * REG-06: exercita {@code GET /api/v1/regras-classificacao} contra MySQL
- * real (seed da migração V7 - design.md, Data Models) - caminho feliz,
- * autenticação e o novo mapeamento de {@code @RequestParam} inválido para
- * {@code VALIDACAO_INVALIDA} (T2).
+ * REG-06..REG-13: exercita {@code GET}/{@code PUT
+ * .../regras-classificacao} contra MySQL real (seed da migração V7 -
+ * design.md, Data Models) - caminho feliz, autorização, autenticação e o
+ * novo mapeamento de {@code @RequestParam}/{@code @PathVariable} inválido
+ * para {@code VALIDACAO_INVALIDA} (T2).
+ *
+ * <p>Cada teste de {@code PUT} usa uma série dedicada e exclusiva (T13:
+ * série 5; T14: série 4) para não colidir com outros testes desta classe -
+ * uma falha de validação nunca toca o repositório (REG-12), então só os
+ * testes de sucesso realmente mutam o estado da série.
  */
 @AutoConfigureMockMvc
 class RegraClassificacaoControllerIT extends IntegrationTestBase {
@@ -34,10 +45,28 @@ class RegraClassificacaoControllerIT extends IntegrationTestBase {
     @Autowired
     private JwtService jwtService;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     private String bearerProfessor() {
         Usuario usuario = usuarioRepository.save(new Usuario(
                 "prof-regra-" + UUID.randomUUID() + "@escola.com", "hash-nao-usado", Perfil.PROFESSOR, null));
         return "Bearer " + jwtService.emitir(usuario.getId());
+    }
+
+    private Map<String, Object> faixa(int minimo, Integer maximo, String fase, Integer nivel) {
+        Map<String, Object> faixa = new HashMap<>();
+        faixa.put("quantidadeMinimaAcertos", minimo);
+        faixa.put("quantidadeMaximaAcertos", maximo);
+        faixa.put("fase", fase);
+        faixa.put("nivel", nivel);
+        return faixa;
+    }
+
+    private Map<String, Object> payloadValido() {
+        return Map.of("faixas", List.of(
+                faixa(0, 4, "PRE_LEITOR", 1),
+                faixa(5, 10, "LEITOR_INICIANTE", null),
+                faixa(11, null, "LEITOR_FLUENTE", null)));
     }
 
     // Série 1: só lida por estes testes (nunca substituída) - seed da migração V7 tem 6 faixas ativas.
@@ -72,5 +101,115 @@ class RegraClassificacaoControllerIT extends IntegrationTestBase {
                         .param("serie", "6"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+    }
+
+    // --- PUT /series/{serie} (T13, REG-07..REG-13) - série 5, exclusiva deste teste. ---
+
+    @Test
+    void putComCoordenadorSubstituiFaixasDaSerieERetorna200EGetPosteriorReflete() throws Exception {
+        mockMvc.perform(put("/api/v1/regras-classificacao/series/5").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payloadValido())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].quantidadeMinimaAcertos").value(0))
+                .andExpect(jsonPath("$[0].ativo").value(true))
+                .andExpect(jsonPath("$[2].fase").value("LEITOR_FLUENTE"));
+
+        // Efeito observável sem reiniciar a aplicação: o GET seguinte reflete o novo conjunto.
+        mockMvc.perform(get("/api/v1/regras-classificacao").header("Authorization", bearerCoordenador())
+                        .param("serie", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[1].quantidadeMinimaAcertos").value(5))
+                .andExpect(jsonPath("$[1].fase").value("LEITOR_INICIANTE"));
+    }
+
+    // --- PUT /series/{serie} - testes que não mutam estado (falha antes do repositório ou bloqueados antes do service). ---
+
+    @Test
+    void putComProfessorRetorna403() throws Exception {
+        mockMvc.perform(put("/api/v1/regras-classificacao/series/2").header("Authorization", bearerProfessor())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payloadValido())))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void putSemAuthorizationRetorna401() throws Exception {
+        mockMvc.perform(put("/api/v1/regras-classificacao/series/3")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payloadValido())))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void putComSerieForaDoIntervaloNoPathRetorna422ValidacaoInvalida() throws Exception {
+        mockMvc.perform(put("/api/v1/regras-classificacao/series/6").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payloadValido())))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+    }
+
+    @Test
+    void putComListaVaziaRetorna422FaixaNaoIniciaEmZero() throws Exception {
+        mockMvc.perform(put("/api/v1/regras-classificacao/series/1").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of("faixas", List.of()))))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("FAIXA_NAO_INICIA_EM_ZERO"));
+    }
+
+    @Test
+    void putComLacunaEntreFaixasRetorna422FaixaComLacunaComValor() throws Exception {
+        Map<String, Object> payload = Map.of("faixas", List.of(
+                faixa(0, 3, "PRE_LEITOR", 1),
+                faixa(5, null, "LEITOR_FLUENTE", null)));
+
+        mockMvc.perform(put("/api/v1/regras-classificacao/series/1").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("FAIXA_COM_LACUNA"))
+                .andExpect(jsonPath("$.valor").value(4));
+    }
+
+    @Test
+    void putComFaixasSobrepostasRetorna422FaixaSobrepostaComValor() throws Exception {
+        Map<String, Object> payload = Map.of("faixas", List.of(
+                faixa(0, 5, "PRE_LEITOR", 1),
+                faixa(4, null, "LEITOR_FLUENTE", null)));
+
+        mockMvc.perform(put("/api/v1/regras-classificacao/series/1").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("FAIXA_SOBREPOSTA"))
+                .andExpect(jsonPath("$.valor").value(4));
+    }
+
+    @Test
+    void putComUltimaFaixaComMaximoRetorna422FaixaFinalLimitada() throws Exception {
+        Map<String, Object> payload = Map.of("faixas", List.of(
+                faixa(0, 5, "PRE_LEITOR", 1),
+                faixa(6, 10, "LEITOR_FLUENTE", null)));
+
+        mockMvc.perform(put("/api/v1/regras-classificacao/series/1").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("FAIXA_FINAL_LIMITADA"));
+    }
+
+    @Test
+    void putComNivelIncoerenteComAFaseRetorna422FaixaNivelIncoerente() throws Exception {
+        Map<String, Object> payload = Map.of("faixas", List.of(faixa(0, null, "PRE_LEITOR", null)));
+
+        mockMvc.perform(put("/api/v1/regras-classificacao/series/1").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("FAIXA_NIVEL_INCOERENTE"));
     }
 }

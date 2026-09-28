@@ -446,14 +446,14 @@ T13 -> T14
 
 **Done when**:
 
-- [ ] `COORDENADOR` autenticado substitui as faixas de uma série válida e recebe 200 com o novo conteúdo
-- [ ] `PROFESSOR` autenticado recebe 403
-- [ ] Requisição sem `Authorization` recebe 401
-- [ ] `serie` fora de 1-5 no path recebe 422 `VALIDACAO_INVALIDA`
-- [ ] Cada erro 422 de negócio do spec (`FAIXA_NAO_INICIA_EM_ZERO`, `FAIXA_COM_LACUNA` com `details.valor`, `FAIXA_SOBREPOSTA` com `details.valor`, `FAIXA_FINAL_LIMITADA`, `FAIXA_NIVEL_INCOERENTE`) é testado ponta a ponta
-- [ ] Depois de um `PUT` bem-sucedido, `GET /regras-classificacao?serie=` reflete as novas faixas (efeito observável, sem reiniciar a aplicação)
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 9 tests pass em `RegraClassificacaoControllerIT` (endpoint `PUT /regras-classificacao/series/{serie}`)
+- [x] `COORDENADOR` autenticado substitui as faixas de uma série válida e recebe 200 com o novo conteúdo
+- [x] `PROFESSOR` autenticado recebe 403
+- [x] Requisição sem `Authorization` recebe 401
+- [x] `serie` fora de 1-5 no path recebe 422 `VALIDACAO_INVALIDA`
+- [x] Cada erro 422 de negócio do spec (`FAIXA_NAO_INICIA_EM_ZERO`, `FAIXA_COM_LACUNA` com `details.valor`, `FAIXA_SOBREPOSTA` com `details.valor`, `FAIXA_FINAL_LIMITADA`, `FAIXA_NIVEL_INCOERENTE`) é testado ponta a ponta
+- [x] Depois de um `PUT` bem-sucedido, `GET /regras-classificacao?serie=` reflete as novas faixas (efeito observável, sem reiniciar a aplicação)
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 9 tests pass em `RegraClassificacaoControllerIT` (endpoint `PUT /regras-classificacao/series/{serie}`)
 
 **Tests**: integration
 **Gate**: full
