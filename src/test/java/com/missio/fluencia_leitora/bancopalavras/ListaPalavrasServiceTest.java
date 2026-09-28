@@ -1,5 +1,6 @@
 package com.missio.fluencia_leitora.bancopalavras;
 
+import com.missio.fluencia_leitora.bancopalavras.dto.AtualizarListaPalavrasRequest;
 import com.missio.fluencia_leitora.bancopalavras.dto.CriarListaPalavrasRequest;
 import com.missio.fluencia_leitora.bancopalavras.dto.ItemPalavraRequest;
 import com.missio.fluencia_leitora.common.error.BusinessException;
@@ -8,12 +9,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -184,5 +189,85 @@ class ListaPalavrasServiceTest {
         assertEquals("NAO_CANONICA_PROIBIDA_1_ANO", exception.getCode());
         assertEquals(List.of(1, 2, 3), exception.getDetails().get("posicoes"));
         verify(repository, never()).save(any());
+    }
+
+    private ListaPalavras listaExistente(Long id, long version, String... palavras) {
+        ListaPalavras lista = new ListaPalavras("Lista Original", 2, TipoLeituraCodigo.PALAVRA, null, null);
+        ReflectionTestUtils.setField(lista, "id", id);
+        ReflectionTestUtils.setField(lista, "version", version);
+        int ordem = 1;
+        for (String palavra : palavras) {
+            lista.adicionarItem(palavra, TipoPalavra.CANONICA, ordem++);
+        }
+        return lista;
+    }
+
+    @Test
+    void atualizarComVersaoCorretaTrocaNomeEItensReexecutandoValidacoes() {
+        ListaPalavras existente = listaExistente(10L, 0L, "antiga");
+        when(repository.findById(10L)).thenReturn(Optional.of(existente));
+        mockSalvaIgual();
+        AtualizarListaPalavrasRequest request = new AtualizarListaPalavrasRequest(
+                "Lista Editada", 2, TipoLeituraCodigo.PALAVRA, null, null,
+                List.of(
+                        new ItemPalavraRequest("novaPalavra", TipoPalavra.CANONICA),
+                        new ItemPalavraRequest("outraPalavra", TipoPalavra.CANONICA)),
+                0L);
+
+        ListaPalavras atualizada = service().atualizar(10L, request);
+
+        assertEquals("Lista Editada", atualizada.getNome());
+        assertEquals(2, atualizada.getItens().size());
+        assertEquals("novaPalavra", atualizada.getItens().get(0).getPalavra());
+        assertEquals(1, atualizada.getItens().get(0).getOrdem());
+        assertEquals("outraPalavra", atualizada.getItens().get(1).getPalavra());
+        assertEquals(2, atualizada.getItens().get(1).getOrdem());
+    }
+
+    @Test
+    void atualizarComVersaoDivergenteLancaObjectOptimisticLockingFailureException() {
+        ListaPalavras existente = listaExistente(11L, 5L, "antiga");
+        when(repository.findById(11L)).thenReturn(Optional.of(existente));
+        AtualizarListaPalavrasRequest request = new AtualizarListaPalavrasRequest(
+                "Lista Editada", 2, TipoLeituraCodigo.PALAVRA, null, null,
+                List.of(new ItemPalavraRequest("palavra", TipoPalavra.CANONICA)),
+                0L);
+
+        assertThrows(ObjectOptimisticLockingFailureException.class, () -> service().atualizar(11L, request));
+
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void atualizarReaplicaValidacaoSerieCanonica() {
+        ListaPalavras existente = listaExistente(12L, 0L, "antiga");
+        when(repository.findById(12L)).thenReturn(Optional.of(existente));
+        AtualizarListaPalavrasRequest request = new AtualizarListaPalavrasRequest(
+                "Lista 1º ano", 1, TipoLeituraCodigo.PALAVRA, null, null,
+                List.of(new ItemPalavraRequest("naoCanonica", TipoPalavra.NAO_CANONICA)),
+                0L);
+
+        BusinessException exception =
+                assertThrows(BusinessException.class, () -> service().atualizar(12L, request));
+
+        assertEquals("NAO_CANONICA_PROIBIDA_1_ANO", exception.getCode());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void atualizarSubstituiItensAntigosPorNovosComOrdemCorreta() {
+        ListaPalavras existente = listaExistente(13L, 0L, "velha1", "velha2");
+        when(repository.findById(13L)).thenReturn(Optional.of(existente));
+        mockSalvaIgual();
+        AtualizarListaPalavrasRequest request = new AtualizarListaPalavrasRequest(
+                "Lista Editada", 2, TipoLeituraCodigo.PALAVRA, null, null,
+                List.of(new ItemPalavraRequest("nova", TipoPalavra.CANONICA)),
+                0L);
+
+        ListaPalavras atualizada = service().atualizar(13L, request);
+
+        assertEquals(1, atualizada.getItens().size());
+        assertEquals("nova", atualizada.getItens().get(0).getPalavra());
+        assertTrue(atualizada.getItens().stream().noneMatch(item -> item.getPalavra().startsWith("velha")));
     }
 }

@@ -1,16 +1,19 @@
 package com.missio.fluencia_leitora.bancopalavras;
 
+import com.missio.fluencia_leitora.bancopalavras.dto.AtualizarListaPalavrasRequest;
 import com.missio.fluencia_leitora.bancopalavras.dto.CriarListaPalavrasRequest;
 import com.missio.fluencia_leitora.bancopalavras.dto.ItemPalavraRequest;
 import com.missio.fluencia_leitora.common.error.BusinessException;
 import com.missio.fluencia_leitora.common.texto.TokenizadorTexto;
 import org.springframework.http.HttpStatus;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -42,6 +45,46 @@ public class ListaPalavrasService {
         itensDados.forEach(item -> lista.adicionarItem(item.palavra(), item.tipoPalavra(), item.ordem()));
 
         return repository.save(lista);
+    }
+
+    /**
+     * PAL-06/PAL-12: reaplica as mesmas validações de {@link #criar} sobre o
+     * novo conteúdo e substitui a coleção de itens (o {@code orphanRemoval}
+     * de {@link ListaPalavras#substituirItens} cuida da exclusão dos
+     * antigos). O {@code version} do request precisa bater com o persistido
+     * - divergente dispara {@link ObjectOptimisticLockingFailureException}
+     * (409 {@code CONFLITO_DE_VERSAO} via {@code GlobalExceptionHandler}).
+     */
+    @Transactional
+    public ListaPalavras atualizar(Long id, AtualizarListaPalavrasRequest request) {
+        ListaPalavras lista = buscarExistente(id);
+
+        if (!Objects.equals(lista.getVersion(), request.version())) {
+            throw new ObjectOptimisticLockingFailureException("lista_palavras", id);
+        }
+
+        List<ItemDados> itensDados = validarEMontarItens(
+                request.tipoLeitura(), request.texto(), request.tipoPalavra(), request.itens(), request.serie());
+
+        lista.setNome(request.nome());
+        lista.setSerie(request.serie());
+        lista.setTipoLeitura(request.tipoLeitura());
+        lista.setTipoPalavra(request.tipoPalavra());
+        lista.setTexto(request.texto());
+
+        List<ItemListaPalavras> novosItens = itensDados.stream()
+                .map(item -> new ItemListaPalavras(lista, item.palavra(), item.tipoPalavra(), item.ordem()))
+                .toList();
+        lista.substituirItens(novosItens);
+
+        return repository.save(lista);
+    }
+
+    /** LISTA_NAO_ENCONTRADA (404) quando o id não existe - inclui listas inativas. */
+    private ListaPalavras buscarExistente(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "LISTA_NAO_ENCONTRADA", "Lista de palavras não encontrada"));
     }
 
     /**

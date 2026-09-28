@@ -384,11 +384,11 @@ T14 -> T15
 
 **Done when**:
 
-- [ ] Editar uma lista troca nome/itens e passa pelas mesmas validações de T10 (reexecutadas com o novo conteúdo)
-- [ ] `version` divergente lança `ObjectOptimisticLockingFailureException` (409 `CONFLITO_DE_VERSAO` via handler existente)
-- [ ] Itens antigos não referenciados pela nova lista são removidos (`orphanRemoval`), itens novos recebem `ordem` corretas
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 4 tests pass adicionados em `ListaPalavrasServiceTest` (método `atualizar`)
+- [x] Editar uma lista troca nome/itens e passa pelas mesmas validações de T10 (reexecutadas com o novo conteúdo)
+- [x] `version` divergente lança `ObjectOptimisticLockingFailureException` (409 `CONFLITO_DE_VERSAO` via handler existente)
+- [x] Itens antigos não referenciados pela nova lista são removidos (`orphanRemoval`), itens novos recebem `ordem` corretas
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 4 tests pass adicionados em `ListaPalavrasServiceTest` (método `atualizar`)
 
 **Tests**: unit
 **Gate**: quick
