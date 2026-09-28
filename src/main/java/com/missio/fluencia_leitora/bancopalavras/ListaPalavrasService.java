@@ -28,6 +28,7 @@ public class ListaPalavrasService {
 
     private static final int SERIE_PROIBE_NAO_CANONICA = 1;
     private static final int LIMITE_TOKENS_TEXTO_CURTO = 200;
+    private static final int LIMITE_CARACTERES_PALAVRA = 60;
 
     private final ListaPalavrasRepository repository;
 
@@ -163,14 +164,33 @@ public class ListaPalavrasService {
         }
     }
 
-    /** PAL-07/PAL-08: tokeniza o texto e aplica o `tipoPalavra` da lista a cada token, na ordem 1..n. */
+    /**
+     * PAL-07/PAL-08: tokeniza o texto e aplica o `tipoPalavra` da lista a
+     * cada token, na ordem 1..n. PAL-05 (1-200 itens) e o limite de 60
+     * caracteres de {@code palavra} (coluna `VARCHAR(60)`, V6) valem também
+     * para as palavras derivadas do texto - sem isso, um texto sem palavras
+     * ou com uma palavra muito longa gravava direto no banco (500) em vez de
+     * 422.
+     */
     private List<ItemDados> montarItensDeTexto(String texto, TipoPalavra tipoPalavraLista) {
         List<String> tokens = TokenizadorTexto.tokenizar(texto);
+        if (tokens.isEmpty()) {
+            throw new BusinessException(
+                    HttpStatus.UNPROCESSABLE_ENTITY, "VALIDACAO_INVALIDA", "O texto não gera nenhuma palavra");
+        }
         if (tokens.size() > LIMITE_TOKENS_TEXTO_CURTO) {
             throw new BusinessException(
                     HttpStatus.UNPROCESSABLE_ENTITY,
                     "VALIDACAO_INVALIDA",
                     "O texto gera mais de " + LIMITE_TOKENS_TEXTO_CURTO + " palavras");
+        }
+        for (String token : tokens) {
+            if (token.length() > LIMITE_CARACTERES_PALAVRA) {
+                throw new BusinessException(
+                        HttpStatus.UNPROCESSABLE_ENTITY,
+                        "VALIDACAO_INVALIDA",
+                        "O texto gera uma palavra com mais de " + LIMITE_CARACTERES_PALAVRA + " caracteres");
+            }
         }
 
         List<ItemDados> itens = new ArrayList<>();

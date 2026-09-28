@@ -239,6 +239,20 @@ class ListaPalavrasControllerIT extends IntegrationTestBase {
     }
 
     @Test
+    void postComItemNuloNaListaRetorna422PorFormatoInvalido() throws Exception {
+        List<Map<String, Object>> itens = new ArrayList<>();
+        itens.add(item("gato", "CANONICA"));
+        itens.add(null);
+        Map<String, Object> payload = payloadPalavra("Lista Com Item Nulo " + UUID.randomUUID(), 2, itens);
+
+        mockMvc.perform(post("/api/v1/listas-palavras").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+    }
+
+    @Test
     void postTextoCurtoComMaisDe200TokensRetorna422() throws Exception {
         List<String> palavras = new ArrayList<>();
         for (int i = 0; i < 201; i++) {
@@ -255,6 +269,38 @@ class ListaPalavrasControllerIT extends IntegrationTestBase {
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    void postTextoCurtoComPalavraMaiorQue60CaracteresRetorna422() throws Exception {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("nome", "Texto Palavra Longa " + UUID.randomUUID());
+        payload.put("serie", 2);
+        payload.put("tipoLeitura", "TEXTO_CURTO");
+        payload.put("tipoPalavra", "CANONICA");
+        payload.put("texto", "a".repeat(61));
+
+        mockMvc.perform(post("/api/v1/listas-palavras").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+    }
+
+    @Test
+    void postTextoCurtoSemPalavraNenhumaRetorna422() throws Exception {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("nome", "Texto Sem Palavras " + UUID.randomUUID());
+        payload.put("serie", 2);
+        payload.put("tipoLeitura", "TEXTO_CURTO");
+        payload.put("tipoPalavra", "CANONICA");
+        payload.put("texto", "123 456");
+
+        mockMvc.perform(post("/api/v1/listas-palavras").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
     }
 
     private JsonNode criarListaERetornarCorpo(String nome, int serie, List<Map<String, Object>> itens) throws Exception {

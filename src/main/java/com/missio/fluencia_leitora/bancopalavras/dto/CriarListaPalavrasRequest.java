@@ -24,5 +24,5 @@ public record CriarListaPalavrasRequest(
         @NotNull TipoLeituraCodigo tipoLeitura,
         TipoPalavra tipoPalavra,
         @Size(min = 1, max = 2000) String texto,
-        @Valid @Size(min = 1, max = 200) List<ItemPalavraRequest> itens) {
+        @Valid @Size(min = 1, max = 200) List<@NotNull ItemPalavraRequest> itens) {
 }

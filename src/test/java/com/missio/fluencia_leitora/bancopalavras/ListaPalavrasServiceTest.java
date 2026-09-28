@@ -215,6 +215,30 @@ class ListaPalavrasServiceTest {
     }
 
     @Test
+    void criarTextoCurtoComPalavraMaiorQue60CaracteresLanca422() {
+        CriarListaPalavrasRequest request = new CriarListaPalavrasRequest(
+                "Texto Palavra Longa", 2, TipoLeituraCodigo.TEXTO_CURTO, TipoPalavra.CANONICA, "a".repeat(61), null);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service().criar(request));
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+        assertEquals("VALIDACAO_INVALIDA", exception.getCode());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void criarTextoCurtoSemPalavraNenhumaLanca422() {
+        CriarListaPalavrasRequest request = new CriarListaPalavrasRequest(
+                "Texto Sem Palavras", 2, TipoLeituraCodigo.TEXTO_CURTO, TipoPalavra.CANONICA, "123 456", null);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service().criar(request));
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+        assertEquals("VALIDACAO_INVALIDA", exception.getCode());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
     void criarSerie1TextoCurtoNaoCanonicaLanca422NaoCanonicaProibida1Ano() {
         CriarListaPalavrasRequest request = new CriarListaPalavrasRequest(
                 "Texto 1º ano", 1, TipoLeituraCodigo.TEXTO_CURTO, TipoPalavra.NAO_CANONICA, "O gato corre.", null);
