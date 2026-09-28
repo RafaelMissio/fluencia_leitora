@@ -441,7 +441,8 @@ class ListaPalavrasControllerIT extends IntegrationTestBase {
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"))
+                .andExpect(jsonPath("$.errors[0].field").value("itens[0].palavra"));
     }
 
     @Test
@@ -454,7 +455,8 @@ class ListaPalavrasControllerIT extends IntegrationTestBase {
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"))
+                .andExpect(jsonPath("$.errors[0].field").value("itens[0].palavra"));
     }
 
     @Test
@@ -471,11 +473,18 @@ class ListaPalavrasControllerIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.itens[1].palavra").value("pé-de-moleque"));
     }
 
+    /** Sufixo de duas letras (aa, ab, ..., ah) - só letras, para não esbarrar no @Pattern de {@code palavra}. */
+    private String sufixoDeLetras(int indice) {
+        char primeira = (char) ('a' + (indice / 26) % 26);
+        char segunda = (char) ('a' + indice % 26);
+        return "" + primeira + segunda;
+    }
+
     @Test
     void postComMaisDe200ItensRetorna422PorTamanhoForaDaFaixa() throws Exception {
         List<Map<String, Object>> itens = new ArrayList<>();
         for (int i = 0; i < 201; i++) {
-            itens.add(item("palavra" + i, "CANONICA"));
+            itens.add(item("palavra" + sufixoDeLetras(i), "CANONICA"));
         }
         Map<String, Object> payload = payloadPalavra("Lista Com 201 Itens " + UUID.randomUUID(), 2, itens);
 
@@ -483,6 +492,7 @@ class ListaPalavrasControllerIT extends IntegrationTestBase {
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"))
+                .andExpect(jsonPath("$.errors[0].field").value("itens"));
     }
 }
