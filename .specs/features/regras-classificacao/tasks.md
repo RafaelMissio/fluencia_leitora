@@ -326,13 +326,13 @@ T13 -> T14
 
 **Done when**:
 
-- [ ] Testes parametrizados com a tabela do AC1 (série 1: 0,3,4,5,6,7,8,11,12,20 acertos → resultados exatos do spec.md)
-- [ ] Testes parametrizados com a tabela do AC2 (séries 2 a 5: 0,4,5,7,8,9,10,11,12,30,31,60 acertos → resultados exatos do spec.md)
-- [ ] Só faixas `ativo=true` são consideradas (REG-03) - teste com uma faixa inativa que, se considerada, mudaria o resultado
-- [ ] O resultado não depende de nenhum parâmetro de tipo de leitura - mesma chamada, mesmo resultado para os três tipos (REG-04)
-- [ ] Nenhuma faixa cobrindo `acertos` retorna `ClassificacaoResultado(null, null)` em vez de lançar exceção (REG-05)
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 24 tests pass em `RegraClassificacaoServiceTest` (método `classificar`) - 10 (AC1) + 12 (AC2) + REG-03 + REG-04/05
+- [x] Testes parametrizados com a tabela do AC1 (série 1: 0,3,4,5,6,7,8,11,12,20 acertos → resultados exatos do spec.md)
+- [x] Testes parametrizados com a tabela do AC2 (séries 2 a 5: 0,4,5,7,8,9,10,11,12,30,31,60 acertos → resultados exatos do spec.md)
+- [x] Só faixas `ativo=true` são consideradas (REG-03) - teste com uma faixa inativa que, se considerada, mudaria o resultado
+- [x] O resultado não depende de nenhum parâmetro de tipo de leitura - mesma chamada, mesmo resultado para os três tipos (REG-04)
+- [x] Nenhuma faixa cobrindo `acertos` retorna `ClassificacaoResultado(null, null)` em vez de lançar exceção (REG-05)
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 24 tests pass em `RegraClassificacaoServiceTest` (método `classificar`) - 10 (AC1) + 12 (AC2) + REG-03 + REG-04/05
 
 **Tests**: unit
 **Gate**: quick

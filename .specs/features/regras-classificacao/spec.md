@@ -121,9 +121,9 @@ O aluno é classificado em Pré-Leitor (níveis 1–4), Leitor Iniciante ou Leit
 | -------------- | ----- | ----- | ------ |
 | REG-01 | P1: Seed das faixas do 1º ano | T3 | Implementing |
 | REG-02 | P1: Seed das faixas do 2º ao 5º ano | T3 | Implementing |
-| REG-03 | P1: Classificação usa só faixas ativas | T6 | Implementing |
-| REG-04 | P1: Mesma regra para os 3 tipos | - | Pending |
-| REG-05 | P1: Sem classificação quando não há cobertura | - | Pending |
+| REG-03 | P1: Classificação usa só faixas ativas | T9 | Done |
+| REG-04 | P1: Mesma regra para os 3 tipos | T9 | Done |
+| REG-05 | P1: Sem classificação quando não há cobertura | T9 | Done |
 | REG-06 | P1: Consulta de faixas | T6 | Implementing |
 | REG-07 | P1: Substituição atômica | - | Pending |
 | REG-08 | P1: Validação - início em zero | - | Pending |
@@ -132,10 +132,10 @@ O aluno é classificado em Pré-Leitor (níveis 1–4), Leitor Iniciante ou Leit
 | REG-11 | P1: Validação - última faixa sem limite; nível coerente | - | Pending |
 | REG-12 | P1: Falha preserva faixas anteriores | - | Pending |
 | REG-13 | P1: Rastreabilidade de quem alterou | - | Pending |
-| REG-14 | P1: Avaliações finalizadas não são reclassificadas | - | Pending |
+| REG-14 | P1: Avaliações finalizadas não são reclassificadas | - | ⏸ Deferred - `substituir` não toca a tabela `avaliacao` (ela nem existe ainda); só é observável quando a feature `avaliacao` existir. AC correspondente já adicionado em `.specs/features/avaliacao/spec.md`, Edge Cases. |
 | REG-15 | P2: Histórico de regras | T6 | Implementing |
 
-**Coverage:** 15 total, 0 mapped to tasks, 15 unmapped ⚠️
+**Coverage:** 15 total, 0 mapped to tasks, 14 testáveis agora, 1 deferido (REG-14) ⚠️
 
 ---
 
