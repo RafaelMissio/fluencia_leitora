@@ -440,12 +440,12 @@ T14 -> T15
 
 **Done when**:
 
-- [ ] `COORDENADOR` autenticado recebe 201 com o corpo esperado ao criar uma lista `PALAVRA` válida
-- [ ] `PROFESSOR` autenticado recebe 403
-- [ ] Requisição sem `Authorization` recebe 401
-- [ ] Cada erro 422 do spec (`NAO_CANONICA_PROIBIDA_1_ANO` com posições, `PALAVRA_DUPLICADA`, `CONTEUDO_INCOMPATIVEL_COM_TIPO`, formato de palavra inválido, tamanho de `itens` fora de 1-200, texto com mais de 200 tokens) é testado ponta a ponta
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 8 tests pass em `ListaPalavrasControllerIT` (endpoint `criar`)
+- [x] `COORDENADOR` autenticado recebe 201 com o corpo esperado ao criar uma lista `PALAVRA` válida
+- [x] `PROFESSOR` autenticado recebe 403
+- [x] Requisição sem `Authorization` recebe 401
+- [x] Cada erro 422 do spec (`NAO_CANONICA_PROIBIDA_1_ANO` com posições, `PALAVRA_DUPLICADA`, `CONTEUDO_INCOMPATIVEL_COM_TIPO`, formato de palavra inválido, tamanho de `itens` fora de 1-200, texto com mais de 200 tokens) é testado ponta a ponta
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 8 tests pass em `ListaPalavrasControllerIT` (endpoint `criar`)
 
 **Tests**: integration
 **Gate**: full
