@@ -793,10 +793,10 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] `existeAvaliacaoNaoCancelada` retorna `true`/`false` corretamente para os casos: nenhuma avaliação, só `CANCELADA`, com uma não-`CANCELADA`
-- [ ] Contexto Spring completo sobe sem erro de bean ambíguo entre `HistoricoAvaliacaoAdapter` e `HistoricoAvaliacaoPortStub` (o `@Primary` resolve; qualquer `*ControllerIT`/`*IT` já existente que suba o contexto completo serve de prova indireta)
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 3 testes novos
+- [x] `existeAvaliacaoNaoCancelada` retorna `true`/`false` corretamente para os casos: nenhuma avaliação, só `CANCELADA`, com uma não-`CANCELADA` (a distinção dos 3 casos é responsabilidade da query, já coberta em `AvaliacaoRepositoryIT`/T8; aqui confirma-se a delegação com o argumento `CANCELADA` correto)
+- [x] Contexto Spring completo sobe sem erro de bean ambíguo entre `HistoricoAvaliacaoAdapter` e `HistoricoAvaliacaoPortStub` (o `@Primary` resolve; confirmado rodando `FluenciaLeitoraApplicationIT`, que sobe o contexto completo)
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 3 testes novos
 
 **Tests**: unit
 **Gate**: quick
