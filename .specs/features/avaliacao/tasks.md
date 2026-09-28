@@ -329,10 +329,10 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Método usado pelo scheduler é `findByStatusAndUltimaAtividadeEmBefore(StatusAvaliacao, Instant)` (nome corrigido para bater com o campo real da entidade - design.md usa `ultimaAtividadeEm`, não `iniciadoEm`, para essa checagem)
-- [ ] Teste de integração: `existsByAlunoIdAndStatusNot` retorna `true` só quando existe avaliação com status diferente de `CANCELADA` para o aluno; `findByStatusAndUltimaAtividadeEmBefore` só traz `EM_ANDAMENTO` com `ultimaAtividadeEm` antes do limite, ignorando `PAUSADA` e avaliações recentes
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 4 testes novos
+- [x] Método usado pelo scheduler é `findByStatusAndUltimaAtividadeEmBefore(StatusAvaliacao, Instant)` (nome corrigido para bater com o campo real da entidade - design.md usa `ultimaAtividadeEm`, não `iniciadoEm`, para essa checagem)
+- [x] Teste de integração: `existsByAlunoIdAndStatusNot` retorna `true` só quando existe avaliação com status diferente de `CANCELADA` para o aluno; `findByStatusAndUltimaAtividadeEmBefore` só traz `EM_ANDAMENTO` com `ultimaAtividadeEm` antes do limite, ignorando `PAUSADA` e avaliações recentes
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 4 testes novos
 
 **Tests**: integration
 **Gate**: full
