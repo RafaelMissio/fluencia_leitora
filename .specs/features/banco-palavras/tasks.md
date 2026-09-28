@@ -224,8 +224,8 @@ T14 -> T15
 
 **Done when**:
 
-- [ ] Entidade mapeia todas as colunas de `item_lista_palavras` (T3)
-- [ ] Gate check passes: `./mvnw compile`
+- [x] Entidade mapeia todas as colunas de `item_lista_palavras` (T3)
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
