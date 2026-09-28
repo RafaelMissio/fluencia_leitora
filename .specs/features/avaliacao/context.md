@@ -63,4 +63,5 @@ Nenhuma referência visual/de produto específica - a interação é via API; o 
 
 ## Deferred Ideas
 
-Nenhuma - a discussão ficou dentro do escopo da feature.
+- Nenhuma da discussão original.
+- Encontrado durante o Execute (T12, 2026-09-28): `criar` aceita uma `lista_palavras` inativa como fonte - o spec.md não define esse caso (só define o que acontece quando a lista é inativada *depois* de já ter sido copiada, edge case existente). Não é um bloqueio - decisão de implementação registrada aqui para revisão futura, caso o usuário queira bloquear listas inativas na criação.
