@@ -1,6 +1,10 @@
 package com.missio.fluencia_leitora.cadastros.turma;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.missio.fluencia_leitora.autenticacao.Usuario;
+import com.missio.fluencia_leitora.autenticacao.UsuarioRepository;
+import com.missio.fluencia_leitora.common.security.JwtService;
+import com.missio.fluencia_leitora.common.security.Perfil;
 import com.missio.fluencia_leitora.cadastros.professor.Professor;
 import com.missio.fluencia_leitora.cadastros.professor.ProfessorRepository;
 import com.missio.fluencia_leitora.support.IntegrationTestBase;
@@ -13,7 +17,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -24,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * CAD-07/CAD-10/CAD-19: exercises the whole TurmaController surface against
- * real MySQL.
+ * real MySQL. AUTH-07: PROFESSOR gets 403 on POST/PUT/DELETE.
  */
 @AutoConfigureMockMvc
 class TurmaControllerIT extends IntegrationTestBase {
@@ -39,6 +45,19 @@ class TurmaControllerIT extends IntegrationTestBase {
 
     @Autowired
     private ProfessorRepository professorRepository;
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private JwtService jwtService;
+
+    private String bearerProfessor() {
+        Professor professor = professorRepository.save(new Professor("Professor Sem Permissao"));
+        Usuario usuario = usuarioRepository.save(new Usuario(
+                "prof-" + UUID.randomUUID() + "@escola.com", "hash-nao-usado", Perfil.PROFESSOR, professor.getId()));
+        return "Bearer " + jwtService.emitir(usuario.getId());
+    }
 
     // static: shared, never-rolled-back database across every @Test method,
     // same rationale as AnoLetivoControllerIT.anoSequencial.
@@ -153,5 +172,37 @@ class TurmaControllerIT extends IntegrationTestBase {
         Optional<Turma> turma = turmaRepository.findById(turmaId);
         assertTrue(turma.isPresent());
         assertFalse(turma.get().isAtivo());
+    }
+
+    @Test
+    void professorRecebe403EmPostPutEDeleteSemAlterarNada() throws Exception {
+        String bearerProfessor = bearerProfessor();
+        Long anoLetivoId = novoAnoLetivo();
+        Long professorOriginal = novoProfessor("Original Intocado");
+        Long outroProfessor = novoProfessor("Outro");
+        MvcResult result = mockMvc.perform(post("/api/v1/turmas").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(turmaPayload("Turma F", 2, anoLetivoId, professorOriginal)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        Long turmaId = objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
+        long totalAntes = turmaRepository.count();
+
+        mockMvc.perform(post("/api/v1/turmas").header("Authorization", bearerProfessor)
+                        .contentType("application/json")
+                        .content(turmaPayload("Turma G", 2, anoLetivoId, null)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"));
+        mockMvc.perform(put("/api/v1/turmas/" + turmaId).header("Authorization", bearerProfessor)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of("professorId", outroProfessor))))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(delete("/api/v1/turmas/" + turmaId).header("Authorization", bearerProfessor))
+                .andExpect(status().isForbidden());
+
+        assertEquals(totalAntes, turmaRepository.count());
+        Turma turma = turmaRepository.findById(turmaId).orElseThrow();
+        assertTrue(turma.isAtivo());
+        assertEquals(professorOriginal, turma.getProfessor().getId());
     }
 }

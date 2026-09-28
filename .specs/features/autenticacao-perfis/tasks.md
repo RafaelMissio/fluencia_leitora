@@ -435,10 +435,10 @@ T17
 - Skill: NONE
 
 **Done when**:
-- [ ] Token de PROFESSOR em qualquer endpoint de escrita de professor/turma → 403
-- [ ] Tokens de COORDENADOR continuam funcionando
-- [ ] `./mvnw verify` passa
-- [ ] Testes existentes + pelo menos 1 novo caso de 403 por controller
+- [x] Token de PROFESSOR em qualquer endpoint de escrita de professor/turma → 403
+- [x] Tokens de COORDENADOR continuam funcionando
+- [x] `./mvnw verify` passa (`ProfessorControllerIT` 5/5, `TurmaControllerIT` 6/6 e todo o resto verdes; a única falha é a pré-existente `AlunoControllerIT.getComPerfilProfessorRetornaSoAlunosDaqueleProfessor`, prevista desde a T7 e corrigida pela T16)
+- [x] Testes existentes + pelo menos 1 novo caso de 403 por controller
 
 **Tests**: integration
 **Gate**: full

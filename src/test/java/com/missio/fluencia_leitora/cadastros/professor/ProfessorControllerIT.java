@@ -1,6 +1,10 @@
 package com.missio.fluencia_leitora.cadastros.professor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.missio.fluencia_leitora.autenticacao.Usuario;
+import com.missio.fluencia_leitora.autenticacao.UsuarioRepository;
+import com.missio.fluencia_leitora.common.security.JwtService;
+import com.missio.fluencia_leitora.common.security.Perfil;
 import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivo;
 import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivoRepository;
 import com.missio.fluencia_leitora.cadastros.turma.Turma;
@@ -15,7 +19,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -26,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * CAD-07/CAD-08/CAD-09/CAD-19: exercises the whole ProfessorController
- * surface against real MySQL.
+ * surface against real MySQL. AUTH-07: PROFESSOR gets 403 on POST/DELETE.
  */
 @AutoConfigureMockMvc
 class ProfessorControllerIT extends IntegrationTestBase {
@@ -44,6 +50,19 @@ class ProfessorControllerIT extends IntegrationTestBase {
 
     @Autowired
     private AnoLetivoRepository anoLetivoRepository;
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private JwtService jwtService;
+
+    private String bearerProfessor() {
+        Professor professor = professorRepository.save(new Professor("Professor Sem Permissao"));
+        Usuario usuario = usuarioRepository.save(new Usuario(
+                "prof-" + UUID.randomUUID() + "@escola.com", "hash-nao-usado", Perfil.PROFESSOR, professor.getId()));
+        return "Bearer " + jwtService.emitir(usuario.getId());
+    }
 
     // static: shared, never-rolled-back database across every @Test method,
     // same rationale as AnoLetivoControllerIT.anoSequencial.
@@ -113,5 +132,23 @@ class ProfessorControllerIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.code").value("PROFESSOR_COM_TURMA_ATIVA"));
 
         assertTrue(professorRepository.findById(professorId).orElseThrow().isAtivo());
+    }
+
+    @Test
+    void professorRecebe403EmPostEDeleteSemAlterarNada() throws Exception {
+        String bearerProfessor = bearerProfessor();
+        Long alvoId = criarProfessor("Alvo Intocado");
+        long totalAntes = professorRepository.count();
+
+        mockMvc.perform(post("/api/v1/professores").header("Authorization", bearerProfessor)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(Map.of("nome", "Nao Deve Existir"))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"));
+        mockMvc.perform(delete("/api/v1/professores/" + alvoId).header("Authorization", bearerProfessor))
+                .andExpect(status().isForbidden());
+
+        assertEquals(totalAntes, professorRepository.count());
+        assertTrue(professorRepository.findById(alvoId).orElseThrow().isAtivo());
     }
 }

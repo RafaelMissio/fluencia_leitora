@@ -4,6 +4,7 @@ import com.missio.fluencia_leitora.cadastros.professor.dto.CriarProfessorRequest
 import com.missio.fluencia_leitora.cadastros.professor.dto.ProfessorResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,7 +14,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** CAD-07/CAD-08/CAD-09/CAD-19: CRUD de professor com consulta de turmas ativas. */
+/**
+ * CAD-07/CAD-08/CAD-09/CAD-19: CRUD de professor com consulta de turmas
+ * ativas. Escrita restrita ao COORDENADOR (AUTH-07).
+ */
 @RestController
 @RequestMapping("/api/v1/professores")
 public class ProfessorController {
@@ -25,6 +29,7 @@ public class ProfessorController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('COORDENADOR')")
     @ResponseStatus(HttpStatus.CREATED)
     public ProfessorResponse criar(@Valid @RequestBody CriarProfessorRequest request) {
         return ProfessorResponse.from(professorService.criar(request.nome()));
@@ -36,6 +41,7 @@ public class ProfessorController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('COORDENADOR')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void inativar(@PathVariable Long id) {
         professorService.inativar(id);
