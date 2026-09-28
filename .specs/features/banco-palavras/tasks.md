@@ -497,11 +497,11 @@ T14 -> T15
 
 **Done when**:
 
-- [ ] `PROFESSOR` e `COORDENADOR` autenticados recebem 200 no `GET` filtrado, só com listas ativas da série/tipo pedidos
-- [ ] `PROFESSOR` recebe 403 no `DELETE`; `COORDENADOR` recebe 204 e a lista some do `GET` filtrado mas continua acessível por `GET /{id}`
-- [ ] `GET /{id}` de id inexistente recebe 404
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 6 tests pass adicionados em `ListaPalavrasControllerIT` (endpoints `inativar`/`buscar`/`buscarPorId`)
+- [x] `PROFESSOR` e `COORDENADOR` autenticados recebem 200 no `GET` filtrado, só com listas ativas da série/tipo pedidos
+- [x] `PROFESSOR` recebe 403 no `DELETE`; `COORDENADOR` recebe 204 e a lista some do `GET` filtrado mas continua acessível por `GET /{id}`
+- [x] `GET /{id}` de id inexistente recebe 404
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 6 tests pass adicionados em `ListaPalavrasControllerIT` (endpoints `inativar`/`buscar`/`buscarPorId`)
 
 **Tests**: integration
 **Gate**: full

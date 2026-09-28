@@ -18,7 +18,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.StreamSupport;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -259,5 +264,101 @@ class ListaPalavrasControllerIT extends IntegrationTestBase {
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isForbidden());
+    }
+
+    private boolean filtradaContemNome(JsonNode resposta, String nome) {
+        return StreamSupport.stream(resposta.spliterator(), false)
+                .anyMatch(no -> no.get("nome").asText().equals(nome));
+    }
+
+    @Test
+    void getFiltradoComCoordenadorRetorna200ComListaCriada() throws Exception {
+        String nome = "Lista Filtro Coordenador " + UUID.randomUUID();
+        criarListaERetornarCorpo(nome, 4, List.of(item("gato", "CANONICA")));
+
+        MvcResult result = mockMvc.perform(get("/api/v1/listas-palavras")
+                        .header("Authorization", bearerCoordenador())
+                        .param("serie", "4")
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertTrue(filtradaContemNome(objectMapper.readTree(result.getResponse().getContentAsString()), nome));
+    }
+
+    @Test
+    void getFiltradoComProfessorRetorna200ComListaCriada() throws Exception {
+        String nome = "Lista Filtro Professor " + UUID.randomUUID();
+        criarListaERetornarCorpo(nome, 4, List.of(item("gato", "CANONICA")));
+
+        MvcResult result = mockMvc.perform(get("/api/v1/listas-palavras")
+                        .header("Authorization", bearerProfessor())
+                        .param("serie", "4")
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertTrue(filtradaContemNome(objectMapper.readTree(result.getResponse().getContentAsString()), nome));
+    }
+
+    @Test
+    void getFiltradoNaoRetornaListaDeOutraSerie() throws Exception {
+        String nome = "Lista Serie Diferente " + UUID.randomUUID();
+        criarListaERetornarCorpo(nome, 4, List.of(item("gato", "CANONICA")));
+
+        MvcResult result = mockMvc.perform(get("/api/v1/listas-palavras")
+                        .header("Authorization", bearerCoordenador())
+                        .param("serie", "5")
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertFalse(filtradaContemNome(objectMapper.readTree(result.getResponse().getContentAsString()), nome));
+    }
+
+    @Test
+    void deleteComProfessorRetorna403() throws Exception {
+        JsonNode criada = criarListaERetornarCorpo(
+                "Lista Delete Professor " + UUID.randomUUID(), 4, List.of(item("gato", "CANONICA")));
+        long id = criada.get("id").asLong();
+
+        mockMvc.perform(delete("/api/v1/listas-palavras/" + id).header("Authorization", bearerProfessor()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void deleteComCoordenadorRetorna204EListaSomeDoFiltrado() throws Exception {
+        String nome = "Lista Delete Coordenador " + UUID.randomUUID();
+        JsonNode criada = criarListaERetornarCorpo(nome, 4, List.of(item("gato", "CANONICA")));
+        long id = criada.get("id").asLong();
+
+        mockMvc.perform(delete("/api/v1/listas-palavras/" + id).header("Authorization", bearerCoordenador()))
+                .andExpect(status().isNoContent());
+
+        MvcResult resultFiltrado = mockMvc.perform(get("/api/v1/listas-palavras")
+                        .header("Authorization", bearerCoordenador())
+                        .param("serie", "4")
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertFalse(filtradaContemNome(objectMapper.readTree(resultFiltrado.getResponse().getContentAsString()), nome));
+    }
+
+    @Test
+    void listaInativadaContinuaAcessivelPorId() throws Exception {
+        String nome = "Lista Inativada Por Id " + UUID.randomUUID();
+        JsonNode criada = criarListaERetornarCorpo(nome, 4, List.of(item("gato", "CANONICA")));
+        long id = criada.get("id").asLong();
+
+        mockMvc.perform(delete("/api/v1/listas-palavras/" + id).header("Authorization", bearerCoordenador()))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/listas-palavras/" + id).header("Authorization", bearerCoordenador()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ativo").value(false))
+                .andExpect(jsonPath("$.nome").value(nome));
+    }
+
+    @Test
+    void getPorIdDeIdInexistenteRetorna404() throws Exception {
+        mockMvc.perform(get("/api/v1/listas-palavras/999999999").header("Authorization", bearerCoordenador()))
+                .andExpect(status().isNotFound());
     }
 }
