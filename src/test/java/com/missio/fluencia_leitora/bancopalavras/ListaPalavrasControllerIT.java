@@ -1,5 +1,6 @@
 package com.missio.fluencia_leitora.bancopalavras;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.missio.fluencia_leitora.autenticacao.Usuario;
 import com.missio.fluencia_leitora.autenticacao.UsuarioRepository;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,6 +20,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -186,5 +189,75 @@ class ListaPalavrasControllerIT extends IntegrationTestBase {
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isUnprocessableEntity());
+    }
+
+    private JsonNode criarListaERetornarCorpo(String nome, int serie, List<Map<String, Object>> itens) throws Exception {
+        Map<String, Object> payload = payloadPalavra(nome, serie, itens);
+        MvcResult result = mockMvc.perform(post("/api/v1/listas-palavras").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString());
+    }
+
+    private Map<String, Object> payloadAtualizacao(
+            String nome, int serie, List<Map<String, Object>> itens, long version) {
+        Map<String, Object> payload = payloadPalavra(nome, serie, itens);
+        payload.put("version", version);
+        return payload;
+    }
+
+    @Test
+    void putComCoordenadorAtualizaListaExistenteRetorna200ComNovoConteudo() throws Exception {
+        JsonNode criada = criarListaERetornarCorpo(
+                "Lista Original " + UUID.randomUUID(), 2, List.of(item("gato", "CANONICA")));
+        long id = criada.get("id").asLong();
+        // ListaPalavrasResponse não expõe `version` (T9); uma lista recém-criada
+        // sempre começa com version=0 (semântica do @Version Long do Hibernate).
+        long version = 0L;
+
+        Map<String, Object> payload = payloadAtualizacao(
+                "Lista Editada " + UUID.randomUUID(), 2,
+                List.of(item("gato", "CANONICA"), item("bola", "CANONICA")), version);
+
+        mockMvc.perform(put("/api/v1/listas-palavras/" + id).header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nome").value(payload.get("nome")))
+                .andExpect(jsonPath("$.quantidadePalavras").value(2));
+    }
+
+    @Test
+    void putComVersionDivergenteRetorna409ConflitoDeVersao() throws Exception {
+        JsonNode criada = criarListaERetornarCorpo(
+                "Lista Conflito " + UUID.randomUUID(), 2, List.of(item("gato", "CANONICA")));
+        long id = criada.get("id").asLong();
+
+        Map<String, Object> payload =
+                payloadAtualizacao("Lista Conflito Editada", 2, List.of(item("gato", "CANONICA")), 999L);
+
+        mockMvc.perform(put("/api/v1/listas-palavras/" + id).header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLITO_DE_VERSAO"));
+    }
+
+    @Test
+    void putComProfessorRetorna403() throws Exception {
+        JsonNode criada = criarListaERetornarCorpo(
+                "Lista Professor Put " + UUID.randomUUID(), 2, List.of(item("gato", "CANONICA")));
+        long id = criada.get("id").asLong();
+        long version = 0L;
+
+        Map<String, Object> payload =
+                payloadAtualizacao("Lista Professor Editada", 2, List.of(item("gato", "CANONICA")), version);
+
+        mockMvc.perform(put("/api/v1/listas-palavras/" + id).header("Authorization", bearerProfessor())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isForbidden());
     }
 }

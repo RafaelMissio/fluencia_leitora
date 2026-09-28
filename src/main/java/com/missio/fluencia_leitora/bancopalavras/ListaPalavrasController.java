@@ -1,11 +1,14 @@
 package com.missio.fluencia_leitora.bancopalavras;
 
+import com.missio.fluencia_leitora.bancopalavras.dto.AtualizarListaPalavrasRequest;
 import com.missio.fluencia_leitora.bancopalavras.dto.CriarListaPalavrasRequest;
 import com.missio.fluencia_leitora.bancopalavras.dto.ListaPalavrasResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -31,5 +34,12 @@ public class ListaPalavrasController {
     @ResponseStatus(HttpStatus.CREATED)
     public ListaPalavrasResponse criar(@Valid @RequestBody CriarListaPalavrasRequest request) {
         return ListaPalavrasResponse.from(listaPalavrasService.criar(request));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('COORDENADOR')")
+    public ListaPalavrasResponse atualizar(
+            @PathVariable Long id, @Valid @RequestBody AtualizarListaPalavrasRequest request) {
+        return ListaPalavrasResponse.from(listaPalavrasService.atualizar(id, request));
     }
 }

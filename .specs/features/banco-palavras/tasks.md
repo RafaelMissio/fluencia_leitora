@@ -469,11 +469,11 @@ T14 -> T15
 
 **Done when**:
 
-- [ ] `COORDENADOR` edita uma lista existente e recebe 200 com o novo conteúdo
-- [ ] `version` divergente recebe 409 `CONFLITO_DE_VERSAO`
-- [ ] `PROFESSOR` recebe 403
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 3 tests pass adicionados em `ListaPalavrasControllerIT` (endpoint `atualizar`)
+- [x] `COORDENADOR` edita uma lista existente e recebe 200 com o novo conteúdo
+- [x] `version` divergente recebe 409 `CONFLITO_DE_VERSAO`
+- [x] `PROFESSOR` recebe 403
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 3 tests pass adicionados em `ListaPalavrasControllerIT` (endpoint `atualizar`)
 
 **Tests**: integration
 **Gate**: full
