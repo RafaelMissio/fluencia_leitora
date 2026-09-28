@@ -101,8 +101,12 @@ class RegraClassificacaoRepositoryIT extends IntegrationTestBase {
 
         CountDownLatch txAAdquiriuLock = new CountDownLatch(1);
         CountDownLatch liberarTxA = new CountDownLatch(1);
-        AtomicLong instanteCommitTxA = new AtomicLong(-1);
-        AtomicLong instanteRetornoTxB = new AtomicLong(-1);
+        // Os dois instantes são registrados de DENTRO da própria thread de cada transação, não
+        // pela thread principal depois de um `Future.get()` sequencial: medir na thread principal
+        // provaria a ordem "por construção" (nanoTime é monotônico por thread), sem realmente medir
+        // se txB ficou bloqueada esperando o lock de txA.
+        AtomicLong instantePoucoAntesDoCommitTxA = new AtomicLong(-1);
+        AtomicLong instanteEmQueOSelectDeTxBDesbloqueou = new AtomicLong(-1);
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
@@ -115,27 +119,31 @@ class RegraClassificacaoRepositoryIT extends IntegrationTestBase {
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
+                // `executeWithoutResult` comita assim que este lambda retornar - o commit real
+                // acontece logo depois deste instante, nunca antes.
+                instantePoucoAntesDoCommitTxA.set(System.nanoTime());
             }));
 
             assertTrue(txAAdquiriuLock.await(5, TimeUnit.SECONDS), "txA não adquiriu o lock a tempo");
 
-            var futureB = executor.submit(() -> txB.executeWithoutResult(status ->
-                    regraClassificacaoRepository.buscarAtivasParaAtualizarComLock(1)));
+            var futureB = executor.submit(() -> txB.executeWithoutResult(status -> {
+                regraClassificacaoRepository.buscarAtivasParaAtualizarComLock(1);
+                instanteEmQueOSelectDeTxBDesbloqueou.set(System.nanoTime());
+            }));
 
             // dá tempo de txB tentar o SELECT ... FOR UPDATE e ficar bloqueada esperando txA
             Thread.sleep(300);
             liberarTxA.countDown();
 
             futureA.get(5, TimeUnit.SECONDS);
-            instanteCommitTxA.set(System.nanoTime());
-
             futureB.get(5, TimeUnit.SECONDS);
-            instanteRetornoTxB.set(System.nanoTime());
         } finally {
             executor.shutdown();
         }
 
-        assertTrue(instanteRetornoTxB.get() >= instanteCommitTxA.get(),
-                "txB só deveria retornar depois que txA comitou (lock pessimista provado)");
+        assertTrue(instanteEmQueOSelectDeTxBDesbloqueou.get() >= instantePoucoAntesDoCommitTxA.get(),
+                "txB só deveria destravar o SELECT ... FOR UPDATE depois que txA liberasse o lock "
+                        + "(lock pessimista provado - sem o lock, txB destravaria quase que "
+                        + "imediatamente, bem antes desse instante)");
     }
 }
