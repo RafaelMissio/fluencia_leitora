@@ -50,8 +50,9 @@ T2
 ```
 T1 -> T3
 T2 -> T3
-T3 -> T4
 ```
+
+> **Deviation (during Execute):** T3+T4 do plano original foram fundidas numa única T3. `AudioStorageLocalAdapter` precisa implementar `AudioStoragePort` por inteiro para compilar - dividir `armazenar` e `recuperar` em commits separados forçaria um método placeholder/não funcional num dos dois (`recuperar` teria que existir de alguma forma já em T3, mesmo que "provisório", só para o `implements` compilar). Juntar os dois evita código descartável; nenhum AC, teste ou escopo foi reduzido - a task fundida cobre exatamente o que T3+T4 cobririam juntas.
 
 ---
 
@@ -108,13 +109,13 @@ T3 -> T4
 
 ---
 
-### T3: Implementar `AudioStorageLocalAdapter` - construção e `armazenar`
+### T3: Implementar `AudioStorageLocalAdapter` (`armazenar` + `recuperar`)
 
-**What**: Classe `@Component implements AudioStoragePort`. Construtor com `@Value("${APP_AUDIO_STORAGE_DIR:data/audios}") String diretorioBase` e `@Value("${APP_AUDIO_TAMANHO_MAXIMO_BYTES:26214400}") long tamanhoMaximoBytes`; método `@PostConstruct` que cria o diretório configurado (`Files.createDirectories`), embrulhando qualquer `IOException` em `AudioArmazenamentoException`. Método `armazenar(byte[] conteudo, String mimeType)`: valida `mimeType` (nulo/vazio/fora de `audio/webm`, `audio/ogg`, `audio/mp4`, `audio/mpeg`, `audio/wav` → `AudioFormatoInvalidoException`), valida tamanho (`conteudo.length == 0` ou `> tamanhoMaximoBytes` → `AudioTamanhoInvalidoException`), gera um nome de arquivo único (`UUID.randomUUID()` + extensão derivada do `mimeType` - tabela fixa de 5 entradas, design.md Tech Decisions), grava o arquivo (`Files.write`) e devolve o nome gerado como referência; se a escrita falhar, exclui qualquer arquivo parcial e lança `AudioArmazenamentoException`.
+**What**: Classe `@Component implements AudioStoragePort`. Construtor com `@Value("${APP_AUDIO_STORAGE_DIR:data/audios}") String diretorioBase` e `@Value("${APP_AUDIO_TAMANHO_MAXIMO_BYTES:26214400}") long tamanhoMaximoBytes`; método `@PostConstruct` que cria o diretório configurado (`Files.createDirectories`), embrulhando qualquer `IOException` em `AudioArmazenamentoException`. Método `armazenar(byte[] conteudo, String mimeType)`: valida `mimeType` (nulo/vazio/fora de `audio/webm`, `audio/ogg`, `audio/mp4`, `audio/mpeg`, `audio/wav` → `AudioFormatoInvalidoException`), valida tamanho (`conteudo.length == 0` ou `> tamanhoMaximoBytes` → `AudioTamanhoInvalidoException`), gera um nome de arquivo único (`UUID.randomUUID()` + extensão derivada do `mimeType` - tabela fixa de 5 entradas, design.md Tech Decisions), grava o arquivo (`Files.write`) e devolve o nome gerado como referência; se a escrita falhar, exclui qualquer arquivo parcial e lança `AudioArmazenamentoException`. Método `recuperar(String referencia)`: resolve o caminho dentro do diretório base e confirma que o resultado fica dentro dele (normaliza e checa `startsWith`, design.md Risks & Concerns); se o arquivo não existir ou o caminho resolver fora do diretório base, lança `AudioNaoEncontradoException`; caso contrário, devolve os bytes (`Files.readAllBytes`).
 **Where**: `src/main/java/com/missio/fluencia_leitora/audioavaliacao/AudioStorageLocalAdapter.java`
 **Depends on**: T1, T2
 **Reuses**: padrão `@Value`/`@PostConstruct` de `common/security/JwtService.java:32,35` (design.md, Code Reuse Analysis)
-**Requirement**: AUD-01, AUD-03, AUD-04, AUD-05, AUD-07, AUD-08
+**Requirement**: AUD-01, AUD-02, AUD-03, AUD-04, AUD-05, AUD-06, AUD-07, AUD-08
 
 **Tools**:
 
@@ -123,49 +124,24 @@ T3 -> T4
 
 **Done when**:
 
-- [ ] `armazenar` com bytes válidos, mimeType permitido e tamanho dentro do limite grava o arquivo no diretório configurado e devolve uma referência não nula (AUD-01)
-- [ ] Duas chamadas a `armazenar` com o mesmo conteúdo/mimeType devolvem referências diferentes (nome único, AUD-08)
-- [ ] `mimeType` fora da lista permitida lança `AudioFormatoInvalidoException` e não cria nenhum arquivo no diretório (AUD-03)
-- [ ] `mimeType` nulo ou vazio lança `AudioFormatoInvalidoException` (Edge Case)
-- [ ] Tamanho zero (`byte[0]`) lança `AudioTamanhoInvalidoException` e não cria nenhum arquivo (AUD-04, Edge Case)
-- [ ] Tamanho acima do limite configurado lança `AudioTamanhoInvalidoException` e não cria nenhum arquivo (AUD-04)
-- [ ] Apontar `APP_AUDIO_STORAGE_DIR` para um subdiretório que ainda não existe dentro do `@TempDir` do teste: depois de construir o adapter e chamar o método `@PostConstruct`, o diretório existe (AUD-07)
-- [ ] Simular falha de escrita (ex.: diretório base substituído por um arquivo comum, então `Files.write` falha) lança `AudioArmazenamentoException` e não deixa arquivo parcial no diretório (AUD-05)
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 8 tests pass em `AudioStorageLocalAdapterTest` (método `armazenar` + `@PostConstruct`)
+- [x] `armazenar` com bytes válidos, mimeType permitido e tamanho dentro do limite grava o arquivo no diretório configurado e devolve uma referência não nula (AUD-01)
+- [x] Duas chamadas a `armazenar` com o mesmo conteúdo/mimeType devolvem referências diferentes (nome único, AUD-08)
+- [x] `mimeType` fora da lista permitida lança `AudioFormatoInvalidoException` e não cria nenhum arquivo no diretório (AUD-03)
+- [x] `mimeType` nulo ou vazio lança `AudioFormatoInvalidoException` (Edge Case)
+- [x] Tamanho zero (`byte[0]`) lança `AudioTamanhoInvalidoException` e não cria nenhum arquivo (AUD-04, Edge Case)
+- [x] Tamanho acima do limite configurado lança `AudioTamanhoInvalidoException` e não cria nenhum arquivo (AUD-04)
+- [x] Apontar `APP_AUDIO_STORAGE_DIR` para um subdiretório que ainda não existe dentro do `@TempDir` do teste: depois de construir o adapter e chamar o método `@PostConstruct`, o diretório existe (AUD-07)
+- [x] Simular falha de escrita (diretório tornado não-gravável depois de criado) lança `AudioArmazenamentoException` e não deixa arquivo novo no diretório (AUD-05)
+- [x] `recuperar` com uma referência devolvida por `armazenar` devolve bytes idênticos byte a byte ao conteúdo original gravado (AUD-02) - testado com pelo menos 2 mime types diferentes da lista permitida
+- [x] `recuperar` com uma referência que não existe no diretório lança `AudioNaoEncontradoException` (AUD-06)
+- [x] `recuperar` com uma referência contendo `../` (tentando escapar do diretório base) lança `AudioNaoEncontradoException`, nunca lê um arquivo fora do diretório configurado (Risks & Concerns)
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 11 tests pass em `AudioStorageLocalAdapterTest` (13 testes)
 
 **Tests**: unit
 **Gate**: quick
 
-**Commit**: `feat(audio-avaliacao): add AudioStorageLocalAdapter.armazenar`
-
----
-
-### T4: Implementar `AudioStorageLocalAdapter.recuperar`
-
-**What**: Método `recuperar(String referencia)`: resolve o caminho dentro do diretório base configurado e confirma que o resultado fica dentro dele (normaliza e checa `startsWith`, design.md Risks & Concerns); se o arquivo não existir ou o caminho resolver fora do diretório base, lança `AudioNaoEncontradoException`; caso contrário, devolve os bytes (`Files.readAllBytes`).
-**Where**: `src/main/java/com/missio/fluencia_leitora/audioavaliacao/AudioStorageLocalAdapter.java` (modify)
-**Depends on**: T3
-**Reuses**: `armazenar` (T3) para gerar referências válidas nos testes de round-trip
-**Requirement**: AUD-02, AUD-06
-
-**Tools**:
-
-- MCP: NONE
-- Skill: NONE
-
-**Done when**:
-
-- [ ] `recuperar` com uma referência devolvida por `armazenar` devolve bytes idênticos byte a byte ao conteúdo original gravado (AUD-02) - testado com pelo menos 2 mime types diferentes da lista permitida
-- [ ] `recuperar` com uma referência que não existe no diretório lança `AudioNaoEncontradoException` (AUD-06)
-- [ ] `recuperar` com uma referência contendo `../` (tentando escapar do diretório base) lança `AudioNaoEncontradoException`, nunca lê um arquivo fora do diretório configurado (Risks & Concerns)
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 3 tests pass em `AudioStorageLocalAdapterTest` (método `recuperar`)
-
-**Tests**: unit
-**Gate**: quick
-
-**Commit**: `feat(audio-avaliacao): add AudioStorageLocalAdapter.recuperar`
+**Commit**: `feat(audio-avaliacao): add AudioStorageLocalAdapter`
 
 ---
 
@@ -174,15 +150,15 @@ T3 -> T4
 Visual representation of task ordering. Phases run in sequence, and tasks within a phase run in order:
 
 ```
-Phase 1 (T1, T2) precede Phase 2 (T3, T4)
+Phase 1 (T1, T2) precede Phase 2 (T3)
 
 Phase 1:  T1   T2   (independentes entre si)
-Phase 2:  T1, T2 --------------> T3 --------------> T4
+Phase 2:  T1, T2 --------------> T3
 ```
 
 Execution is strictly sequential - there is no intra-phase parallelism. A single agent works one task at a time, in order.
 
-**Batching**: 4 tasks total → fits a single task-budgeted batch (≤ ~8 tasks) → executed inline, no sub-agents.
+**Batching**: 3 tasks total → fits a single task-budgeted batch (≤ ~8 tasks) → executed inline, no sub-agents.
 
 ---
 
@@ -192,8 +168,7 @@ Execution is strictly sequential - there is no intra-phase parallelism. A single
 | --- | --- | --- |
 | T1: `AudioStoragePort` | 1 interface, 2 assinaturas | ✅ Granular |
 | T2: Hierarquia de exceções | 5 classes triviais, coesas (uma família de erro) | ✅ Granular |
-| T3: `armazenar` + construção | 1 método público + `@PostConstruct` do mesmo componente (não dá para testar `armazenar` sem a criação do diretório) | ✅ Granular |
-| T4: `recuperar` | 1 método | ✅ Granular |
+| T3: `armazenar` + `recuperar` + construção | 1 classe, 2 métodos públicos que implementam o mesmo contrato + `@PostConstruct` - fundidas de T3+T4 do plano original (ver Deviation na Execution Plan); coesa porque `AudioStoragePort` exige as duas para compilar | ✅ Granular (coesa) |
 
 ---
 
@@ -204,7 +179,6 @@ Execution is strictly sequential - there is no intra-phase parallelism. A single
 | T1 | None | (nenhuma seta necessária) | ✅ Match |
 | T2 | None | (nenhuma seta necessária) | ✅ Match |
 | T3 | T1, T2 | T1 -> T3, T2 -> T3 | ✅ Match |
-| T4 | T3 | T3 -> T4 | ✅ Match |
 
 ---
 
@@ -214,8 +188,7 @@ Execution is strictly sequential - there is no intra-phase parallelism. A single
 | --- | --- | --- | --- | --- |
 | T1: `AudioStoragePort` | Interface | none | none | ✅ OK |
 | T2: Hierarquia de exceções | Exceções | none | none | ✅ OK |
-| T3: `armazenar` | Adapter | unit | unit | ✅ OK |
-| T4: `recuperar` | Adapter | unit | unit | ✅ OK |
+| T3: `armazenar` + `recuperar` | Adapter | unit | unit | ✅ OK |
 
 ---
 

@@ -1,41 +1,41 @@
-# Áudio da Avaliação Specification
+# Áudio de Avaliação Specification
 
-> Origem: SDD §7.1, §7.4, §8, RF008, RF015, RNF003. Decisões: AD-003.
+> Origem: SDD §8, §21 (RF008, RF015), §22 (RNF003), §19 (DDL `avaliacao_audio`, referência). Decisões: AD-003.
 
 ## Problem Statement
 
-O áudio da leitura prova o desempenho do aluno e permite que o professor revise a marcação das palavras. O navegador grava o áudio; o backend precisa receber, guardar, associar à avaliação e servir o arquivo para reprodução e download, sem perda e sem expor arquivos de outros professores.
+O professor grava, pelo navegador, a leitura do aluno durante uma avaliação (SDD §8); depois de finalizada, precisa poder reproduzir e baixar esse áudio (RF015). A tabela `avaliacao_audio` do SDD tem uma FK para `avaliacao(id)`, mas a feature `avaliacao` ainda não existe (é a próxima do roadmap, depois desta). Esta feature entrega a capacidade de armazenamento em si - guardar bytes de áudio em disco e devolvê-los de volta - sem depender de `avaliacao` existir, para que `avaliacao` só precise chamá-la quando for construída.
 
 ## Goals
 
-- [ ] Toda avaliação finalizada pode ter exatamente 1 áudio associado.
-- [ ] O professor reproduz o áudio com barra de progresso (range requests) e faz o download com nome descritivo.
-- [ ] Nenhum arquivo fica sem registro no banco, e nenhum registro fica sem arquivo depois de uma falha.
+- [ ] Dado um array de bytes de áudio válido, `armazenar` grava no disco e devolve uma referência; `recuperar` com essa referência devolve os mesmos bytes, sem perda ou corrupção.
+- [ ] Nenhum arquivo é aceito fora da lista de formatos permitidos ou acima do tamanho máximo configurado.
+- [ ] O nome do arquivo em disco nunca é derivado de entrada do chamador (elimina path traversal por construção).
 
 ## Out of Scope
 
 | Feature | Reason |
 | ------- | ------ |
-| Captura pelo microfone e pedido de permissão | Feature `frontend-web` (MediaRecorder, RNF003) |
-| Transcrição ou reconhecimento de fala | Evolução futura (SDD §25) |
-| Conversão de formato ou compressão no servidor | Desnecessária: o navegador já grava em formatos comprimidos (webm/ogg/mp4) |
-| Armazenamento em S3 e retenção com expiração | AD-003: disco local sem expiração no MVP |
-| Envio em partes (chunked) durante a gravação | Os arquivos são pequenos (~0,5 MB/min em Opus) |
+| Endpoint HTTP de upload/download (`POST/GET .../avaliacoes/{id}/audio`) | Decisão do usuário - fica na feature `avaliacao`, que expõe o endpoint e chama esta porta internamente (mesmo padrão do `classificar()` em `regras-classificacao`) |
+| Tabela `avaliacao_audio` / metadados (nome, mimeType, tamanho, duração, `avaliacaoId`) | Pertence à feature `avaliacao` (FK real para `avaliacao(id)`, que não existe ainda) |
+| Exclusão de áudio | AD-003 (`.specs/STATE.md`) já decidiu que os áudios não expiram; RNF006 (`.specs/features/avaliacao/spec.md`) proíbe excluir fisicamente uma avaliação, então nada no fluxo aciona exclusão de áudio |
+| Extração automática de duração do áudio (`duracao_segundos`) | Coluna de `avaliacao_audio`, que pertence à feature `avaliacao`; se o cliente enviar essa informação, cabe a `avaliacao` gravá-la, não a este serviço de armazenamento |
+| Reconhecimento automático de fala / transcrição | SDD §25, evolução futura |
+| Gravação client-side (MediaRecorder API), permissão do microfone (RNF003) | Feature `frontend-web` |
+| Troca para armazenamento em nuvem (S3) | AD-003 já decidiu disco local para o MVP; a porta (`AudioStoragePort`) existe justamente para permitir essa troca depois sem mudar quem a chama |
 
 ---
 
 ## Assumptions & Open Questions
 
 | Assumption / decision | Chosen default | Rationale | Confirmed? |
-| --------------------- | -------------- | --------- | ---------- |
-| Armazenamento e retenção (SDD §24 item 6) | Disco local em `app.audio.storage-dir`, atrás de uma porta `AudioStorage`; os arquivos não expiram | Opção escolhida pelo usuário (AD-003) | y |
-| Quando o envio é aceito | Só com a avaliação `FINALIZADA` | A gravação termina na finalização (SDD §7.4) | n |
-| Reenvio | Substitui o áudio anterior (o arquivo antigo é removido depois que o novo é confirmado) e gera auditoria | Permite repetir o envio após falha de rede e atende o RNF004 | n |
-| Formatos aceitos | `audio/webm`, `audio/ogg`, `audio/wav`, `audio/mp4`, `audio/mpeg` | Cobre MediaRecorder no Chrome, Firefox e Safari | n |
-| Tamanho máximo | 25 MB | 600 s em WAV mono 16 kHz dá cerca de 19 MB; formatos comprimidos ficam bem abaixo | n |
-| Duração | Informada pelo cliente (`duracaoSegundos`, opcional) e validada entre 0 e `tempoConfigurado + 5` | Evita ler o conteúdo do áudio no servidor | n |
-| Nome físico do arquivo | UUID gerado pelo servidor + extensão derivada do MIME; o nome enviado pelo cliente é descartado | Evita path traversal e colisão de nomes | n |
-| Áudio de avaliação cancelada | Mantido e acessível | RNF006 (integridade do histórico) | n |
+| --------------------- | --------------- | --------- | ---------- |
+| Escopo do backend (REST vs. porta pura) | Porta Java pura (`AudioStoragePort` + adapter em disco), sem endpoint HTTP e sem tabela própria | Opção escolhida pelo usuário - mesmo padrão do `classificar()` em `regras-classificacao`: capacidade interna com interface estável para a feature futura consumir | y |
+| Lista de mime types permitidos | `audio/webm`, `audio/ogg`, `audio/mp4`, `audio/mpeg`, `audio/wav` | Formatos mais comuns produzidos pela MediaRecorder API dos navegadores (SDD §23, Frontend); o SDD não define uma lista (Ponto 6, "política de armazenamento" - AD-003 resolveu retenção, não formato) | n |
+| Tamanho máximo por arquivo | 25 MB, configurável via propriedade (`app.audio.tamanho-maximo-bytes`) | O SDD não define um limite; 25 MB cobre confortavelmente vários minutos de áudio comprimido (webm/opus) sem abrir a porta para uploads arbitrariamente grandes | n |
+| Diretório de armazenamento | Configurável via variável de ambiente (`APP_AUDIO_STORAGE_DIR`), com um default sensato para desenvolvimento | AD-003 já decidiu "diretório configurável"; segue o padrão de configuração já usado no projeto (`APP_ADMIN_EMAIL`/`APP_ADMIN_PASSWORD` em `AdminBootstrap`) | n |
+| Nome do arquivo em disco | UUID gerado pelo servidor + extensão derivada do mime type permitido; o `nomeOriginal` do chamador nunca é usado para compor o caminho | Elimina colisão entre gravações concorrentes e risco de path traversal por construção, sem precisar sanitizar entrada | n |
+| Referência devolvida por `armazenar` | Caminho relativo ao diretório configurado (string opaca) | É o suficiente para `recuperar` localizar o arquivo depois; não expõe o caminho absoluto do disco do servidor | n |
 
 **Open questions:** none - all resolved or logged above.
 
@@ -43,67 +43,47 @@ O áudio da leitura prova o desempenho do aluno e permite que o professor revise
 
 ## User Stories
 
-### P1: Enviar o áudio da avaliação ⭐ MVP
+### P1: Armazenar e recuperar áudio ⭐ MVP
 
-**User Story**: Como professor, quero que o áudio gravado seja salvo junto com a avaliação (RF008).
+**User Story**: Como funcionalidade interna do backend (consumida pela feature `avaliacao`, ainda não construída), preciso de uma porta de armazenamento que grave bytes de áudio em disco e os devolva de volta exatamente iguais, para que a gravação da leitura do aluno (SDD §8) fique disponível para reprodução e download (RF015) quando `avaliacao` existir.
 
-**Why P1**: É requisito funcional explícito e evidência da avaliação.
-
-**Acceptance Criteria**:
-1. WHEN o professor envia `PUT /api/v1/avaliacoes/{id}/audio` (multipart, campo `arquivo`, `duracaoSegundos` opcional) para uma avaliação `FINALIZADA` THEN o sistema SHALL gravar o arquivo com nome UUID, gravar `mimeType`, `tamanhoBytes`, `duracaoSegundos` e `criadoEm` e retornar 201 com os metadados.
-2. IF a avaliação não estiver `FINALIZADA` THEN o sistema SHALL retornar 409 com código `AUDIO_NAO_PERMITIDO` e o `statusAtual`.
-3. IF o MIME type não estiver na lista permitida THEN o sistema SHALL retornar 415.
-4. IF o arquivo tiver mais de 25 MB THEN o sistema SHALL retornar 413.
-5. IF o arquivo estiver vazio (0 bytes) ou `duracaoSegundos` estiver fora de 0 a `tempoConfigurado + 5` THEN o sistema SHALL retornar 422.
-6. WHEN já existe um áudio e um novo envio é bem-sucedido THEN o sistema SHALL substituir os metadados, remover o arquivo antigo depois de confirmar a transação e gerar auditoria `AUDIO_SUBSTITUIDO` com os dois nomes de arquivo.
-7. IF gravar o arquivo em disco falhar THEN o sistema SHALL retornar 503 com código `ARMAZENAMENTO_INDISPONIVEL` e SHALL NOT gravar metadados.
-8. IF gravar os metadados no banco falhar depois de o arquivo ter sido escrito THEN o sistema SHALL remover o arquivo recém-escrito e retornar 500.
-9. IF um COORDENADOR enviar `PUT /api/v1/avaliacoes/{id}/audio` THEN o sistema SHALL retornar 403 (AUTH-08 - mecanismo `@PreAuthorize("hasRole('PROFESSOR')")` já comprovado por AUTH-07/AUTH-08 em `autenticacao-perfis`; esta feature só aplica o `@PreAuthorize` ao endpoint).
-
-**Independent Test**: Finalizar uma avaliação, enviar um webm de 100 KB e conferir os metadados e o arquivo no diretório configurado.
-
----
-
-### P1: Reproduzir e baixar o áudio ⭐ MVP
-
-**User Story**: Como professor, quero ouvir e baixar o áudio de uma avaliação finalizada (RF015, SDD §8).
-
-**Why P1**: É requisito funcional explícito; o professor revisa a marcação ouvindo o áudio.
+**Why P1**: É a única capacidade desta feature; sem ela, `avaliacao` não tem onde persistir o áudio gravado pelo navegador.
 
 **Acceptance Criteria**:
-1. WHEN um usuário autorizado envia `GET /api/v1/avaliacoes/{id}/audio` THEN o sistema SHALL responder 200 com o conteúdo, `Content-Type` igual ao `mimeType` gravado, `Content-Length` e `Accept-Ranges: bytes`.
-2. WHEN a requisição traz o header `Range: bytes=a-b` válido THEN o sistema SHALL responder 206 com apenas o trecho pedido e `Content-Range` correto.
-3. WHEN a requisição traz `?download=true` THEN o sistema SHALL incluir `Content-Disposition: attachment; filename="avaliacao-{id}-{nome-aluno-sem-acentos-com-hifens}-{yyyy-MM-dd}.{ext}"`.
-4. IF a avaliação não tiver áudio THEN o sistema SHALL retornar 404 com código `AUDIO_INEXISTENTE`.
-5. IF os metadados existirem mas o arquivo não estiver no disco THEN o sistema SHALL retornar 404 com código `AUDIO_ARQUIVO_AUSENTE` e registrar log ERROR com `avaliacaoId` e caminho.
-6. IF um PROFESSOR pedir o áudio de uma avaliação que não é dele THEN o sistema SHALL retornar 404 (AUTH-09).
-7. The system SHALL permitir ao COORDENADOR reproduzir e baixar qualquer áudio.
-8. IF o `Range` pedido não for satisfazível THEN o sistema SHALL retornar 416.
 
-**Independent Test**: `GET` com `Range: bytes=0-99` retorna 206 com 100 bytes.
+1. WHEN `armazenar` é chamado com bytes de áudio não vazios, um mime type permitido e tamanho dentro do limite configurado THEN o sistema SHALL gravar o arquivo no diretório configurado e devolver uma referência (caminho relativo) que identifica o arquivo de forma única.
+2. WHEN `recuperar` é chamado com uma referência devolvida por um `armazenar` anterior THEN o sistema SHALL devolver os bytes gravados, idênticos byte a byte ao conteúdo original.
+3. IF o mime type informado não estiver entre `audio/webm`, `audio/ogg`, `audio/mp4`, `audio/mpeg` e `audio/wav` THEN o sistema SHALL rejeitar o armazenamento sem gravar nada no disco.
+4. IF o tamanho do conteúdo exceder o limite configurado THEN o sistema SHALL rejeitar o armazenamento sem gravar nada no disco.
+5. IF a escrita em disco falhar (ex.: diretório sem permissão, disco cheio) THEN o sistema SHALL lançar uma exceção e não deixar nenhum arquivo parcial no diretório.
+6. IF `recuperar` for chamado com uma referência que não existe no disco THEN o sistema SHALL lançar uma exceção específica, nunca devolver um recurso vazio silenciosamente.
+7. The system SHALL criar o diretório configurado automaticamente, se ele ainda não existir, antes da primeira gravação.
+8. The system SHALL gerar, para cada gravação, um nome de arquivo em disco que nunca é derivado do nome original enviado pelo chamador.
+
+**Independent Test**: chamar `armazenar` com um array de bytes de teste e um mime type válido; chamar `recuperar` com a referência devolvida e comparar os bytes - devem ser idênticos. Chamar `armazenar` com um mime type inválido e confirmar que a contagem de arquivos no diretório não muda.
 
 ---
 
 ## Edge Cases
 
-- The system SHALL resolver o caminho físico só a partir do diretório configurado + nome UUID, e SHALL NOT usar nenhum dado do cliente para montar o caminho.
-- IF `app.audio.storage-dir` não existir ou não tiver permissão de escrita na inicialização THEN a aplicação SHALL falhar ao iniciar, com mensagem que indica o diretório.
-- WHEN a avaliação é cancelada THEN o sistema SHALL manter o áudio.
-- IF dois envios simultâneos chegarem para a mesma avaliação THEN o sistema SHALL aceitar o que confirmar primeiro e retornar 409 `CONFLITO_DE_VERSAO` para o outro, removendo o arquivo órfão dele.
+- IF os bytes de áudio tiverem tamanho zero THEN o sistema SHALL rejeitar o armazenamento (mesma família de erro do tamanho acima do limite - tamanho fora da faixa aceitável, que é `[1, limite configurado]`).
+- IF o mime type informado for nulo ou vazio THEN o sistema SHALL rejeitar o armazenamento (mesmo comportamento de um mime type fora da lista permitida).
+- IF o `nomeOriginal` do chamador contiver separadores de diretório ou sequências como `../` THEN o sistema SHALL ignorá-los ao gerar o nome do arquivo em disco (já garantido pela AC8 - o nome gerado é sempre um UUID, nunca derivado do `nomeOriginal`).
+- WHEN duas chamadas a `armazenar` acontecem concorrentemente THEN o sistema SHALL gravar cada uma em um arquivo distinto, sem colisão de nome (garantido pela AC8).
 
 ### Implicit-requirement dimensions sweep
 
 | Dimension | Resolution |
 | --------- | ---------- |
-| Input validation & bounds | AUD-03..AUD-05 |
-| Failure / partial-failure | AUD-07, AUD-08; o arquivo antigo só é apagado depois da confirmação (AUD-06) |
-| Idempotency / duplicates | Reenviar substitui o áudio (AUD-06) |
-| Auth boundaries & rate limits | AUD-13, AUD-14 (AUTH-08, AUTH-09); limite de tamanho (AUD-04) |
-| Concurrency / ordering | Lock otimista na avaliação; o arquivo órfão é removido |
-| Data lifecycle | Sem expiração (AD-003); mantido mesmo em cancelamento |
-| Observability | Log ERROR em arquivo ausente (AUD-12); log INFO em cada envio com tamanho e MIME |
-| External-dependency failure | Disco indisponível dá 503 (AUD-07); o diretório é validado na inicialização |
-| State-transition integrity | Envio só em FINALIZADA (AUD-02) |
+| Input validation & bounds | AUD-03, AUD-04 (mime type e tamanho); Edge Cases (tamanho zero, mime type nulo) |
+| Failure / partial-failure | AUD-05 - falha de escrita não deixa arquivo parcial |
+| Idempotency / retry / duplicate handling | N/A because não há endpoint HTTP nesta feature (chamador é código Java interno, sem retry de rede a considerar aqui); cada chamada a `armazenar` sempre cria um novo arquivo, por design (não há conceito de "reenviar a mesma gravação") |
+| Auth boundaries & rate limits | N/A because não há endpoint HTTP nesta feature; a feature `avaliacao` decide sua própria autorização quando expuser o endpoint que chama esta porta |
+| Concurrency / ordering | Nomes de arquivo únicos (UUID) eliminam colisão entre gravações concorrentes; não há estado compartilhado entre chamadas |
+| Data lifecycle / expiry | N/A because AD-003 já decidiu que os áudios não expiram nesta feature |
+| Observability | Log INFO na gravação bem-sucedida (referência, tamanho); log WARN na rejeição por mime type/tamanho; log ERROR na falha de escrita |
+| External-dependency failure | AUD-05 - a falha do sistema de arquivos (disco cheio, permissão) é tratada como erro explícito, nunca silenciosa |
+| State-transition integrity | N/A because não há máquina de estados nesta feature - cada arquivo, uma vez gravado, é imutável |
 
 ---
 
@@ -111,27 +91,21 @@ O áudio da leitura prova o desempenho do aluno e permite que o professor revise
 
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
-| AUD-01 | P1: Envio em avaliação finalizada | - | Pending |
-| AUD-02 | P1: Envio bloqueado fora de FINALIZADA | - | Pending |
-| AUD-03 | P1: MIME permitido | - | Pending |
-| AUD-04 | P1: Limite de 25 MB | - | Pending |
-| AUD-05 | P1: Arquivo vazio e duração inválida | - | Pending |
-| AUD-06 | P1: Substituição com auditoria | - | Pending |
-| AUD-07 | P1: Falha de disco sem metadados | - | Pending |
-| AUD-08 | P1: Falha de banco remove o arquivo | - | Pending |
-| AUD-09 | P1: Streaming 200 | - | Pending |
-| AUD-10 | P1: Range 206 / 416 | - | Pending |
-| AUD-11 | P1: Download com nome descritivo | - | Pending |
-| AUD-12 | P1: 404 sem áudio / arquivo ausente | - | Pending |
-| AUD-13 | P1: Escopo do professor | - | Pending |
-| AUD-14 | P1: Acesso do coordenador | - | Pending |
-| AUD-15 | P1: Caminho seguro e validação do diretório | - | Pending |
+| AUD-01 | P1: Armazenar grava e devolve referência | T3 | Done |
+| AUD-02 | P1: Recuperar devolve bytes idênticos | T3 | Done |
+| AUD-03 | P1: Mime type fora da lista é rejeitado | T3 | Done |
+| AUD-04 | P1: Tamanho acima do limite é rejeitado | T3 | Done |
+| AUD-05 | P1: Falha de escrita não deixa arquivo parcial | T3 | Done |
+| AUD-06 | P1: Recuperar referência inexistente lança exceção | T3 | Done |
+| AUD-07 | P1: Diretório configurado é criado automaticamente | T3 | Done |
+| AUD-08 | P1: Nome do arquivo nunca deriva de entrada do chamador | T3 | Done |
 
-**Coverage:** 15 total, 0 mapped to tasks, 15 unmapped ⚠️
+**Coverage:** 8 total, 8 mapped to tasks, 8 testáveis agora, 0 unmapped
 
 ---
 
 ## Success Criteria
 
-- [ ] Teste de integração: enviar, reproduzir com Range, baixar e substituir, sem arquivo órfão no diretório ao final.
-- [ ] Teste com falha de disco simulada: 503 e nenhum registro no banco.
+- [ ] `armazenar` seguido de `recuperar` com a mesma referência devolve bytes idênticos, para qualquer mime type permitido dentro do limite de tamanho.
+- [ ] Nenhuma chamada com mime type inválido ou tamanho fora do limite grava um arquivo no disco.
+- [ ] Os testes de integração usam um diretório temporário configurável, nunca um caminho fixo do ambiente do desenvolvedor.
