@@ -274,11 +274,11 @@ T14 -> T15
 
 **Done when**:
 
-- [ ] `buscarResumo(2, PSEUDOPALAVRA)` retorna só listas ativas da série 2 e tipo PSEUDOPALAVRA, com `quantidadePalavras` igual ao número de itens
-- [ ] Lista inativa não aparece em `buscarResumo`, mesmo casando série/tipo
-- [ ] Lista de série/tipo diferente não aparece
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 3 tests pass em `ListaPalavrasRepositoryIT`
+- [x] `buscarResumo(2, PSEUDOPALAVRA)` retorna só listas ativas da série 2 e tipo PSEUDOPALAVRA, com `quantidadePalavras` igual ao número de itens
+- [x] Lista inativa não aparece em `buscarResumo`, mesmo casando série/tipo
+- [x] Lista de série/tipo diferente não aparece
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 3 tests pass em `ListaPalavrasRepositoryIT`
 
 **Tests**: integration
 **Gate**: full
