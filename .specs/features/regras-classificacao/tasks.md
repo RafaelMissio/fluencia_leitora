@@ -356,10 +356,10 @@ T13 -> T14
 
 **Done when**:
 
-- [ ] `buscarAtivas` retorna as faixas ativas da série ordenadas por `quantidadeMinimaAcertos`
-- [ ] `buscarHistorico` agrupa as faixas retornadas pelo repositório por `alteradoEm`, preservando a ordem (grupo corrente primeiro)
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 3 tests pass em `RegraClassificacaoServiceTest` (métodos `buscarAtivas`/`buscarHistorico`)
+- [x] `buscarAtivas` retorna as faixas ativas da série ordenadas por `quantidadeMinimaAcertos`
+- [x] `buscarHistorico` agrupa as faixas retornadas pelo repositório por `alteradoEm`, preservando a ordem (grupo corrente primeiro)
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 3 tests pass em `RegraClassificacaoServiceTest` (métodos `buscarAtivas`/`buscarHistorico`)
 
 **Tests**: unit
 **Gate**: quick

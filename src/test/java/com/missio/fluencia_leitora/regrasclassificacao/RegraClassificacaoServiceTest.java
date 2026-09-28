@@ -8,6 +8,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -142,5 +144,44 @@ class RegraClassificacaoServiceTest {
 
         assertEquals(null, resultado.fase());
         assertEquals(null, resultado.nivel());
+    }
+
+    @Test
+    void buscarAtivasDelegaAoRepositorioRetornandoFaixasAtivasOrdenadasPorMinimo() {
+        // RegraClassificacao não sobrescreve equals/hashCode (é uma entidade JPA) - a mesma lista de
+        // instâncias é usada no mock e na asserção para comparar por identidade de forma confiável.
+        List<RegraClassificacao> faixas = faixasSerie1();
+        when(repository.findBySerieAndAtivoTrueOrderByQuantidadeMinimaAcertosAsc(1)).thenReturn(faixas);
+
+        List<RegraClassificacao> ativas = service().buscarAtivas(1);
+
+        assertEquals(faixas, ativas);
+    }
+
+    @Test
+    void buscarHistoricoAgrupaFaixasConsecutivasComMesmoAlteradoEmPreservandoAOrdemDoRepositorio() {
+        // Repositório já ordena: grupo corrente (alteradoEm=null) primeiro, depois os demais do mais
+        // recente para o mais antigo (RegraClassificacaoRepository.buscarHistoricoPorSerie, T6).
+        Instant maisRecente = Instant.now().minus(1, ChronoUnit.DAYS);
+        Instant maisAntigo = Instant.now().minus(2, ChronoUnit.DAYS);
+
+        RegraClassificacao corrente1 = new RegraClassificacao(2, 0, 4, Fase.PRE_LEITOR, 1);
+        RegraClassificacao corrente2 = new RegraClassificacao(2, 5, null, Fase.LEITOR_FLUENTE, null);
+        RegraClassificacao grupoRecente1 = new RegraClassificacao(2, 0, 5, Fase.PRE_LEITOR, 1);
+        RegraClassificacao grupoRecente2 = new RegraClassificacao(2, 6, null, Fase.LEITOR_FLUENTE, null);
+        grupoRecente1.inativar(10L, maisRecente);
+        grupoRecente2.inativar(10L, maisRecente);
+        RegraClassificacao grupoAntigo1 = new RegraClassificacao(2, 0, 6, Fase.PRE_LEITOR, 1);
+        grupoAntigo1.inativar(10L, maisAntigo);
+
+        when(repository.buscarHistoricoPorSerie(2))
+                .thenReturn(List.of(corrente1, corrente2, grupoRecente1, grupoRecente2, grupoAntigo1));
+
+        List<List<RegraClassificacao>> historico = service().buscarHistorico(2);
+
+        assertEquals(3, historico.size());
+        assertEquals(List.of(corrente1, corrente2), historico.get(0));
+        assertEquals(List.of(grupoRecente1, grupoRecente2), historico.get(1));
+        assertEquals(List.of(grupoAntigo1), historico.get(2));
     }
 }
