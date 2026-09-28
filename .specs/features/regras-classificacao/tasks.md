@@ -383,18 +383,18 @@ T13 -> T14
 
 **Done when**:
 
-- [ ] Conjunto de faixas válido substitui as anteriores: antigas ficam `ativo=false` com `alteradoPor`/`alteradoEm` preenchidos, novas ficam `ativo=true` (REG-07, REG-13)
-- [ ] Lista vazia → `FAIXA_NAO_INICIA_EM_ZERO`
-- [ ] Primeira faixa não começa em 0 → `FAIXA_NAO_INICIA_EM_ZERO` (REG-08)
-- [ ] Lacuna entre faixas consecutivas → `FAIXA_COM_LACUNA` com o primeiro valor descoberto em `details.valor` (REG-09)
-- [ ] Sobreposição entre faixas (mínimos duplicados) → `FAIXA_SOBREPOSTA` com o primeiro valor duplicado em `details.valor` (REG-10)
-- [ ] Faixa não-última com `quantidadeMaximaAcertos=null` → `FAIXA_SOBREPOSTA` na faixa seguinte
-- [ ] Última faixa com `quantidadeMaximaAcertos != null` → `FAIXA_FINAL_LIMITADA` (REG-11)
-- [ ] `fase=PRE_LEITOR` com `nivel` fora de 1-4, ou `fase != PRE_LEITOR` com `nivel` preenchido → `FAIXA_NIVEL_INCOERENTE` (REG-11)
-- [ ] `quantidadeMinimaAcertos > quantidadeMaximaAcertos` na mesma faixa → `VALIDACAO_INVALIDA`
-- [ ] Qualquer falha de validação não altera as faixas anteriores (REG-12) - teste chama `substituir` com payload inválido e confirma que `buscarAtivas` continua retornando o conjunto anterior
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 12 tests pass em `RegraClassificacaoServiceTest` (método `substituir`)
+- [x] Conjunto de faixas válido substitui as anteriores: antigas ficam `ativo=false` com `alteradoPor`/`alteradoEm` preenchidos, novas ficam `ativo=true` (REG-07, REG-13)
+- [x] Lista vazia → `FAIXA_NAO_INICIA_EM_ZERO`
+- [x] Primeira faixa não começa em 0 → `FAIXA_NAO_INICIA_EM_ZERO` (REG-08)
+- [x] Lacuna entre faixas consecutivas → `FAIXA_COM_LACUNA` com o primeiro valor descoberto em `details.valor` (REG-09)
+- [x] Sobreposição entre faixas (mínimos duplicados) → `FAIXA_SOBREPOSTA` com o primeiro valor duplicado em `details.valor` (REG-10)
+- [x] Faixa não-última com `quantidadeMaximaAcertos=null` → `FAIXA_SOBREPOSTA` na faixa seguinte
+- [x] Última faixa com `quantidadeMaximaAcertos != null` → `FAIXA_FINAL_LIMITADA` (REG-11)
+- [x] `fase=PRE_LEITOR` com `nivel` fora de 1-4, ou `fase != PRE_LEITOR` com `nivel` preenchido → `FAIXA_NIVEL_INCOERENTE` (REG-11)
+- [x] `quantidadeMinimaAcertos > quantidadeMaximaAcertos` na mesma faixa → `VALIDACAO_INVALIDA`
+- [x] Qualquer falha de validação não altera as faixas anteriores (REG-12) - teste chama `substituir` com payload inválido e confirma que `buscarAtivas` continua retornando o conjunto anterior
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 12 tests pass em `RegraClassificacaoServiceTest` (método `substituir`)
 
 **Tests**: unit
 **Gate**: quick

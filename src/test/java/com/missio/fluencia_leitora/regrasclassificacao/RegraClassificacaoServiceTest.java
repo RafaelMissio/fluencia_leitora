@@ -1,5 +1,8 @@
 package com.missio.fluencia_leitora.regrasclassificacao;
 
+import com.missio.fluencia_leitora.common.error.BusinessException;
+import com.missio.fluencia_leitora.common.security.ContextoUsuarioPort;
+import com.missio.fluencia_leitora.regrasclassificacao.dto.FaixaRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -7,13 +10,23 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -26,8 +39,11 @@ class RegraClassificacaoServiceTest {
     @Mock
     private RegraClassificacaoRepository repository;
 
+    @Mock
+    private ContextoUsuarioPort contextoUsuarioPort;
+
     private RegraClassificacaoService service() {
-        return new RegraClassificacaoService(repository);
+        return new RegraClassificacaoService(repository, contextoUsuarioPort);
     }
 
     /** V7 seed: faixas ativas da série 1 (design.md, Data Models). */
@@ -183,5 +199,176 @@ class RegraClassificacaoServiceTest {
         assertEquals(List.of(corrente1, corrente2), historico.get(0));
         assertEquals(List.of(grupoRecente1, grupoRecente2), historico.get(1));
         assertEquals(List.of(grupoAntigo1), historico.get(2));
+    }
+
+    // --- substituir (T11, REG-07..REG-13) ---
+
+    private void mockSaveAllIgual() {
+        when(repository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    private FaixaRequest faixa(int minimo, Integer maximo, Fase fase, Integer nivel) {
+        return new FaixaRequest(minimo, maximo, fase, nivel);
+    }
+
+    @Test
+    void substituirComConjuntoValidoInativaAnterioresComAuditoriaEGravaNovasAtivas() {
+        RegraClassificacao anterior1 = new RegraClassificacao(3, 0, 5, Fase.PRE_LEITOR, 1);
+        RegraClassificacao anterior2 = new RegraClassificacao(3, 6, null, Fase.LEITOR_FLUENTE, null);
+        List<RegraClassificacao> anteriores = new ArrayList<>(List.of(anterior1, anterior2));
+        when(repository.buscarAtivasParaAtualizarComLock(3)).thenReturn(anteriores);
+        when(contextoUsuarioPort.usuarioIdAtual()).thenReturn(42L);
+        mockSaveAllIgual();
+
+        List<FaixaRequest> novoConjunto = List.of(
+                faixa(0, 4, Fase.PRE_LEITOR, 1),
+                faixa(5, 7, Fase.PRE_LEITOR, 2),
+                faixa(8, 9, Fase.PRE_LEITOR, 3),
+                faixa(10, 11, Fase.PRE_LEITOR, 4),
+                faixa(12, 30, Fase.LEITOR_INICIANTE, null),
+                faixa(31, null, Fase.LEITOR_FLUENTE, null));
+
+        List<RegraClassificacao> resultado = service().substituir(3, novoConjunto);
+
+        // REG-07/REG-13: faixas anteriores inativadas com auditoria completa.
+        assertFalse(anterior1.isAtivo());
+        assertFalse(anterior2.isAtivo());
+        assertEquals(42L, anterior1.getAlteradoPor());
+        assertEquals(42L, anterior2.getAlteradoPor());
+        assertNotNull(anterior1.getAlteradoEm());
+        // Mesmo instante para as duas linhas inativadas na mesma substituição (agrupamento do histórico, T10).
+        assertEquals(anterior1.getAlteradoEm(), anterior2.getAlteradoEm());
+
+        // REG-07: novas faixas gravadas, ativas, com o conteúdo enviado.
+        assertEquals(6, resultado.size());
+        assertTrue(resultado.stream().allMatch(RegraClassificacao::isAtivo));
+        assertEquals(0, resultado.get(0).getQuantidadeMinimaAcertos());
+        assertEquals(Fase.LEITOR_FLUENTE, resultado.get(5).getFase());
+    }
+
+    @Test
+    void substituirComListaVaziaLancaFaixaNaoIniciaEmZero() {
+        BusinessException ex = assertThrows(BusinessException.class, () -> service().substituir(1, List.of()));
+
+        assertEquals("FAIXA_NAO_INICIA_EM_ZERO", ex.getCode());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, ex.getStatus());
+    }
+
+    @Test
+    void substituirComPrimeiraFaixaNaoComecandoEmZeroLancaFaixaNaoIniciaEmZero() {
+        List<FaixaRequest> faixas = List.of(faixa(1, null, Fase.LEITOR_FLUENTE, null));
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> service().substituir(1, faixas));
+
+        assertEquals("FAIXA_NAO_INICIA_EM_ZERO", ex.getCode());
+    }
+
+    @Test
+    void substituirComLacunaEntreFaixasLancaFaixaComLacunaComPrimeiroValorDescoberto() {
+        List<FaixaRequest> faixas = List.of(
+                faixa(0, 3, Fase.PRE_LEITOR, 1),
+                faixa(5, 10, Fase.PRE_LEITOR, 2),
+                faixa(11, null, Fase.LEITOR_FLUENTE, null));
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> service().substituir(1, faixas));
+
+        assertEquals("FAIXA_COM_LACUNA", ex.getCode());
+        assertEquals(4, ex.getDetails().get("valor"));
+    }
+
+    @Test
+    void substituirComMinimosDuplicadosLancaFaixaSobrepostaComPrimeiroValorDuplicado() {
+        List<FaixaRequest> faixas = List.of(
+                faixa(0, 5, Fase.PRE_LEITOR, 1),
+                faixa(5, 10, Fase.PRE_LEITOR, 2),
+                faixa(11, null, Fase.LEITOR_FLUENTE, null));
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> service().substituir(1, faixas));
+
+        assertEquals("FAIXA_SOBREPOSTA", ex.getCode());
+        assertEquals(5, ex.getDetails().get("valor"));
+    }
+
+    @Test
+    void substituirComFaixasComIntervalosSobrepostosLancaFaixaSobrepostaComPrimeiroValorDuplicado() {
+        // Sobreposição por intervalo (não apenas mínimos iguais): a faixa seguinte começa em 8, dentro
+        // do intervalo 0-10 da faixa anterior - o primeiro valor duplicado é 8.
+        List<FaixaRequest> faixas = List.of(
+                faixa(0, 10, Fase.PRE_LEITOR, 1),
+                faixa(8, 20, Fase.PRE_LEITOR, 2),
+                faixa(21, null, Fase.LEITOR_FLUENTE, null));
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> service().substituir(1, faixas));
+
+        assertEquals("FAIXA_SOBREPOSTA", ex.getCode());
+        assertEquals(8, ex.getDetails().get("valor"));
+    }
+
+    @Test
+    void substituirComFaixaNaoUltimaSemMaximoLancaFaixaSobrepostaNaFaixaSeguinte() {
+        List<FaixaRequest> faixas = List.of(
+                faixa(0, null, Fase.LEITOR_INICIANTE, null), faixa(999, null, Fase.LEITOR_FLUENTE, null));
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> service().substituir(1, faixas));
+
+        assertEquals("FAIXA_SOBREPOSTA", ex.getCode());
+        assertEquals(999, ex.getDetails().get("valor"));
+    }
+
+    @Test
+    void substituirComUltimaFaixaComMaximoLancaFaixaFinalLimitada() {
+        List<FaixaRequest> faixas =
+                List.of(faixa(0, 5, Fase.PRE_LEITOR, 1), faixa(6, 10, Fase.LEITOR_FLUENTE, null));
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> service().substituir(1, faixas));
+
+        assertEquals("FAIXA_FINAL_LIMITADA", ex.getCode());
+    }
+
+    @Test
+    void substituirComPreLeitorSemNivelDe1A4LancaFaixaNivelIncoerente() {
+        List<FaixaRequest> faixas = List.of(faixa(0, null, Fase.PRE_LEITOR, null));
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> service().substituir(1, faixas));
+
+        assertEquals("FAIXA_NIVEL_INCOERENTE", ex.getCode());
+    }
+
+    @Test
+    void substituirComFaseDiferenteDePreLeitorENivelPreenchidoLancaFaixaNivelIncoerente() {
+        List<FaixaRequest> faixas = List.of(faixa(0, null, Fase.LEITOR_FLUENTE, 2));
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> service().substituir(1, faixas));
+
+        assertEquals("FAIXA_NIVEL_INCOERENTE", ex.getCode());
+    }
+
+    @Test
+    void substituirComMinimoMaiorQueMaximoNaMesmaFaixaLancaValidacaoInvalida() {
+        List<FaixaRequest> faixas =
+                List.of(faixa(0, 5, Fase.PRE_LEITOR, 1), faixa(6, 4, Fase.PRE_LEITOR, 2));
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> service().substituir(1, faixas));
+
+        assertEquals("VALIDACAO_INVALIDA", ex.getCode());
+    }
+
+    @Test
+    void substituirComFalhaDeValidacaoNaoAlteraAsFaixasAnterioresENaoTocaORepositorio() {
+        List<RegraClassificacao> faixasAnteriores =
+                List.of(new RegraClassificacao(1, 0, 5, Fase.PRE_LEITOR, 1));
+        when(repository.findBySerieAndAtivoTrueOrderByQuantidadeMinimaAcertosAsc(1)).thenReturn(faixasAnteriores);
+
+        BusinessException ex =
+                assertThrows(BusinessException.class, () -> service().substituir(1, List.of()));
+        assertEquals("FAIXA_NAO_INICIA_EM_ZERO", ex.getCode());
+
+        // REG-12: nada foi lido/gravado no repositório para persistir a substituição.
+        verify(repository, never()).buscarAtivasParaAtualizarComLock(anyInt());
+        verify(repository, never()).saveAll(any());
+
+        // As faixas anteriores continuam exatamente as mesmas.
+        List<RegraClassificacao> aindaAtivas = service().buscarAtivas(1);
+        assertEquals(faixasAnteriores, aindaAtivas);
     }
 }
