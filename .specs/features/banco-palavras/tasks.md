@@ -249,8 +249,8 @@ T14 -> T15
 
 **Done when**:
 
-- [ ] Entidade mapeia todas as colunas de `lista_palavras` (T3) e a coleção `itens` com cascade/orphanRemoval/ordenação corretos
-- [ ] Gate check passes: `./mvnw compile`
+- [x] Entidade mapeia todas as colunas de `lista_palavras` (T3) e a coleção `itens` com cascade/orphanRemoval/ordenação corretos
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
