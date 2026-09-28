@@ -225,14 +225,14 @@ O professor precisa aplicar uma avaliação cronometrada de leitura (palavras, p
 
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
-| AVA-01 | P1: Criar avaliação com cópias e palavras copiadas | - | Pending |
-| AVA-02 | P1: Aluno avaliável | - | Pending |
-| AVA-03 | P1: Limite de palavras por ano e série | - | Pending |
-| AVA-04 | P1: Fonte de conteúdo única e compatível | - | Pending |
-| AVA-05 | P1: Tempo 10–600 s | - | Pending |
-| AVA-06 | P1: Data válida | - | Pending |
-| AVA-07 | P1: 1º ano sem não canônicas | - | Pending |
-| AVA-08 | P1: Validação de palavra e tokenização do texto digitado | - | Pending |
+| AVA-01 | P1: Criar avaliação com cópias e palavras copiadas | T12, T13 | Done |
+| AVA-02 | P1: Aluno avaliável | T12, T13 | Done |
+| AVA-03 | P1: Limite de palavras por ano e série | T12, T13 | Done |
+| AVA-04 | P1: Fonte de conteúdo única e compatível | T12, T13 | Done |
+| AVA-05 | P1: Tempo 10–600 s | T12, T13 | Done |
+| AVA-06 | P1: Data válida | T12, T13 | Done |
+| AVA-07 | P1: 1º ano sem não canônicas | T12, T13 | Done |
+| AVA-08 | P1: Validação de palavra e tokenização do texto digitado | T12, T13 | Done |
 | AVA-09 | P1: Iniciar | - | Pending |
 | AVA-10 | P1: Pausar / continuar sem contar a pausa | - | Pending |
 | AVA-11 | P1: Resetar | - | Pending |

@@ -451,12 +451,12 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Caminho feliz retorna 201 com o corpo completo
-- [ ] Cada 422 de AVA-02..AVA-08 tem um teste de integração dedicado (lição L-016 - um teste por regra, não um representante)
-- [ ] COORDENADOR autenticado recebe 403 (só PROFESSOR cria)
-- [ ] Sem autenticação recebe 401
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 10 testes novos
+- [x] Caminho feliz retorna 201 com o corpo completo
+- [x] Cada 422 de AVA-02..AVA-08 tem um teste de integração dedicado (lição L-016 - um teste por regra, não um representante)
+- [x] COORDENADOR autenticado recebe 403 (só PROFESSOR cria)
+- [x] Sem autenticação recebe 401
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 10 testes novos
 
 **Tests**: integration
 **Gate**: full
