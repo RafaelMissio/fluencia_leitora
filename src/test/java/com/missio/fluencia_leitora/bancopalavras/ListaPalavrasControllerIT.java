@@ -157,6 +157,64 @@ class ListaPalavrasControllerIT extends IntegrationTestBase {
     }
 
     @Test
+    void postTextoCurtoComTextoEItensEnviadosRetorna422ConteudoIncompativelComTipo() throws Exception {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("nome", "Texto E Itens Juntos " + UUID.randomUUID());
+        payload.put("serie", 2);
+        payload.put("tipoLeitura", "TEXTO_CURTO");
+        payload.put("tipoPalavra", "CANONICA");
+        payload.put("texto", "O gato corre.");
+        payload.put("itens", List.of(item("gato", "CANONICA")));
+
+        mockMvc.perform(post("/api/v1/listas-palavras").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("CONTEUDO_INCOMPATIVEL_COM_TIPO"));
+    }
+
+    @Test
+    void postTextoCurtoSemTipoPalavraRetorna422ConteudoIncompativelComTipo() throws Exception {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("nome", "Texto Sem Tipo " + UUID.randomUUID());
+        payload.put("serie", 2);
+        payload.put("tipoLeitura", "TEXTO_CURTO");
+        payload.put("texto", "O gato corre.");
+
+        mockMvc.perform(post("/api/v1/listas-palavras").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("CONTEUDO_INCOMPATIVEL_COM_TIPO"));
+    }
+
+    @Test
+    void postComPalavraComTipoPalavraNaListaRetorna422ConteudoIncompativelComTipo() throws Exception {
+        Map<String, Object> payload = payloadPalavra(
+                "Lista Com Tipo Na Lista " + UUID.randomUUID(), 2, List.of(item("gato", "CANONICA")));
+        payload.put("tipoPalavra", "CANONICA");
+
+        mockMvc.perform(post("/api/v1/listas-palavras").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("CONTEUDO_INCOMPATIVEL_COM_TIPO"));
+    }
+
+    @Test
+    void postComItemSemTipoPalavraRetorna422PorFormatoInvalido() throws Exception {
+        Map<String, Object> payload = payloadPalavra(
+                "Lista Item Sem Tipo " + UUID.randomUUID(), 2, List.of(item("gato", null)));
+
+        mockMvc.perform(post("/api/v1/listas-palavras").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"))
+                .andExpect(jsonPath("$.errors[0].field").value("itens[0].tipoPalavra"));
+    }
+
+    @Test
     void postComFormatoDePalavraInvalidoRetorna422ComCampoDoItem() throws Exception {
         Map<String, Object> payload = payloadPalavra(
                 "Lista Palavra Inválida " + UUID.randomUUID(), 2, List.of(item("gato123", "CANONICA")));

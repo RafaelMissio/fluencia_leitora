@@ -143,6 +143,41 @@ class ListaPalavrasServiceTest {
     }
 
     @Test
+    void criarTextoCurtoSemTipoPalavraLanca422ConteudoIncompativel() {
+        CriarListaPalavrasRequest request = new CriarListaPalavrasRequest(
+                "Texto Sem Tipo", 2, TipoLeituraCodigo.TEXTO_CURTO, null, "O gato corre.", null);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service().criar(request));
+
+        assertEquals("CONTEUDO_INCOMPATIVEL_COM_TIPO", exception.getCode());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void criarPalavraComTipoPalavraNaListaLanca422ConteudoIncompativel() {
+        CriarListaPalavrasRequest request = new CriarListaPalavrasRequest(
+                "Palavra Com Tipo Na Lista", 2, TipoLeituraCodigo.PALAVRA, TipoPalavra.CANONICA, null,
+                List.of(new ItemPalavraRequest("gato", TipoPalavra.CANONICA)));
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service().criar(request));
+
+        assertEquals("CONTEUDO_INCOMPATIVEL_COM_TIPO", exception.getCode());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void criarTextoCurtoComTextoEItensEnviadosLanca422ConteudoIncompativel() {
+        CriarListaPalavrasRequest request = new CriarListaPalavrasRequest(
+                "Texto Com Itens Tambem", 2, TipoLeituraCodigo.TEXTO_CURTO, TipoPalavra.CANONICA, "O gato corre.",
+                List.of(new ItemPalavraRequest("gato", TipoPalavra.CANONICA)));
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service().criar(request));
+
+        assertEquals("CONTEUDO_INCOMPATIVEL_COM_TIPO", exception.getCode());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
     void criarTextoCurtoValidoTokenizaGerandoOrdemEPreservandoTipoPalavra() {
         mockSalvaIgual();
         CriarListaPalavrasRequest request = new CriarListaPalavrasRequest(

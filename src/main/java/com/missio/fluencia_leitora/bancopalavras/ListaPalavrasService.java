@@ -123,7 +123,7 @@ public class ListaPalavrasService {
             TipoPalavra tipoPalavraLista,
             List<ItemPalavraRequest> itensRequest,
             int serie) {
-        validarConteudoCompativel(tipoLeitura, texto, itensRequest);
+        validarConteudoCompativel(tipoLeitura, texto, tipoPalavraLista, itensRequest);
 
         List<ItemDados> itensDados = tipoLeitura == TipoLeituraCodigo.TEXTO_CURTO
                 ? montarItensDeTexto(texto, tipoPalavraLista)
@@ -140,17 +140,20 @@ public class ListaPalavrasService {
 
     /**
      * PAL-12: o conteúdo enviado precisa bater com {@code tipoLeitura} -
-     * {@code TEXTO_CURTO} exige {@code texto} e proíbe {@code itens};
+     * {@code TEXTO_CURTO} exige {@code texto} e {@code tipoPalavra} da lista
+     * (usado em cada token gerado) e proíbe {@code itens};
      * {@code PALAVRA}/{@code PSEUDOPALAVRA} exigem {@code itens} e proíbem
-     * {@code texto} (spec.md, Edge Cases).
+     * {@code texto} e o {@code tipoPalavra} da lista (cada item já carrega o
+     * seu próprio) (spec.md, Edge Cases; design.md, Tech Decisions).
      */
-    private void validarConteudoCompativel(TipoLeituraCodigo tipoLeitura, String texto, List<ItemPalavraRequest> itens) {
+    private void validarConteudoCompativel(
+            TipoLeituraCodigo tipoLeitura, String texto, TipoPalavra tipoPalavraLista, List<ItemPalavraRequest> itens) {
         boolean temTexto = texto != null && !texto.isBlank();
         boolean temItens = itens != null && !itens.isEmpty();
 
         boolean incompativel = tipoLeitura == TipoLeituraCodigo.TEXTO_CURTO
-                ? (!temTexto || temItens)
-                : (!temItens || temTexto);
+                ? (!temTexto || temItens || tipoPalavraLista == null)
+                : (!temItens || temTexto || tipoPalavraLista != null);
 
         if (incompativel) {
             throw new BusinessException(
