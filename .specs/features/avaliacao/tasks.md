@@ -259,9 +259,9 @@ T8 -> T27
 - Skill: NONE
 
 **Done when**:
-- [ ] Entidade mapeia `avaliacao` com todas as colunas de design.md, incluindo `ultimaAtividadeEm`
-- [ ] `tocarAtividade()` atualiza `ultimaAtividadeEm` para `Instant.now()`
-- [ ] Gate check passes: `./mvnw compile`
+- [x] Entidade mapeia `avaliacao` com todas as colunas de design.md, incluindo `ultimaAtividadeEm`
+- [x] `tocarAtividade()` atualiza `ultimaAtividadeEm` para `Instant.now()`
+- [x] Gate check passes: `./mvnw compile`
 
 **Tests**: none
 **Gate**: build
