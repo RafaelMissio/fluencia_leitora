@@ -158,4 +158,127 @@ describe('useAvaliacaoExecucao', () => {
     expect(result.current.interrompida).toBe(true)
     expect(result.current.gravando).toBe(false)
   })
+
+  /** Leva o hook a EM_ANDAMENTO/gravando via `iniciar()`, com timers falsos já ativos (T17/T18 usam o cronômetro). */
+  async function iniciarEmAndamento(
+    tempoConfiguradoSegundos = 60,
+  ): Promise<{
+    result: Awaited<ReturnType<typeof esperarCarregamento>>['result']
+    recorderHandle: { start: ReturnType<typeof vi.fn>; pause: ReturnType<typeof vi.fn>; resume: ReturnType<typeof vi.fn>; stop: ReturnType<typeof vi.fn> }
+    now: { valor: number }
+  }> {
+    vi.mocked(isMediaRecorderSupported).mockReturnValue(true)
+    vi.mocked(pickSupportedMimeType).mockReturnValue('audio/webm;codecs=opus')
+    const recorderHandle = { start: vi.fn(), pause: vi.fn(), resume: vi.fn(), stop: vi.fn().mockResolvedValue(new Blob()) }
+    vi.mocked(createRecorder).mockReturnValue(recorderHandle)
+    const getUserMedia = stubGetUserMedia()
+    getUserMedia.mockResolvedValueOnce(FAKE_STREAM)
+    const { result } = await esperarCarregamento()
+
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse(200, avaliacao({ status: 'EM_ANDAMENTO', tempoConfiguradoSegundos })),
+    )
+
+    const now = { valor: 0 }
+    vi.useFakeTimers()
+    vi.spyOn(performance, 'now').mockImplementation(() => now.valor)
+
+    await act(async () => {
+      await result.current.iniciar()
+    })
+
+    return { result, recorderHandle, now }
+  }
+
+  describe('pausar / continuar / resetar (T17)', () => {
+    it('pausar calls the API and pauses recording, stopping the countdown (spec.md AC4)', async () => {
+      const { result, recorderHandle, now } = await iniciarEmAndamento()
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(200, avaliacao({ status: 'PAUSADA' })))
+
+      await act(async () => {
+        await result.current.pausar()
+      })
+
+      expect(result.current.status).toBe('PAUSADA')
+      expect(result.current.gravando).toBe(false)
+      expect(recorderHandle.pause).toHaveBeenCalledTimes(1)
+      const [url, init] = vi.mocked(fetch).mock.calls.at(-1)!
+      expect(url).toBe('/api/v1/avaliacoes/1/pausar')
+      expect(init?.method).toBe('POST')
+
+      const tempoAntes = result.current.tempoRestanteMs
+      now.valor += 2000
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000)
+      })
+      expect(result.current.tempoRestanteMs).toBe(tempoAntes)
+    })
+
+    it('continuar calls the API, resumes recording and the countdown (spec.md AC4)', async () => {
+      const { result, recorderHandle, now } = await iniciarEmAndamento()
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(200, avaliacao({ status: 'PAUSADA' })))
+      await act(async () => {
+        await result.current.pausar()
+      })
+
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(200, avaliacao({ status: 'EM_ANDAMENTO' })))
+      await act(async () => {
+        await result.current.continuar()
+      })
+
+      expect(result.current.status).toBe('EM_ANDAMENTO')
+      expect(result.current.gravando).toBe(true)
+      expect(recorderHandle.resume).toHaveBeenCalledTimes(1)
+      const [url, init] = vi.mocked(fetch).mock.calls.at(-1)!
+      expect(url).toBe('/api/v1/avaliacoes/1/continuar')
+      expect(init?.method).toBe('POST')
+
+      const tempoAntes = result.current.tempoRestanteMs
+      now.valor += 1000
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000)
+      })
+      expect(result.current.tempoRestanteMs).toBeLessThan(tempoAntes)
+    })
+
+    it('resetar(true) calls the API, discards the recording, resets the countdown and all palavras go back to PENDENTE', async () => {
+      const { result, recorderHandle } = await iniciarEmAndamento(60)
+      const avaliacaoResetada = avaliacao({
+        status: 'CRIADA',
+        tempoConfiguradoSegundos: 60,
+        palavras: [
+          { ordem: 1, palavra: 'casa', tipoPalavra: 'CANONICA', status: 'PENDENTE' },
+          { ordem: 2, palavra: 'bola', tipoPalavra: 'CANONICA', status: 'PENDENTE' },
+          { ordem: 3, palavra: 'pato', tipoPalavra: 'CANONICA', status: 'PENDENTE' },
+        ],
+      })
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(200, avaliacaoResetada))
+
+      await act(async () => {
+        await result.current.resetar(true)
+      })
+
+      expect(result.current.status).toBe('CRIADA')
+      expect(result.current.tempoRestanteMs).toBe(60000)
+      expect(result.current.palavras.every((palavra) => palavra.status === 'PENDENTE')).toBe(true)
+      expect(recorderHandle.stop).toHaveBeenCalledTimes(1)
+      const chamouResetar = vi
+        .mocked(fetch)
+        .mock.calls.some(([url]) => url === '/api/v1/avaliacoes/1/resetar')
+      expect(chamouResetar).toBe(true)
+    })
+
+    it('resetar(false) does nothing: no API call, no state change', async () => {
+      const { result } = await iniciarEmAndamento()
+      const statusAntes = result.current.status
+      const chamadasAntes = vi.mocked(fetch).mock.calls.length
+
+      await act(async () => {
+        await result.current.resetar(false)
+      })
+
+      expect(result.current.status).toBe(statusAntes)
+      expect(vi.mocked(fetch).mock.calls.length).toBe(chamadasAntes)
+    })
+  })
 })

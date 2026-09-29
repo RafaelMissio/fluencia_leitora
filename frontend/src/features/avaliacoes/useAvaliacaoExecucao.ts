@@ -80,10 +80,10 @@ function reducer(state: State, action: Action): State {
 /**
  * Núcleo do fluxo do professor (design.md, Components): orquestra
  * `getUserMedia`, `MediaRecorder` (via `media/recorder.ts`) e o cronômetro
- * local, ressincronizados com as respostas do servidor. Esta primeira fatia
- * (T16) cobre o carregamento inicial e `iniciar()` (FE-11, FE-12, FE-13,
- * FE-24, FE-25); `pausar`/`continuar`/`resetar` (T17), `finalizar` e o
- * resync de 409 (T18) chegam nas próximas tasks.
+ * local, ressincronizados com as respostas do servidor. T16 cobre o
+ * carregamento inicial e `iniciar()` (FE-11, FE-12, FE-13, FE-24, FE-25);
+ * T17 adiciona `pausar`/`continuar`/`resetar`; `finalizar` e o resync de 409
+ * chegam em T18.
  */
 export function useAvaliacaoExecucao(avaliacaoId: number) {
   const [state, dispatch] = useReducer(reducer, initialState)
@@ -163,6 +163,49 @@ export function useAvaliacaoExecucao(avaliacaoId: number) {
     iniciarContagem(avaliacao.tempoConfiguradoSegundos * 1000)
   }
 
+  /** spec.md P1 "Executar avaliação", AC4: pausa o cronômetro e a gravação junto com a API. */
+  async function pausar(): Promise<void> {
+    const avaliacao = await request<AvaliacaoResponse>(`/avaliacoes/${avaliacaoId}/pausar`, { method: 'POST' })
+    pararContagem()
+    recorderRef.current?.pause()
+    dispatch({ type: 'TRANSICAO_OK', avaliacao, gravando: false })
+  }
+
+  /** spec.md P1 "Executar avaliação", AC4: caminho inverso de `pausar`, retomando de onde parou. */
+  async function continuar(): Promise<void> {
+    const avaliacao = await request<AvaliacaoResponse>(`/avaliacoes/${avaliacaoId}/continuar`, { method: 'POST' })
+    recorderRef.current?.resume()
+    dispatch({ type: 'TRANSICAO_OK', avaliacao, gravando: true })
+    iniciarContagem(state.tempoRestanteMs)
+  }
+
+  /**
+   * spec.md P1 "Executar avaliação", AC5: só age com `confirmado === true` (a
+   * confirmação em si é responsabilidade da UI que chama o hook). Descarta a
+   * gravação em andamento (sem usar o `Blob`) e zera o cronômetro para o
+   * tempo configurado; as palavras voltam a `PENDENTE` porque o próprio
+   * servidor já as devolve assim (`AvaliacaoService.resetar`).
+   */
+  async function resetar(confirmado: boolean): Promise<void> {
+    if (!confirmado) return
+
+    const avaliacao = await request<AvaliacaoResponse>(`/avaliacoes/${avaliacaoId}/resetar`, { method: 'POST' })
+    pararContagem()
+    if (recorderRef.current) {
+      recorderRef.current.stop().catch(() => undefined)
+      recorderRef.current = null
+    }
+    streamRef.current?.getTracks().forEach((track) => track.stop())
+    streamRef.current = null
+
+    dispatch({
+      type: 'TRANSICAO_OK',
+      avaliacao,
+      gravando: false,
+      tempoRestanteMs: avaliacao.tempoConfiguradoSegundos * 1000,
+    })
+  }
+
   return {
     status: state.status,
     tempoRestanteMs: state.tempoRestanteMs,
@@ -171,5 +214,8 @@ export function useAvaliacaoExecucao(avaliacaoId: number) {
     interrompida: state.interrompida,
     palavras: state.palavras,
     iniciar,
+    pausar,
+    continuar,
+    resetar,
   }
 }

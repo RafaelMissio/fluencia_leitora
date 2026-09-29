@@ -606,13 +606,13 @@ T5 → T36
 - Skill: NONE
 
 **Done when**:
-- [ ] `pausar` chama a API e pausa cronômetro+gravação juntos
-- [ ] `continuar` chama a API e retoma cronômetro+gravação juntos
-- [ ] `resetar(true)` chama a API, descarta a gravação, zera o cronômetro para o tempo configurado, e todas as palavras voltam a `PENDENTE`
-- [ ] `resetar(false)` não faz nada
-- [ ] Novos testes unitários: os 4 pontos acima
-- [ ] Gate check passes: `npm run test`
-- [ ] Test count: >= 4 testes novos
+- [x] `pausar` chama a API e pausa cronômetro+gravação juntos
+- [x] `continuar` chama a API e retoma cronômetro+gravação juntos
+- [x] `resetar(true)` chama a API, descarta a gravação, zera o cronômetro para o tempo configurado, e todas as palavras voltam a `PENDENTE`
+- [x] `resetar(false)` não faz nada
+- [x] Novos testes unitários: os 4 pontos acima
+- [x] Gate check passes: `npm run test`
+- [x] Test count: >= 4 testes novos (4 testes)
 
 **Tests**: unit
 **Gate**: quick
