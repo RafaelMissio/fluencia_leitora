@@ -232,13 +232,13 @@ T5 → T36
 - Skill: NONE
 
 **Done when**:
-- [ ] `login` bem-sucedido grava `token`/`perfil`/`professorId` em `sessionStorage` e no estado do contexto
-- [ ] Ao montar, se `sessionStorage` tem uma sessão válida, `isAuthenticated` já começa `true` (sem esperar nenhuma chamada)
-- [ ] `logout` limpa `sessionStorage` e zera o estado
-- [ ] `logout` é o callback chamado pelo `apiClient` em qualquer 401 (FE-03)
-- [ ] Novos testes unitários em `AuthContext.test.tsx`: login grava sessão, reidratação no boot, logout limpa tudo, 401 via `apiClient` dispara logout
-- [ ] Gate check passes: `npm run test`
-- [ ] Test count: >= 4 testes novos
+- [x] `login` bem-sucedido grava `token`/`perfil`/`professorId` em `sessionStorage` e no estado do contexto
+- [x] Ao montar, se `sessionStorage` tem uma sessão válida, `isAuthenticated` já começa `true` (sem esperar nenhuma chamada)
+- [x] `logout` limpa `sessionStorage` e zera o estado
+- [x] `logout` é o callback chamado pelo `apiClient` em qualquer 401 (FE-03)
+- [x] Novos testes unitários em `AuthContext.test.tsx`: login grava sessão, reidratação no boot, logout limpa tudo, 401 via `apiClient` dispara logout
+- [x] Gate check passes: `npm run test`
+- [x] Test count: >= 4 testes novos
 
 **Tests**: unit
 **Gate**: quick
