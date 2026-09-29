@@ -516,14 +516,17 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Formulário abre com ciclo/data/tempo preenchidos conforme AC1
-- [ ] Trocar o tipo de leitura atualiza a lista de listas de palavras disponíveis e o rótulo "Digitar texto" aparece só em `TEXTO_CURTO`
-- [ ] Com 14 palavras numa série de mínimo 15, "Criar avaliação" fica desabilitado; com 15, habilita
-- [ ] Erro 422 do backend mostra a mensagem ao lado de cada campo citado em `errors[]`
-- [ ] Criar com sucesso navega para a tela de execução com o id da avaliação criada
-- [ ] Novos testes de componente em `ConfigurarAvaliacaoPage.test.tsx`: os 5 pontos acima
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 5 testes novos
+- [x] Formulário abre com ciclo/data/tempo preenchidos conforme AC1
+- [x] Trocar o tipo de leitura atualiza a lista de listas de palavras disponíveis e o rótulo "Digitar texto" aparece só em `TEXTO_CURTO`
+- [x] Com 14 palavras numa série de mínimo 15, "Criar avaliação" fica desabilitado; com 15, habilita
+- [x] Erro 422 do backend mostra a mensagem ao lado de cada campo citado em `errors[]`
+- [x] Criar com sucesso navega para a tela de execução com o id da avaliação criada
+- [x] Novos testes de componente em `ConfigurarAvaliacaoPage.test.tsx`: os 5 pontos acima
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 5 testes novos (5 testes)
+
+**SPEC_DEVIATION (endpoint)**: o texto original desta task citava `GET /anos-letivos/configuracao?serie=`, que não existia no backend (bloqueio reportado ao orquestrador). Resolvido pelo backend com `GET /api/v1/anos-letivos/ativo/configuracoes/{serie}` (`hasAnyRole('PROFESSOR','COORDENADOR')`, resolve o ano ATIVO no servidor), commit `72df217` (`cadastros-base`). `useConfiguracaoAvaliacao(serie)` foi implementado consumindo esse endpoint real, dentro do próprio `ConfigurarAvaliacaoPage.tsx` (Where da task só lista esse arquivo).
+**Nota (agent's discretion)**: `tipoLeitura` (3 valores fixos) e o mapeamento `cicloAtualCodigo -> cicloId` (via `GET /ciclos`) não têm hook próprio listado na task - implementados inline no mesmo arquivo. Palavras digitadas manualmente são sempre enviadas com `tipoPalavra: 'CANONICA'` (campo opcional no backend, sem AC que exija selecionar o tipo na tela de criação).
 
 **Tests**: unit
 **Gate**: full
