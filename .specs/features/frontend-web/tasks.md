@@ -891,12 +891,14 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Uma linha por ano letivo, ordenada crescente, com os 3 ciclos
-- [ ] Aluno com dados de 2 anos consecutivos no mesmo ciclo mostra `absoluta`/`percentual` corretos (caso do spec: "+13 / 108,33% na Entrada")
-- [ ] Ciclo sem ano anterior mostra "sem base" (não "0%" nem erro)
-- [ ] Novos testes de componente/hook: os 3 pontos acima
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 3 testes novos
+- [x] Uma linha por ano letivo, ordenada crescente, com os 3 ciclos
+- [x] Aluno com dados de 2 anos consecutivos no mesmo ciclo mostra `absoluta`/`percentual` corretos (caso do spec: "+13 / 108,33% na Entrada")
+- [x] Ciclo sem ano anterior mostra "sem base" (não "0%" nem erro)
+- [x] Novos testes de componente/hook: os 3 pontos acima
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 3 testes novos (4 testes)
+
+**Nota (agent's discretion)**: quando só `percentual` é `null` (ano anterior com 0 corretas, HIST-19 evita divisão por zero) mas `absoluta` está definido, a célula mostra `absoluta` normalmente e "—" no lugar do percentual - isso não é "sem base" (havia um ano anterior; só o percentual não é calculável), distinção feita explicitamente em `CelulaCiclo` (`ComparacaoAnualTab.tsx`) para não confundir os dois casos.
 
 **Tests**: unit
 **Gate**: full
