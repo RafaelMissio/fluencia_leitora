@@ -127,7 +127,7 @@ T7 -> T8
 
 ---
 
-### T3: Criar `HistoricoEvolucaoService.historico` + `comAudio`
+### T3: Criar `HistoricoEvolucaoService.historico` + `comAudio` ✅ Done
 
 **What**: Novo serviço `HistoricoEvolucaoService` com `Page<Avaliacao> historico(Long alunoId, Long anoLetivoId, TipoLeituraCodigo tipoLeitura, Long cicloId, Pageable pageable)` (resolve o aluno via `AlunoService.buscarPorId`, checa `PertencimentoProfessorGuard`, delega a `AvaliacaoRepository.buscarHistorico` com `status = FINALIZADA`) e `Set<Long> comAudio(List<Long> avaliacaoIds)` (delega a `AvaliacaoAudioRepository.findAvaliacaoIdByAvaliacaoIdIn`).
 **Where**: `src/main/java/com/missio/fluencia_leitora/historicoevolucao/HistoricoEvolucaoService.java` (new)
@@ -140,13 +140,13 @@ T7 -> T8
 - Skill: NONE
 
 **Done when**:
-- [ ] `historico` devolve a página tal como o repositório retorna, sempre com `status = FINALIZADA`
-- [ ] Aluno inexistente → `BusinessException(404, ALUNO_NAO_ENCONTRADO)`
-- [ ] Professor que não é o professor da matrícula ativa → 404 (guard); professor dono e coordenador passam
-- [ ] `comAudio` devolve o `Set<Long>` do repositório
-- [ ] Novos testes unitários em `HistoricoEvolucaoServiceTest`: paginação básica, cada filtro passado ao repositório, aluno inexistente, professor não-dono, professor dono, coordenador, `comAudio` com e sem ids
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 8 testes novos
+- [x] `historico` devolve a página tal como o repositório retorna, sempre com `status = FINALIZADA`
+- [x] Aluno inexistente → `BusinessException(404, ALUNO_NAO_ENCONTRADO)`
+- [x] Professor que não é o professor da matrícula ativa → 404 (guard); professor dono e coordenador passam
+- [x] `comAudio` devolve o `Set<Long>` do repositório
+- [x] Novos testes unitários em `HistoricoEvolucaoServiceTest`: paginação básica, cada filtro passado ao repositório, aluno inexistente, professor não-dono, professor dono, coordenador, `comAudio` com e sem ids
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 8 testes novos
 
 **Tests**: unit
 **Gate**: quick
