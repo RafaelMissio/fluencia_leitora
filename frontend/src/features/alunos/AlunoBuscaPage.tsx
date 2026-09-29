@@ -1,10 +1,11 @@
 import { useState } from 'react'
+import { ResumoAlunoPanel } from './ResumoAlunoPanel'
 import { useAlunoBusca } from './useAlunoBusca'
 
 /**
  * Campo de busca (300ms debounce, T7) + lista de resultados; seleção guarda
- * o `alunoId` em estado local (spec.md P1 "Buscar aluno", AC1/AC3). O painel
- * de resumo do aluno selecionado é embutido em T11.
+ * o `alunoId` em estado local (spec.md P1 "Buscar aluno", AC1/AC3) e embute
+ * o painel de resumo (`ResumoAlunoPanel`, T11).
  */
 export function AlunoBuscaPage() {
   const [nome, setNome] = useState('')
@@ -40,6 +41,8 @@ export function AlunoBuscaPage() {
           </li>
         ))}
       </ul>
+
+      {alunoSelecionadoId !== null ? <ResumoAlunoPanel alunoId={alunoSelecionadoId} /> : null}
     </div>
   )
 }

@@ -12,6 +12,13 @@ vi.mock('./useAlunoBusca', () => ({
   useAlunoBusca: vi.fn(),
 }))
 
+// ResumoAlunoPanel (T11) tem sua própria suíte (ResumoAlunoPanel.test.tsx);
+// aqui ele é mockado para manter o teste da página isolado da composição do
+// resumo (evita duplicar cobertura já feita em outra camada - Check C).
+vi.mock('./ResumoAlunoPanel', () => ({
+  ResumoAlunoPanel: ({ alunoId }: { alunoId: number }) => <div>Resumo do aluno {alunoId}</div>,
+}))
+
 vi.mock('../../auth/AuthContext', () => ({
   useAuth: vi.fn(),
 }))

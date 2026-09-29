@@ -437,12 +437,12 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Selecionar "João" na busca mostra o painel com todos os campos de AC2 preenchidos, incluindo o ciclo atual
-- [ ] Painel mostra as 5 avaliações mais recentes (ou menos, se o aluno tiver menos)
-- [ ] Painel mostra "—" quando a evolução não tem par de comparação (PROFESSOR)
-- [ ] Novos testes de componente em `ResumoAlunoPanel.test.tsx`: renderização completa, evolução "—", navegação para configurar avaliação
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 3 testes novos
+- [x] Selecionar "João" na busca mostra o painel com todos os campos de AC2 preenchidos, incluindo o ciclo atual
+- [x] Painel mostra as 5 avaliações mais recentes (ou menos, se o aluno tiver menos)
+- [x] Painel mostra "—" quando a evolução não tem par de comparação (PROFESSOR)
+- [x] Novos testes de componente em `ResumoAlunoPanel.test.tsx`: renderização completa, evolução "—", navegação para configurar avaliação
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 3 testes novos (3 testes; `AlunoBuscaPage.test.tsx` também ajustado para mockar `ResumoAlunoPanel` e manter o isolamento do teste da página)
 
 **Tests**: unit
 **Gate**: full
