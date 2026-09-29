@@ -381,13 +381,13 @@ T5 → T36
 - Skill: NONE
 
 **Done when**:
-- [ ] Lista vazia → `ENTRADA`
-- [ ] Só ENTRADA presente → `ACOMPANHAMENTO`
-- [ ] ENTRADA + ACOMPANHAMENTO presentes → `SAIDA`
-- [ ] Os 3 presentes → `SAIDA`
-- [ ] Novos testes unitários em `cicloAtual.test.ts`: os 4 casos acima
-- [ ] Gate check passes: `npm run test`
-- [ ] Test count: >= 4 testes novos
+- [x] Lista vazia → `ENTRADA`
+- [x] Só ENTRADA presente → `ACOMPANHAMENTO`
+- [x] ENTRADA + ACOMPANHAMENTO presentes → `SAIDA`
+- [x] Os 3 presentes → `SAIDA`
+- [x] Novos testes unitários em `cicloAtual.test.ts`: os 4 casos acima
+- [x] Gate check passes: `npm run test`
+- [x] Test count: >= 4 testes novos (4 testes)
 
 **Tests**: unit
 **Gate**: quick
