@@ -810,11 +810,11 @@ T5 → T36
 - Skill: NONE
 
 **Done when**:
-- [ ] Filtros opcionais (`anoLetivoId`/`tipoLeitura`/`cicloId`) só são enviados quando definidos
-- [ ] Paginação (`page`) propagada corretamente
-- [ ] Novos testes unitários em `useHistorico.test.ts`: sem filtros, com cada filtro, paginação
-- [ ] Gate check passes: `npm run test`
-- [ ] Test count: >= 3 testes novos
+- [x] Filtros opcionais (`anoLetivoId`/`tipoLeitura`/`cicloId`) só são enviados quando definidos
+- [x] Paginação (`page`) propagada corretamente
+- [x] Novos testes unitários em `useHistorico.test.ts`: sem filtros, com cada filtro, paginação
+- [x] Gate check passes: `npm run test`
+- [x] Test count: >= 3 testes novos (3 testes)
 
 **Tests**: unit
 **Gate**: quick
