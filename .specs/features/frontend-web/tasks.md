@@ -836,11 +836,11 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Todas as colunas do SDD §16 aparecem, com paginação funcional
-- [ ] Avaliação com `temAudio: true` mostra o ícone de play; sem áudio, não mostra
-- [ ] Novos testes de componente em `HistoricoTab.test.tsx`: os 2 pontos acima
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 2 testes novos
+- [x] Todas as colunas do SDD §16 aparecem, com paginação funcional
+- [x] Avaliação com `temAudio: true` mostra o ícone de play; sem áudio, não mostra
+- [x] Novos testes de componente em `HistoricoTab.test.tsx`: os 2 pontos acima
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 2 testes novos (3 testes)
 
 **Tests**: unit
 **Gate**: full
