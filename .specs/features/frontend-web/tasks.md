@@ -691,15 +691,15 @@ T5 → T36
 - Skill: `web-accessibility`
 
 **Done when**:
-- [ ] Tocar 2x numa palavra deixa ela INCORRETA (vermelho, ✗) e chama `onMarcar(ordem, 'INCORRETA')`
-- [ ] Atalho `I` na palavra em foco marca INCORRETA diretamente
-- [ ] `onMarcar` rejeitando reverte a cor/status e mostra a mensagem de erro
-- [ ] Avaliação `CRIADA` não permite tocar/atalho
-- [ ] Avaliação `FINALIZADA` permite marcar e mostra o aviso de auditoria
-- [ ] Cores usam contraste >= 4.5:1 (checado com um snapshot de estilo/CSS ou teste de acessibilidade, não "a olho")
-- [ ] Novos testes de componente em `GradePalavras.test.tsx`: os 6 pontos acima
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 8 testes novos
+- [x] Tocar 2x numa palavra deixa ela INCORRETA (vermelho, ✗) e chama `onMarcar(ordem, 'INCORRETA')`
+- [x] Atalho `I` na palavra em foco marca INCORRETA diretamente
+- [x] `onMarcar` rejeitando reverte a cor/status e mostra a mensagem de erro
+- [x] Avaliação `CRIADA` não permite tocar/atalho
+- [x] Avaliação `FINALIZADA` permite marcar e mostra o aviso de auditoria
+- [x] Cores usam contraste >= 4.5:1 (checado com um snapshot de estilo/CSS ou teste de acessibilidade, não "a olho")
+- [x] Novos testes de componente em `GradePalavras.test.tsx`: os 6 pontos acima
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 8 testes novos (9 testes; inclui atalhos C e N além do I exigido, e o primeiro toque PENDENTE→CORRETA)
 
 **Tests**: unit
 **Gate**: full
