@@ -114,12 +114,23 @@ T26 → T28
 T27 → T28
 ```
 
+### Phase 8b: Fechamento do shell (composição raiz + logout)
+
+> Fase adicionada após o Batch 1 (Phase 1) reportar, no fechamento, que nenhuma task de T1-T36 faz o boot real da app (`main.tsx`/`App.tsx` seguem o boilerplate do Vite) nem oferece um controle de logout visível. Ambos são pré-requisitos reais para o E2E (T29) e para o uso manual da app; nenhum dos dois amplia o escopo do spec - T37 é infraestrutura implícita em qualquer feature de frontend, T38 é um complemento de 1 linha à história "Login e navegação por perfil" (P1) sem AC numerado próprio.
+
+```
+T6 → T37
+T11 → T37
+T14 → T37
+T22 → T37
+T23 → T37
+T28 → T37
+T5 → T38
+```
+
 ### Phase 9: E2E do fluxo do professor (P1)
 ```
-T6 → T29
-T11 → T29
-T14 → T29
-T23 → T29
+T37 → T29
 ```
 
 ### Phase 10: Telas de cadastro do coordenador (P2)
@@ -907,13 +918,68 @@ T5 → T36
 
 ---
 
+### T37: Composição raiz (`main.tsx`/`App.tsx`)
+
+**What**: Substituir o boilerplate do template Vite por `App.tsx`: `QueryClientProvider` (novo `QueryClient`, config padrão do TanStack Query - sem customização especial de `retry`, já que cada hook trata seus próprios erros) envolvendo `AuthProvider` (T4) envolvendo `BrowserRouter` + as rotas de `router.tsx` (T5); `main.tsx` monta `<App/>`. Confirma que o callback de logout registrado no `apiClient` (interceptor 401, T3) é de fato o `logout` do `AuthContext` real em tempo de boot (não só nos testes isolados de cada peça).
+**Where**: `frontend/src/App.tsx` (new or modify), `frontend/src/main.tsx` (modify)
+**Depends on**: T6, T11, T14, T22, T23, T28
+**Reuses**: `AuthProvider`/`useAuth` (T4), `AppRoutes`/`ProtectedRoute` (T5), `apiClient` (T3)
+**Requirement**: Infra - fecha o gap reportado pelo Batch 1 (Phase 1): nenhuma task de T1-T36 faz o boot real da app
+
+**Tools**:
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+- [ ] Renderizar `<App/>` sem sessão em `sessionStorage` mostra a `LoginPage`
+- [ ] Renderizar `<App/>` com uma sessão válida em `sessionStorage` mostra o layout protegido na rota correspondente, sem passar pelo login
+- [ ] O 401 do `apiClient` (simulado via mock de `fetch`) desloga a sessão real e leva à `LoginPage`
+- [ ] Novos testes em `App.test.tsx`: os 3 pontos acima
+- [ ] Gate check passes: `npm run lint && npm run test`
+- [ ] Test count: >= 3 testes novos
+
+**Tests**: unit
+**Gate**: full
+
+**Commit**: `feat(frontend-web): wire AuthProvider, QueryClientProvider and router into the app composition root`
+
+---
+
+### T38: Controle de logout em `AppLayout`
+
+**What**: Adicionar um botão/link "Sair" visível em `AppLayout` para os dois perfis, que chama `useAuth().logout()` e navega para `/login`. Gap reportado pelo Batch 1 (Phase 1): nenhuma task de T1-T36 oferece uma forma de encerrar a sessão pela UI.
+**Where**: `frontend/src/layout/AppLayout.tsx` (modify)
+**Depends on**: T5
+**Reuses**: `useAuth` (T4)
+**Requirement**: Complemento não-numerado de FE-01/FE-04 (não amplia o spec - fecha um buraco óbvio da própria história de login/menu)
+
+**Tools**:
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+- [ ] "Sair" visível tanto para PROFESSOR quanto para COORDENADOR
+- [ ] Clicar em "Sair" chama `logout()` e navega para `/login`
+- [ ] Novo teste em `AppLayout.test.tsx`: clique em "Sair" desloga e navega
+- [ ] Gate check passes: `npm run lint && npm run test`
+- [ ] Test count: >= 1 teste novo
+
+**Tests**: unit
+**Gate**: quick
+
+**Commit**: `feat(frontend-web): add logout control to AppLayout`
+
+---
+
 ### T29: `e2e/fluxo-professor.spec.ts`
 
 **What**: Teste Playwright do fluxo completo do SDD §20 (spec.md Success Criteria): login como PROFESSOR → busca do aluno → seleção → "Configurar avaliação" → preenche o formulário com uma lista de palavras válida → cria → tela de execução → concede o microfone falso (`launchOptions: {args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream']}`) → inicia → marca pelo menos uma palavra → espera o tempo configurado (usar `tempoSegundos` baixo, ex. 10s, só para o teste) zerar → tela de resultado aparece automaticamente com os totais e o player de áudio.
 **Where**: `frontend/e2e/fluxo-professor.spec.ts` (new), `frontend/playwright.config.ts` (modify: adiciona os `launchOptions` de mídia falsa)
-**Depends on**: T6, T11, T14, T23
-**Reuses**: Toda a stack de P1 (T1-T23); precisa do backend real rodando (Testcontainers/dev) - documentar no próprio spec de teste o pré-requisito
+**Depends on**: T37
+**Reuses**: Toda a stack de P1 (T1-T28, T37); precisa do backend real rodando (Testcontainers/dev) - documentar no próprio spec de teste o pré-requisito
 **Requirement**: Success Criteria do spec.md (E2E)
+
+**Ambiente conhecido (Batch 1)**: `npx playwright install --with-deps` falha em macOS 12 ("Playwright does not support chromium on mac12"); `@playwright/test`/`playwright.config.ts` já existem (T1), mas os browsers do Playwright não instalam nesta máquina. Esta task fica bloqueada em ambiente que não seja macOS 13+/CI até resolver - não é um problema do código.
 
 **Tools**:
 - MCP: NONE
@@ -1124,7 +1190,7 @@ T5 → T36
 ## Phase Execution Map
 
 ```
-Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7 → Phase 8 → Phase 9 → Phase 10
+Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7 → Phase 8 → Phase 8b → Phase 9 → Phase 10
 
 Phase 1:   T1 → T2 → T3 → T4 → T5 → T6
 Phase 2:   T7 → T8 ------------------→ T11
@@ -1140,13 +1206,15 @@ Phase 7:   T16,T17,T18,T19,T20 (Phases 4-5) → T23
 Phase 8:   T24 → T25 ------→ T28
            T26 -------------↗
            T27 -------------↗
-Phase 9:   T6,T11,T14,T23 (Phases 1,2,3,7) → T29
+Phase 8b:  T6,T11,T14,T22,T23,T28 (Phases 1,2,3,6,7,8) → T37
+           T5 (Phase 1) → T38
+Phase 9:   T37 (Phase 8b) → T29
 Phase 10:  T30  T31  T32  T33  T34  T35  T36  (independentes entre si)
 ```
 
 Execution is strictly sequential - there is no intra-phase parallelism. A single agent (or batch worker) works one task at a time, in order.
 
-**Batching**: 36 tasks total → packs into ~5 task-budgeted batches (~7 tasks each, whole phases, never split a phase): e.g. `[Phase1]`, `[Phase2+Phase3]`, `[Phase4+Phase5+Phase6]`, `[Phase7+Phase8+Phase9]`, `[Phase10]`. Offer sub-agents before Execute, per the skill's Sub-Agent Delegation section.
+**Batching**: 38 tasks total (T1-T38, after Batch 1 added T37/T38 to close a gap it reported) → packs into ~5 task-budgeted batches (~7-8 each, whole phases, never split a phase): `[Phase1]` (done), `[Phase2+Phase3]`, `[Phase4+Phase5+Phase6]`, `[Phase7+Phase8+Phase8b]`, `[Phase9+Phase10]`. Offer sub-agents before Execute, per the skill's Sub-Agent Delegation section.
 
 ---
 
@@ -1184,6 +1252,8 @@ Execution is strictly sequential - there is no intra-phase parallelism. A single
 | T28: `HistoricoPage` | 1 componente (container de abas) | ✅ Granular |
 | T29: E2E do fluxo do professor | 1 spec Playwright | ✅ Granular |
 | T30-T36: telas de cadastro (7x) | 1 tela + 1 hook por entidade, mesmo padrão mecânico repetido | ✅ Granular (cada uma é 1 CRUD fino independente) |
+| T37: composição raiz | 1-2 arquivos, 1 finalidade (boot da app) | ✅ Granular |
+| T38: logout em `AppLayout` | 1 arquivo, 1 controle | ✅ Granular |
 
 ---
 
@@ -1219,8 +1289,10 @@ Execution is strictly sequential - there is no intra-phase parallelism. A single
 | T26 | T3, T2 | Fase 1 (implícito) → T26 | ✅ Match |
 | T27 | T3, T2 | Fase 1 (implícito) → T27 | ✅ Match |
 | T28 | T25, T26, T27 | T25→T28, T26→T28, T27→T28 | ✅ Match |
-| T29 | T6, T11, T14, T23 | Todos→T29 | ✅ Match |
+| T29 | T37 | T37→T29 | ✅ Match |
 | T30-T36 | T5 (cada uma) | Fase 1 (implícito) → cada uma | ✅ Match |
+| T37 | T6, T11, T14, T22, T23, T28 | Todos→T37 | ✅ Match |
+| T38 | T5 | T5→T38 | ✅ Match |
 
 ---
 
@@ -1258,5 +1330,7 @@ Execution is strictly sequential - there is no intra-phase parallelism. A single
 | T28: `HistoricoPage` | Componente com lógica | unit (component) | unit | ✅ OK |
 | T29: E2E | Fluxo completo | e2e | e2e | ✅ OK |
 | T30-T36: telas de cadastro | Página de composição simples (P2) | unit (component, smoke) | unit | ✅ OK |
+| T37: composição raiz | Componente de composição (smoke) | unit (component, smoke) | unit | ✅ OK |
+| T38: logout em `AppLayout` | Componente com lógica | unit (component) | unit | ✅ OK |
 
 Nenhuma violação - todas as tasks testam no mesmo commit em que o código é criado, no tipo exigido pela matriz.
