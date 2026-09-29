@@ -781,12 +781,14 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Negar o microfone mantém a tela em `CRIADA` com a mensagem de erro visível
-- [ ] Fluxo feliz: iniciar → cronômetro e "Gravando" aparecem juntos → marcar palavras → tempo zera → navega automaticamente para o resultado
-- [ ] Botões habilitados batem com o status atual em cada etapa
-- [ ] Novos testes de componente em `ExecutarAvaliacaoPage.test.tsx`: os 3 pontos acima (com `getUserMedia`/`MediaRecorder`/`apiClient` mockados)
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 3 testes novos
+- [x] Negar o microfone mantém a tela em `CRIADA` com a mensagem de erro visível
+- [x] Fluxo feliz: iniciar → cronômetro e "Gravando" aparecem juntos → marcar palavras → tempo zera → navega automaticamente para o resultado
+- [x] Botões habilitados batem com o status atual em cada etapa
+- [x] Novos testes de componente em `ExecutarAvaliacaoPage.test.tsx`: os 3 pontos acima (com `getUserMedia`/`MediaRecorder`/`apiClient` mockados)
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 3 testes novos (4 testes; o 4º cobre o edge case FE-24 de recarregar a página com a avaliação `EM_ANDAMENTO`, listado em spec.md e reafirmado no "What" desta task via o campo `interrompida` do hook)
+
+**Nota (agent's discretion)**: o `finalizar()` automático disparado internamente pelo `useEffect` do próprio `useAvaliacaoExecucao` (T18, quando o cronômetro chega a 0) não expõe o `Blob` gravado a quem chama o hook - só o `finalizar()` explícito (clique manual em "Finalizar") retorna o `Blob` ao componente. A página navega para o resultado em ambos os casos (via `status === 'FINALIZADA'`), mas só encaminha o `Blob` via estado de navegação quando o próprio clique em "Finalizar" disparou a chamada. Não é uma alteração de escopo desta task (o hook não foi tocado, `useAvaliacaoExecucao.ts` não está na lista de arquivos de T23).
 
 **Tests**: unit
 **Gate**: full
