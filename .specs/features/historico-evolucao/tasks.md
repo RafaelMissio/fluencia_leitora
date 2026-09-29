@@ -243,7 +243,7 @@ T7 -> T8
 
 ---
 
-### T7: Adicionar `GET /evolucao-ciclos` a `HistoricoEvolucaoController`
+### T7: Adicionar `GET /evolucao-ciclos` a `HistoricoEvolucaoController` ✅ Done
 
 **What**: `GET /api/v1/alunos/{alunoId}/evolucao-ciclos?anoLetivoId=&tipoLeitura=` (`hasRole('COORDENADOR')`, `tipoLeitura` obrigatório), delegando a `HistoricoEvolucaoService.evolucaoPorCiclo`, com os DTOs `ResultadoCicloResponse`/`EvolucaoCiclosResponse`.
 **Where**: `src/main/java/com/missio/fluencia_leitora/historicoevolucao/HistoricoEvolucaoController.java` (modify)
@@ -256,12 +256,12 @@ T7 -> T8
 - Skill: NONE
 
 **Done when**:
-- [ ] Resposta traz os 3 ciclos (ou `null` quando ausente) para o ano/tipo pedidos
-- [ ] `tipoLeitura` ausente → 400; `anoLetivoId` inexistente → 404 `ANO_LETIVO_NAO_ENCONTRADO`; `anoLetivoId` omitido usa o ano `ATIVO`
-- [ ] Professor → 403; coordenador → 200; aluno inexistente → 404; sem token → 401
-- [ ] Novos testes de integração em `HistoricoEvolucaoControllerIT` cobrindo os pontos acima
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 7 testes novos
+- [x] Resposta traz os 3 ciclos (ou `null` quando ausente) para o ano/tipo pedidos
+- [x] `tipoLeitura` ausente → 400; `anoLetivoId` inexistente → 404 `ANO_LETIVO_NAO_ENCONTRADO`; `anoLetivoId` omitido usa o ano `ATIVO`
+- [x] Professor → 403; coordenador → 200; aluno inexistente → 404; sem token → 401
+- [x] Novos testes de integração em `HistoricoEvolucaoControllerIT` cobrindo os pontos acima
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 7 testes novos (8 novos)
 
 **Tests**: integration
 **Gate**: full

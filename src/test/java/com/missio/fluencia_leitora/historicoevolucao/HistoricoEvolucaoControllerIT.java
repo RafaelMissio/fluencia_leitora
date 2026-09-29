@@ -14,7 +14,7 @@ import com.missio.fluencia_leitora.cadastros.aluno.Matricula;
 import com.missio.fluencia_leitora.cadastros.aluno.MatriculaRepository;
 import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivo;
 import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivoRepository;
-import com.missio.fluencia_leitora.cadastros.anoletivo.SituacaoAnoLetivo;
+import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivoService;
 import com.missio.fluencia_leitora.cadastros.dominio.Ciclo;
 import com.missio.fluencia_leitora.cadastros.dominio.CicloRepository;
 import com.missio.fluencia_leitora.cadastros.professor.Professor;
@@ -58,6 +58,9 @@ class HistoricoEvolucaoControllerIT extends IntegrationTestBase {
     private AnoLetivoRepository anoLetivoRepository;
 
     @Autowired
+    private AnoLetivoService anoLetivoService;
+
+    @Autowired
     private TurmaRepository turmaRepository;
 
     @Autowired
@@ -90,10 +93,17 @@ class HistoricoEvolucaoControllerIT extends IntegrationTestBase {
         return "Bearer " + jwtService.emitir(usuario.getId());
     }
 
+    /**
+     * SPEC_DEVIATION: usa {@code AnoLetivoService.ativar} (não {@code
+     * setSituacao} direto) porque CAD-04 permite só um ATIVO por vez - o
+     * banco é compartilhado com outras *ControllerIT que não fazem
+     * rollback (mesmo padrão de {@code AlunoControllerIT}), então setar
+     * ATIVO sem encerrar o anterior deixaria mais de um ATIVO visível
+     * quando `anoLetivoId` é omitido em `evolucao-ciclos` (T7).
+     */
     private AnoLetivo novoAnoLetivoAtivo(int ano) {
         AnoLetivo anoLetivo = anoLetivoRepository.save(new AnoLetivo(ano, LocalDate.of(ano, 2, 1), LocalDate.of(ano, 12, 15)));
-        anoLetivo.setSituacao(SituacaoAnoLetivo.ATIVO);
-        return anoLetivoRepository.save(anoLetivo);
+        return anoLetivoService.ativar(anoLetivo.getId());
     }
 
     private Matricula novaMatriculaAtiva(AnoLetivo anoLetivo, Professor professor) {
@@ -318,5 +328,124 @@ class HistoricoEvolucaoControllerIT extends IntegrationTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", org.hamcrest.Matchers.hasSize(0)))
                 .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    private Ciclo cicloPorCodigo(String codigo) {
+        return cicloRepository.findAll().stream()
+                .filter(ciclo -> ciclo.getCodigo().equals(codigo))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    @Test
+    void evolucaoCiclosRetornaOsTresCiclosParaAnoETipoPedidos() throws Exception {
+        AnoLetivo anoLetivo = novoAnoLetivoAtivo(3320);
+        Professor professor = professorRepository.save(new Professor("Professor Evolucao Ciclos"));
+        Matricula matricula = novaMatriculaAtiva(anoLetivo, professor);
+        novaAvaliacaoFinalizada(matricula, cicloPorCodigo("ENTRADA"), TipoLeituraCodigo.PALAVRA, LocalDate.of(3320, 3, 1));
+        novaAvaliacaoFinalizada(matricula, cicloPorCodigo("ACOMPANHAMENTO"), TipoLeituraCodigo.PALAVRA, LocalDate.of(3320, 6, 1));
+        novaAvaliacaoFinalizada(matricula, cicloPorCodigo("SAIDA"), TipoLeituraCodigo.PALAVRA, LocalDate.of(3320, 11, 1));
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-ciclos", matricula.getAluno().getId())
+                        .header("Authorization", bearerCoordenador())
+                        .param("anoLetivoId", anoLetivo.getId().toString())
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.alunoId").value(matricula.getAluno().getId()))
+                .andExpect(jsonPath("$.anoLetivo").value(3320))
+                .andExpect(jsonPath("$.tipoLeitura").value("PALAVRA"))
+                .andExpect(jsonPath("$.entrada.ciclo").value("ENTRADA"))
+                .andExpect(jsonPath("$.entrada.quantidadeCorretas").value(2))
+                .andExpect(jsonPath("$.acompanhamento.ciclo").value("ACOMPANHAMENTO"))
+                .andExpect(jsonPath("$.saida.ciclo").value("SAIDA"));
+    }
+
+    @Test
+    void evolucaoCiclosComCicloAusenteVemNulo() throws Exception {
+        AnoLetivo anoLetivo = novoAnoLetivoAtivo(3321);
+        Professor professor = professorRepository.save(new Professor("Professor Ciclo Ausente"));
+        Matricula matricula = novaMatriculaAtiva(anoLetivo, professor);
+        novaAvaliacaoFinalizada(matricula, cicloPorCodigo("ENTRADA"), TipoLeituraCodigo.PALAVRA, LocalDate.of(3321, 3, 1));
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-ciclos", matricula.getAluno().getId())
+                        .header("Authorization", bearerCoordenador())
+                        .param("anoLetivoId", anoLetivo.getId().toString())
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entrada.ciclo").value("ENTRADA"))
+                .andExpect(jsonPath("$.acompanhamento").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.saida").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void evolucaoCiclosSemTipoLeituraRetorna400() throws Exception {
+        AnoLetivo anoLetivo = novoAnoLetivoAtivo(3322);
+        Professor professor = professorRepository.save(new Professor("Professor Sem Tipo"));
+        Matricula matricula = novaMatriculaAtiva(anoLetivo, professor);
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-ciclos", matricula.getAluno().getId())
+                        .header("Authorization", bearerCoordenador())
+                        .param("anoLetivoId", anoLetivo.getId().toString()))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void evolucaoCiclosComAnoLetivoInexistenteRetorna404() throws Exception {
+        AnoLetivo anoLetivo = novoAnoLetivoAtivo(3323);
+        Professor professor = professorRepository.save(new Professor("Professor Ano Inexistente"));
+        Matricula matricula = novaMatriculaAtiva(anoLetivo, professor);
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-ciclos", matricula.getAluno().getId())
+                        .header("Authorization", bearerCoordenador())
+                        .param("anoLetivoId", "999999999")
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ANO_LETIVO_NAO_ENCONTRADO"));
+    }
+
+    @Test
+    void evolucaoCiclosComAnoLetivoOmitidoUsaOAnoAtivo() throws Exception {
+        AnoLetivo anoLetivo = novoAnoLetivoAtivo(3324);
+        Professor professor = professorRepository.save(new Professor("Professor Ano Ativo"));
+        Matricula matricula = novaMatriculaAtiva(anoLetivo, professor);
+        novaAvaliacaoFinalizada(matricula, cicloPorCodigo("ENTRADA"), TipoLeituraCodigo.PALAVRA, LocalDate.of(3324, 3, 1));
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-ciclos", matricula.getAluno().getId())
+                        .header("Authorization", bearerCoordenador())
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.anoLetivo").value(3324));
+    }
+
+    @Test
+    void evolucaoCiclosComProfessorRetorna403() throws Exception {
+        AnoLetivo anoLetivo = novoAnoLetivoAtivo(3325);
+        Professor professor = professorRepository.save(new Professor("Professor Sem Acesso"));
+        Matricula matricula = novaMatriculaAtiva(anoLetivo, professor);
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-ciclos", matricula.getAluno().getId())
+                        .header("Authorization", bearerProfessor(professor))
+                        .param("anoLetivoId", anoLetivo.getId().toString())
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void evolucaoCiclosComAlunoInexistenteRetorna404() throws Exception {
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-ciclos", 999999999L)
+                        .header("Authorization", bearerCoordenador())
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void evolucaoCiclosSemTokenRetorna401() throws Exception {
+        AnoLetivo anoLetivo = novoAnoLetivoAtivo(3326);
+        Professor professor = professorRepository.save(new Professor("Professor Sem Token Evolucao"));
+        Matricula matricula = novaMatriculaAtiva(anoLetivo, professor);
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-ciclos", matricula.getAluno().getId())
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isUnauthorized());
     }
 }

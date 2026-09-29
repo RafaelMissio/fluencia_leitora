@@ -2,6 +2,8 @@ package com.missio.fluencia_leitora.historicoevolucao;
 
 import com.missio.fluencia_leitora.avaliacao.Avaliacao;
 import com.missio.fluencia_leitora.bancopalavras.TipoLeituraCodigo;
+import com.missio.fluencia_leitora.historicoevolucao.HistoricoEvolucaoService.EvolucaoCiclos;
+import com.missio.fluencia_leitora.historicoevolucao.dto.EvolucaoCiclosResponse;
 import com.missio.fluencia_leitora.historicoevolucao.dto.HistoricoAvaliacaoItemResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -16,9 +18,10 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * HIST-01..06, HIST-22: histórico de avaliações finalizadas de um aluno
- * (design.md, Components). Rota aninhada sob {@code /alunos/{alunoId}},
- * mesmo padrão de {@code MatriculaController} (design.md, Tech Decisions).
+ * HIST-01..11, HIST-21..22: histórico e evolução por ciclo de avaliações
+ * finalizadas de um aluno (design.md, Components). Rota aninhada sob
+ * {@code /alunos/{alunoId}}, mesmo padrão de {@code MatriculaController}
+ * (design.md, Tech Decisions).
  */
 @RestController
 @RequestMapping("/api/v1/alunos/{alunoId}")
@@ -47,5 +50,22 @@ public class HistoricoEvolucaoController {
         Set<Long> comAudio = historicoEvolucaoService.comAudio(avaliacaoIds);
 
         return pagina.map(avaliacao -> HistoricoAvaliacaoItemResponse.from(avaliacao, comAudio.contains(avaliacao.getId())));
+    }
+
+    /**
+     * HIST-07..11, HIST-21: {@code tipoLeitura} obrigatório (sem {@code
+     * defaultValue}/{@code required = false}) - a ausência já vira 400 via
+     * {@code MissingServletRequestParameterException}, tratada pelo
+     * {@code ResponseEntityExceptionHandler} herdado (design.md, Error
+     * Handling Strategy).
+     */
+    @GetMapping("/evolucao-ciclos")
+    @PreAuthorize("hasRole('COORDENADOR')")
+    public EvolucaoCiclosResponse evolucaoCiclos(
+            @PathVariable Long alunoId,
+            @RequestParam(required = false) Long anoLetivoId,
+            @RequestParam TipoLeituraCodigo tipoLeitura) {
+        EvolucaoCiclos evolucaoCiclos = historicoEvolucaoService.evolucaoPorCiclo(alunoId, anoLetivoId, tipoLeitura);
+        return EvolucaoCiclosResponse.from(evolucaoCiclos);
     }
 }
