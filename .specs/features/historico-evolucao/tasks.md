@@ -214,7 +214,7 @@ T7 -> T8
 
 ---
 
-### T6: Criar `HistoricoEvolucaoController` - `GET /historico-avaliacoes`
+### T6: Criar `HistoricoEvolucaoController` - `GET /historico-avaliacoes` ✅ Done
 
 **What**: Novo controller com `GET /api/v1/alunos/{alunoId}/historico-avaliacoes?anoLetivoId=&tipoLeitura=&cicloId=&page=` (`hasAnyRole('PROFESSOR','COORDENADOR')`), delegando a `HistoricoEvolucaoService.historico` + `comAudio`, com os DTOs `HistoricoAvaliacaoItemResponse` (todos os campos do SDD §16, `temAudio` calculado a partir de `comAudio`).
 **Where**: `src/main/java/com/missio/fluencia_leitora/historicoevolucao/HistoricoEvolucaoController.java` (new)
@@ -227,14 +227,14 @@ T7 -> T8
 - Skill: NONE
 
 **Done when**:
-- [ ] Rota registrada com os 2 papéis; resposta traz todos os campos do SDD §16 (ano letivo, série, turma, professor, ciclo, tipo de leitura, data, quantidades, percentual, classificação, tempo, `temAudio`)
-- [ ] Filtros `anoLetivoId`/`tipoLeitura`/`cicloId` opcionais funcionam isolados e combinados
-- [ ] `tipoLeitura`/`cicloId` com valor inválido → 400 (conversão do Spring, sem handler customizado)
-- [ ] Professor dono → 200; professor não-dono → 404; coordenador → 200 para qualquer aluno; aluno inexistente → 404; sem token → 401
-- [ ] Aluno sem `FINALIZADA` → 200 com página vazia
-- [ ] Novos testes de integração em `HistoricoEvolucaoControllerIT` cobrindo os pontos acima
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 8 testes novos
+- [x] Rota registrada com os 2 papéis; resposta traz todos os campos do SDD §16 (ano letivo, série, turma, professor, ciclo, tipo de leitura, data, quantidades, percentual, classificação, tempo, `temAudio`)
+- [x] Filtros `anoLetivoId`/`tipoLeitura`/`cicloId` opcionais funcionam isolados e combinados
+- [x] `tipoLeitura`/`cicloId` com valor inválido → 400 (conversão do Spring, sem handler customizado)
+- [x] Professor dono → 200; professor não-dono → 404; coordenador → 200 para qualquer aluno; aluno inexistente → 404; sem token → 401
+- [x] Aluno sem `FINALIZADA` → 200 com página vazia
+- [x] Novos testes de integração em `HistoricoEvolucaoControllerIT` cobrindo os pontos acima
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 8 testes novos (13 novos)
 
 **Tests**: integration
 **Gate**: full
