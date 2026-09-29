@@ -548,13 +548,13 @@ T5 → T36
 - Skill: NONE
 
 **Done when**:
-- [ ] `isMediaRecorderSupported` retorna `false` quando `window.MediaRecorder` é `undefined`
-- [ ] `pickSupportedMimeType` respeita a ordem `webm/opus` → `ogg/opus` → `mp4`, retornando o primeiro que `isTypeSupported` aceita
-- [ ] `pickSupportedMimeType` retorna `null` quando nenhum é suportado
-- [ ] `createRecorder` inicia, pausa, resume e para retornando um `Blob` com o `mimeType` escolhido
-- [ ] Novos testes unitários em `recorder.test.ts` (com `MediaRecorder`/`isTypeSupported` mockados): os 4 pontos acima
-- [ ] Gate check passes: `npm run test`
-- [ ] Test count: >= 5 testes novos
+- [x] `isMediaRecorderSupported` retorna `false` quando `window.MediaRecorder` é `undefined`
+- [x] `pickSupportedMimeType` respeita a ordem `webm/opus` → `ogg/opus` → `mp4`, retornando o primeiro que `isTypeSupported` aceita
+- [x] `pickSupportedMimeType` retorna `null` quando nenhum é suportado
+- [x] `createRecorder` inicia, pausa, resume e para retornando um `Blob` com o `mimeType` escolhido
+- [x] Novos testes unitários em `recorder.test.ts` (com `MediaRecorder`/`isTypeSupported` mockados): os 4 pontos acima
+- [x] Gate check passes: `npm run test`
+- [x] Test count: >= 5 testes novos (7 testes)
 
 **Tests**: unit
 **Gate**: quick
