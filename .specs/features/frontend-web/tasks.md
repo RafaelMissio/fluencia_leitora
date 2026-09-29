@@ -353,13 +353,13 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Digitar "jo" lista os alunos com "jo" no nome, mostrando nome/turma/série
-- [ ] Selecionar um item marca esse aluno como selecionado
-- [ ] Busca sem resultado mostra "Nenhum aluno encontrado"
-- [ ] Rota `/alunos` protegida renderiza a página
-- [ ] Novos testes de componente em `AlunoBuscaPage.test.tsx`: os 3 pontos funcionais acima
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 3 testes novos
+- [x] Digitar "jo" lista os alunos com "jo" no nome, mostrando nome/turma/série
+- [x] Selecionar um item marca esse aluno como selecionado
+- [x] Busca sem resultado mostra "Nenhum aluno encontrado"
+- [x] Rota `/alunos` protegida renderiza a página
+- [x] Novos testes de componente em `AlunoBuscaPage.test.tsx`: os 3 pontos funcionais acima
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 3 testes novos (4 testes)
 
 **Tests**: unit
 **Gate**: full
