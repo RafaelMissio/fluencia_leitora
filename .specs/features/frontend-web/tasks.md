@@ -931,12 +931,12 @@ T5 → T36
 - Skill: NONE
 
 **Done when**:
-- [ ] Renderizar `<App/>` sem sessão em `sessionStorage` mostra a `LoginPage`
-- [ ] Renderizar `<App/>` com uma sessão válida em `sessionStorage` mostra o layout protegido na rota correspondente, sem passar pelo login
-- [ ] O 401 do `apiClient` (simulado via mock de `fetch`) desloga a sessão real e leva à `LoginPage`
-- [ ] Novos testes em `App.test.tsx`: os 3 pontos acima
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 3 testes novos
+- [x] Renderizar `<App/>` sem sessão em `sessionStorage` mostra a `LoginPage`
+- [x] Renderizar `<App/>` com uma sessão válida em `sessionStorage` mostra o layout protegido na rota correspondente, sem passar pelo login
+- [x] O 401 do `apiClient` (simulado via mock de `fetch`) desloga a sessão real e leva à `LoginPage`
+- [x] Novos testes em `App.test.tsx`: os 3 pontos acima
+- [x] Gate check passes: `npm run lint && npm run test` (escopado a `App.tsx`/`App.test.tsx`/`main.tsx` - o Batch 2 ainda tinha T14 em andamento no mesmo diretório no momento desta task; o gate completo do projeto roda de novo no fechamento da Fase 8b)
+- [x] Test count: >= 3 testes novos (3 testes)
 
 **Tests**: unit
 **Gate**: full
