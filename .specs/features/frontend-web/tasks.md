@@ -409,13 +409,13 @@ T5 → T36
 - Skill: NONE
 
 **Done when**:
-- [ ] Retorna `{ aluno, cicloAtual, ultimasAvaliacoes (≤5), ultimaClassificacao, evolucao, isLoading, error }`
-- [ ] PROFESSOR nunca chama `evolucao-ciclos` (evita 403); evolução vem do cálculo no cliente
-- [ ] COORDENADOR usa `evolucao-ciclos` diretamente
-- [ ] Evolução do PROFESSOR sem par de avaliações do mesmo ciclo/tipo retorna `"—"` (sem erro)
-- [ ] Novos testes unitários em `useAlunoResumo.test.ts`: composição para PROFESSOR, composição para COORDENADOR, evolução sem par, 5 mais recentes cortadas corretamente
-- [ ] Gate check passes: `npm run test`
-- [ ] Test count: >= 5 testes novos
+- [x] Retorna `{ aluno, cicloAtual, ultimasAvaliacoes (≤5), ultimaClassificacao, evolucao, isLoading, error }`
+- [x] PROFESSOR nunca chama `evolucao-ciclos` (evita 403); evolução vem do cálculo no cliente
+- [x] COORDENADOR usa `evolucao-ciclos` diretamente
+- [x] Evolução do PROFESSOR sem par de avaliações do mesmo ciclo/tipo retorna `"—"` (sem erro) - o hook retorna `null` (spec-precision gap: a formatação exata "—" é responsabilidade da apresentação, feita em T11/`ResumoAlunoPanel`)
+- [x] Novos testes unitários em `useAlunoResumo.test.ts`: composição para PROFESSOR, composição para COORDENADOR, evolução sem par, 5 mais recentes cortadas corretamente
+- [x] Gate check passes: `npm run test`
+- [x] Test count: >= 5 testes novos (5 testes)
 
 **Tests**: unit
 **Gate**: quick
