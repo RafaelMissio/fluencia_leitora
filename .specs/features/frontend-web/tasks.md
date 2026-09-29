@@ -920,12 +920,12 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] PROFESSOR vê só a aba "Histórico"
-- [ ] COORDENADOR vê as 3 abas
-- [ ] Rota `/alunos/:id/historico` protegida renderiza a página
-- [ ] Novos testes de componente em `HistoricoPage.test.tsx`: os 2 primeiros pontos
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 2 testes novos
+- [x] PROFESSOR vê só a aba "Histórico"
+- [x] COORDENADOR vê as 3 abas
+- [x] Rota `/alunos/:id/historico` protegida renderiza a página
+- [x] Novos testes de componente em `HistoricoPage.test.tsx`: os 2 primeiros pontos
+- [x] Gate check passes: `npm run lint && npm run test` (última task da Fase 8 - também rodado `npm run build`, gate de fechamento de fase)
+- [x] Test count: >= 2 testes novos (3 testes)
 
 **Tests**: unit
 **Gate**: full

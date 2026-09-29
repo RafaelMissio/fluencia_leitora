@@ -7,6 +7,7 @@ import { AlunoBuscaPage } from '../features/alunos/AlunoBuscaPage'
 import { ConfigurarAvaliacaoPage } from '../features/avaliacoes/ConfigurarAvaliacaoPage'
 import { ExecutarAvaliacaoPage } from '../features/avaliacoes/ExecutarAvaliacaoPage'
 import { ResultadoAvaliacaoPage } from '../features/avaliacoes/ResultadoAvaliacaoPage'
+import { HistoricoPage } from '../features/historico/HistoricoPage'
 import { AppLayout } from '../layout/AppLayout'
 
 /**
@@ -68,6 +69,7 @@ export function AppRouter() {
         <Route path="/avaliacoes/nova" element={<ConfigurarAvaliacaoPage />} />
         <Route path="/avaliacoes/:id/executar" element={<ExecutarAvaliacaoPage />} />
         <Route path="/avaliacoes/:id/resultado" element={<ResultadoAvaliacaoPage />} />
+        <Route path="/alunos/:id/historico" element={<HistoricoPage />} />
       </Route>
     </Routes>
   )
