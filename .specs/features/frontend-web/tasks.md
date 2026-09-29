@@ -576,13 +576,15 @@ T5 → T36
 - Skill: NONE
 
 **Done when**:
-- [ ] Sem suporte a `MediaRecorder` → `erroMicrofone` definido, `iniciar` da API nunca chamado
-- [ ] Microfone negado → `erroMicrofone` = "Permita o acesso ao microfone para iniciar a avaliação"; `iniciar` da API nunca chamado; status continua `CRIADA`
-- [ ] Microfone liberado e `iniciar` retorna 200 → gravação e cronômetro começam juntos
-- [ ] Mount com avaliação já `EM_ANDAMENTO` no servidor → flag de "interrompida" ativa
-- [ ] Novos testes unitários em `useAvaliacaoExecucao.test.ts` (com `getUserMedia`/`MediaRecorder` mockados): os 4 pontos acima
-- [ ] Gate check passes: `npm run test`
-- [ ] Test count: >= 4 testes novos
+- [x] Sem suporte a `MediaRecorder` → `erroMicrofone` definido, `iniciar` da API nunca chamado
+- [x] Microfone negado → `erroMicrofone` = "Permita o acesso ao microfone para iniciar a avaliação"; `iniciar` da API nunca chamado; status continua `CRIADA`
+- [x] Microfone liberado e `iniciar` retorna 200 → gravação e cronômetro começam juntos
+- [x] Mount com avaliação já `EM_ANDAMENTO` no servidor → flag de "interrompida" ativa
+- [x] Novos testes unitários em `useAvaliacaoExecucao.test.ts` (com `getUserMedia`/`MediaRecorder` mockados): os 4 pontos acima
+- [x] Gate check passes: `npm run test`
+- [x] Test count: >= 4 testes novos (4 testes)
+
+**Nota (agent's discretion)**: o hook faz `GET /avaliacoes/{id}` no mount (não listado explicitamente no "What", mas necessário para saber o `status`/`tempoConfiguradoSegundos`/`palavras` iniciais e detectar FE-24) e expõe `interrompida`/`palavras` no retorno, além dos 4 campos citados no "What" - ambos usados pelos próprios pontos do "Done when" desta task (FE-24) e por T17 (palavras `PENDENTE` após `resetar`).
 
 **Tests**: unit
 **Gate**: quick
