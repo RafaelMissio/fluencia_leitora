@@ -464,11 +464,11 @@ T5 → T36
 - Skill: NONE
 
 **Done when**:
-- [ ] Chamada só ocorre quando `serie` e `tipoLeitura` estão definidos (`enabled`)
-- [ ] Resultado tipado `{id, nome, quantidadePalavras}[]`
-- [ ] Novos testes unitários em `useListasPalavras.test.ts`: chamada com filtros, `enabled` falso sem os 2 parâmetros
-- [ ] Gate check passes: `npm run test`
-- [ ] Test count: >= 2 testes novos
+- [x] Chamada só ocorre quando `serie` e `tipoLeitura` estão definidos (`enabled`)
+- [x] Resultado tipado `{id, nome, quantidadePalavras}[]`
+- [x] Novos testes unitários em `useListasPalavras.test.ts`: chamada com filtros, `enabled` falso sem os 2 parâmetros
+- [x] Gate check passes: `npm run test`
+- [x] Test count: >= 2 testes novos (3 testes)
 
 **Tests**: unit
 **Gate**: quick
