@@ -22,11 +22,10 @@ const MENSAGEM_CONFIRMAR_RESET = 'Tem certeza que deseja resetar a avaliação? 
  * `GradePalavras` (T20) na tela do professor (design.md, Components).
  * `onMarcar` chama `PUT /avaliacoes/{id}/palavras/{ordem}` via `apiClient`.
  * Ao finalizar (clique manual ou tempo zerado, disparado internamente pelo
- * hook), navega para `/avaliacoes/{id}/resultado`; o clique manual encaminha
- * o `Blob` gravado via estado de navegação (o `finalizar()` automático do
- * hook, disparado pelo seu próprio `useEffect` interno, não expõe o `Blob`
- * ao chamador - navegação ainda acontece via `status === 'FINALIZADA'`,
- * apenas sem o `Blob`).
+ * hook), navega para `/avaliacoes/{id}/resultado` encaminhando `exec.
+ * blobGravado` via estado de navegação - lido do estado do hook (não do
+ * retorno de `finalizar()`) para que o caminho automático (tempo esgotado)
+ * encaminhe o áudio tão bem quanto o clique manual (spec.md AC2/AC6).
  */
 export function ExecutarAvaliacaoPage() {
   const { id } = useParams<{ id: string }>()
@@ -39,18 +38,10 @@ export function ExecutarAvaliacaoPage() {
   useEffect(() => {
     if (exec.status === 'FINALIZADA' && !jaNavegouRef.current) {
       jaNavegouRef.current = true
-      navigate(`/avaliacoes/${avaliacaoId}/resultado`)
+      navigate(`/avaliacoes/${avaliacaoId}/resultado`, { state: { blob: exec.blobGravado } })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exec.status, avaliacaoId])
-
-  async function aoClicarFinalizar(): Promise<void> {
-    const blob = await exec.finalizar()
-    if (!jaNavegouRef.current) {
-      jaNavegouRef.current = true
-      navigate(`/avaliacoes/${avaliacaoId}/resultado`, { state: { blob } })
-    }
-  }
+  }, [exec.status, exec.blobGravado, avaliacaoId])
 
   function aoClicarResetar(): void {
     const confirmado = window.confirm(MENSAGEM_CONFIRMAR_RESET)
@@ -85,7 +76,7 @@ export function ExecutarAvaliacaoPage() {
         aoClicarResetar()
         break
       case 'finalizar':
-        void aoClicarFinalizar()
+        void exec.finalizar()
         break
     }
   }

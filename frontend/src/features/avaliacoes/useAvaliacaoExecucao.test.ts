@@ -284,7 +284,7 @@ describe('useAvaliacaoExecucao', () => {
 
   describe('finalizar, botoesHabilitados e resync em 409 (T18)', () => {
     it('the countdown reaching 0 calls finalizar with motivo TEMPO_ESGOTADO automatically (spec.md AC6)', async () => {
-      const { now } = await iniciarEmAndamento(1)
+      const { result, now } = await iniciarEmAndamento(1)
       vi.mocked(fetch).mockResolvedValueOnce(
         jsonResponse(200, avaliacao({ status: 'FINALIZADA', tempoConfiguradoSegundos: 1 })),
       )
@@ -302,6 +302,10 @@ describe('useAvaliacaoExecucao', () => {
         .mocked(fetch)
         .mock.calls.some(([url]) => url === '/api/v1/avaliacoes/1/finalizar')
       expect(chamouFinalizar).toBe(true)
+      // Regressão: o finalizar() automático do efeito é fire-and-forget (seu retorno
+      // nunca é lido) - sem expor o Blob via estado, o áudio de uma avaliação encerrada
+      // por tempo esgotado nunca chegaria ao envio (spec.md AC2, FE-20).
+      expect(result.current.blobGravado).toBeInstanceOf(Blob)
     })
 
     it('a manual click on Finalizar calls finalizar() without motivo (spec.md AC6)', async () => {

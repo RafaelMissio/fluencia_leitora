@@ -41,6 +41,15 @@ interface State {
   /** FE-24: a avaliação já chegou `EM_ANDAMENTO` do servidor no mount (página recarregada). */
   interrompida: boolean
   palavras: PalavraAvaliacao[]
+  /**
+   * O `Blob` gravado, exposto pelo estado do hook (não só pelo retorno de
+   * `finalizar()`) para que o `finalizar('TEMPO_ESGOTADO')` disparado
+   * internamente pelo `useEffect` de tempo esgotado (fire-and-forget, seu
+   * retorno nunca é lido por ninguém) também chegue a quem usa o hook -
+   * antes dessa mudança, só o clique manual em "Finalizar" encaminhava o
+   * áudio ao envio (spec.md AC2/AC6, FE-20).
+   */
+  blobGravado: Blob | null
 }
 
 const initialState: State = {
@@ -52,12 +61,13 @@ const initialState: State = {
   erroMicrofone: null,
   interrompida: false,
   palavras: [],
+  blobGravado: null,
 }
 
 type Action =
   | { type: 'AVALIACAO_CARREGADA'; avaliacao: AvaliacaoResponse }
   | { type: 'ERRO_MICROFONE'; mensagem: string }
-  | { type: 'TRANSICAO_OK'; avaliacao: AvaliacaoResponse; gravando: boolean; tempoRestanteMs?: number }
+  | { type: 'TRANSICAO_OK'; avaliacao: AvaliacaoResponse; gravando: boolean; tempoRestanteMs?: number; blob?: Blob | null }
   | { type: 'TICK'; tempoRestanteMs: number }
 
 function reducer(state: State, action: Action): State {
@@ -73,6 +83,7 @@ function reducer(state: State, action: Action): State {
         gravando: false,
         palavras: avaliacao.palavras,
         interrompida: avaliacao.status === 'EM_ANDAMENTO',
+        blobGravado: null,
       }
     }
     case 'ERRO_MICROFONE':
@@ -88,6 +99,7 @@ function reducer(state: State, action: Action): State {
         tempoConfiguradoSegundos: avaliacao.tempoConfiguradoSegundos,
         tempoRestanteMs: action.tempoRestanteMs ?? state.tempoRestanteMs,
         palavras: avaliacao.palavras,
+        blobGravado: action.blob !== undefined ? action.blob : state.blobGravado,
       }
     }
     case 'TICK':
@@ -205,7 +217,7 @@ export function useAvaliacaoExecucao(avaliacaoId: number) {
     recorderRef.current = recorder
     recorder.start()
 
-    dispatch({ type: 'TRANSICAO_OK', avaliacao, gravando: true })
+    dispatch({ type: 'TRANSICAO_OK', avaliacao, gravando: true, blob: null })
     iniciarContagem(avaliacao.tempoConfiguradoSegundos * 1000)
   }
 
@@ -252,14 +264,20 @@ export function useAvaliacaoExecucao(avaliacaoId: number) {
       avaliacao,
       gravando: false,
       tempoRestanteMs: avaliacao.tempoConfiguradoSegundos * 1000,
+      blob: null,
     })
   }
 
   /**
    * spec.md P1 "Executar avaliação", AC6: para a gravação (`stop()`
    * consumindo o `Blob` desta vez - ao contrário de `resetar`), chama
-   * `POST .../finalizar` e retorna o `Blob` gravado para quem chamou (a
-   * composição da tela, T23) encaminhar ao envio de áudio.
+   * `POST .../finalizar` e expõe o `Blob` gravado via `blobGravado` no
+   * estado do hook (além de retorná-lo, para quem chama de forma síncrona
+   * ao clique) - necessário porque o `finalizar('TEMPO_ESGOTADO')` disparado
+   * pelo `useEffect` de tempo esgotado logo abaixo é fire-and-forget (seu
+   * valor de retorno nunca é lido); sem o `Blob` também no estado, a
+   * gravação de uma avaliação finalizada por tempo esgotado - o caminho mais
+   * comum na prática - nunca chegaria ao envio de áudio (spec.md AC2, FE-20).
    *
    * SPEC_DEVIATION: o `AvaliacaoController` real (`POST
    * /avaliacoes/{id}/finalizar`) não tem `@RequestBody` - o servidor decide
@@ -281,7 +299,7 @@ export function useAvaliacaoExecucao(avaliacaoId: number) {
 
     const avaliacao = await chamarTransicao(`/avaliacoes/${avaliacaoId}/finalizar`)
     if (avaliacao) {
-      dispatch({ type: 'TRANSICAO_OK', avaliacao, gravando: false })
+      dispatch({ type: 'TRANSICAO_OK', avaliacao, gravando: false, blob })
     }
     return blob
   }
@@ -301,6 +319,7 @@ export function useAvaliacaoExecucao(avaliacaoId: number) {
     erroMicrofone: state.erroMicrofone,
     interrompida: state.interrompida,
     palavras: state.palavras,
+    blobGravado: state.blobGravado,
     botoesHabilitados: botoesParaStatus(state.status),
     iniciar,
     pausar,
