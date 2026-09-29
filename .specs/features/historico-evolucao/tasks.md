@@ -102,7 +102,7 @@ T7 -> T8
 
 ---
 
-### T2: Adicionar `AvaliacaoAudioRepository.findAvaliacaoIdByAvaliacaoIdIn`
+### T2: Adicionar `AvaliacaoAudioRepository.findAvaliacaoIdByAvaliacaoIdIn` ✅ Done
 
 **What**: Método derivado `List<Long> findAvaliacaoIdByAvaliacaoIdIn(List<Long> avaliacaoIds)`, para marcar `temAudio` numa página de histórico sem N+1 (design.md, Tech Decisions).
 **Where**: `src/main/java/com/missio/fluencia_leitora/avaliacao/AvaliacaoAudioRepository.java` (modify)
@@ -115,10 +115,10 @@ T7 -> T8
 - Skill: NONE
 
 **Done when**:
-- [ ] Método derivado adicionado, sem alterar os métodos existentes
-- [ ] Novo arquivo `AvaliacaoAudioRepositoryIT` (primeiro da classe): ids com áudio voltam na lista; ids sem áudio não voltam; lista vazia de entrada retorna lista vazia
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 3 testes novos
+- [x] Método derivado adicionado, sem alterar os métodos existentes (SPEC_DEVIATION: implementado com `@Query` explícito, não derivado puro - ver javadoc de `AvaliacaoAudioRepository`)
+- [x] Novo arquivo `AvaliacaoAudioRepositoryIT` (primeiro da classe): ids com áudio voltam na lista; ids sem áudio não voltam; lista vazia de entrada retorna lista vazia
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 3 testes novos
 
 **Tests**: integration
 **Gate**: full

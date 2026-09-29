@@ -118,7 +118,7 @@ O sistema já grava cada avaliação finalizada (`avaliacao`, feature `avaliacao
 | Requirement ID | Story | Phase | Status |
 | --------------- | ----- | ----- | ------ |
 | HIST-01 | P1: Histórico | T1 | Implementing |
-| HIST-02 | P1: Histórico | Design | Pending |
+| HIST-02 | P1: Histórico | T2 | Implementing |
 | HIST-03 | P1: Histórico | T1 | Implementing |
 | HIST-04 | P1: Histórico | T1 | Implementing |
 | HIST-05 | P1: Histórico | T1 | Implementing |
