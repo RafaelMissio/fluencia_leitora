@@ -490,11 +490,11 @@ T5 → T36
 - Skill: NONE
 
 **Done when**:
-- [ ] Sucesso retorna `AvaliacaoResponse` com `status: 'CRIADA'`
-- [ ] Erro 422 propaga `errors: [{field, message}]` sem perder nenhum item
-- [ ] Novos testes unitários em `useCriarAvaliacao.test.ts`: sucesso, erro 422 com múltiplos campos
-- [ ] Gate check passes: `npm run test`
-- [ ] Test count: >= 2 testes novos
+- [x] Sucesso retorna `AvaliacaoResponse` com `status: 'CRIADA'`
+- [x] Erro 422 propaga `errors: [{field, message}]` sem perder nenhum item
+- [x] Novos testes unitários em `useCriarAvaliacao.test.ts`: sucesso, erro 422 com múltiplos campos
+- [x] Gate check passes: `npm run test`
+- [x] Test count: >= 2 testes novos (3 testes; o 3º verifica o payload/POST enviado, base causal do teste de sucesso)
 
 **Tests**: unit
 **Gate**: quick
