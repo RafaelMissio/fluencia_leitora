@@ -75,7 +75,7 @@ T7 -> T8
 
 ## Task Breakdown
 
-### T1: Adicionar 3 métodos de leitura a `AvaliacaoRepository`
+### T1: Adicionar 3 métodos de leitura a `AvaliacaoRepository` ✅ Done
 
 **What**: Adicionar `Page<Avaliacao> buscarHistorico(Long alunoId, StatusAvaliacao status, Long anoLetivoId, TipoLeituraCodigo tipoLeitura, Long cicloId, Pageable pageable)` (JPQL, filtros opcionais via `:param is null or ...`, `order by dataAvaliacao desc, finalizadoEm desc`), `List<Avaliacao> buscarFinalizadasPorAnoETipo(Long alunoId, StatusAvaliacao status, Long anoLetivoId, TipoLeituraCodigo tipoLeitura)` (`order by ciclo.id, finalizadoEm desc`) e `List<Avaliacao> buscarFinalizadasPorTipo(Long alunoId, StatusAvaliacao status, TipoLeituraCodigo tipoLeitura)` (`order by anoLetivo.ano, ciclo.id, finalizadoEm desc`), exatamente como especificado em design.md (Data Models).
 **Where**: `src/main/java/com/missio/fluencia_leitora/avaliacao/AvaliacaoRepository.java` (modify)
@@ -88,12 +88,12 @@ T7 -> T8
 - Skill: NONE
 
 **Done when**:
-- [ ] `buscarHistorico` filtra por `alunoId`+`status` sempre, e por `anoLetivoId`/`tipoLeitura`/`cicloId` só quando informados; ordena por `dataAvaliacao desc, finalizadoEm desc`; paginado
-- [ ] `buscarFinalizadasPorAnoETipo` filtra por `alunoId`+`status`+`anoLetivoId`+`tipoLeitura`; ordena por `ciclo.id, finalizadoEm desc`
-- [ ] `buscarFinalizadasPorTipo` filtra por `alunoId`+`status`+`tipoLeitura`; ordena por `anoLetivo.ano, ciclo.id, finalizadoEm desc`
-- [ ] Novos testes de integração em `AvaliacaoRepositoryIT`: cada filtro isolado, filtros combinados, `CANCELADA`/`EM_ANDAMENTO` nunca retornam, ordenação correta (inclui caso com 2 `FINALIZADA` no mesmo grupo para provar que a mais recente vem primeiro)
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 8 testes novos
+- [x] `buscarHistorico` filtra por `alunoId`+`status` sempre, e por `anoLetivoId`/`tipoLeitura`/`cicloId` só quando informados; ordena por `dataAvaliacao desc, finalizadoEm desc`; paginado
+- [x] `buscarFinalizadasPorAnoETipo` filtra por `alunoId`+`status`+`anoLetivoId`+`tipoLeitura`; ordena por `ciclo.id, finalizadoEm desc`
+- [x] `buscarFinalizadasPorTipo` filtra por `alunoId`+`status`+`tipoLeitura`; ordena por `anoLetivo.ano, ciclo.id, finalizadoEm desc`
+- [x] Novos testes de integração em `AvaliacaoRepositoryIT`: cada filtro isolado, filtros combinados, `CANCELADA`/`EM_ANDAMENTO` nunca retornam, ordenação correta (inclui caso com 2 `FINALIZADA` no mesmo grupo para provar que a mais recente vem primeiro)
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 8 testes novos (9 novos)
 
 **Tests**: integration
 **Gate**: full
