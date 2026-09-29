@@ -19,7 +19,9 @@ import com.missio.fluencia_leitora.common.error.BusinessException;
 import com.missio.fluencia_leitora.common.security.ContextoUsuarioPort;
 import com.missio.fluencia_leitora.common.security.Perfil;
 import com.missio.fluencia_leitora.common.security.PertencimentoProfessorGuard;
+import com.missio.fluencia_leitora.historicoevolucao.HistoricoEvolucaoService.EvolucaoAnualLinha;
 import com.missio.fluencia_leitora.historicoevolucao.HistoricoEvolucaoService.EvolucaoCiclos;
+import com.missio.fluencia_leitora.historicoevolucao.HistoricoEvolucaoService.EvolucaoValor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +34,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -118,6 +121,17 @@ class HistoricoEvolucaoServiceTest {
     private static Avaliacao avaliacaoMock(Ciclo ciclo, Instant finalizadoEm) {
         Avaliacao avaliacao = mock(Avaliacao.class);
         lenient().when(avaliacao.getCiclo()).thenReturn(ciclo);
+        lenient().when(avaliacao.getFinalizadoEm()).thenReturn(finalizadoEm);
+        return avaliacao;
+    }
+
+    private static Avaliacao avaliacaoAnualMock(
+            Ciclo ciclo, AnoLetivo anoLetivo, int serie, int quantidadeCorretas, Instant finalizadoEm) {
+        Avaliacao avaliacao = mock(Avaliacao.class);
+        lenient().when(avaliacao.getCiclo()).thenReturn(ciclo);
+        lenient().when(avaliacao.getAnoLetivo()).thenReturn(anoLetivo);
+        lenient().when(avaliacao.getSerie()).thenReturn(serie);
+        lenient().when(avaliacao.getQuantidadeCorretas()).thenReturn(quantidadeCorretas);
         lenient().when(avaliacao.getFinalizadoEm()).thenReturn(finalizadoEm);
         return avaliacao;
     }
@@ -319,6 +333,172 @@ class HistoricoEvolucaoServiceTest {
         BusinessException ex = assertThrows(
                 BusinessException.class,
                 () -> service.evolucaoPorCiclo(ALUNO_ID, ANO_LETIVO_ID, TipoLeituraCodigo.PALAVRA));
+
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
+        assertEquals("ALUNO_NAO_ENCONTRADO", ex.getCode());
+    }
+
+    private static AnoLetivo anoLetivoComId(int ano, long id) {
+        AnoLetivo anoLetivo = new AnoLetivo(ano, LocalDate.of(ano, 2, 1), LocalDate.of(ano, 12, 15));
+        ReflectionTestUtils.setField(anoLetivo, "id", id);
+        return anoLetivo;
+    }
+
+    @Test
+    void evolucaoAnualUmaLinhaPorAnoComSerieDaAvaliacao() {
+        AnoLetivo ano2026 = anoLetivoComId(2026, 300L);
+        AnoLetivo ano2027 = anoLetivoComId(2027, 301L);
+        Ciclo cicloEntrada = cicloMock(1L, "ENTRADA");
+        Avaliacao av2026 = avaliacaoAnualMock(cicloEntrada, ano2026, 2, 10, Instant.now());
+        Avaliacao av2027 = avaliacaoAnualMock(cicloEntrada, ano2027, 3, 15, Instant.now());
+        when(avaliacaoRepository.buscarFinalizadasPorTipo(ALUNO_ID, StatusAvaliacao.FINALIZADA, TipoLeituraCodigo.PALAVRA))
+                .thenReturn(List.of(av2026, av2027));
+
+        List<EvolucaoAnualLinha> linhas = service.evolucaoAnual(ALUNO_ID, TipoLeituraCodigo.PALAVRA);
+
+        assertEquals(2, linhas.size());
+        assertEquals(2026, linhas.get(0).anoLetivo());
+        assertEquals(2, linhas.get(0).serie());
+        assertEquals(2027, linhas.get(1).anoLetivo());
+        assertEquals(3, linhas.get(1).serie());
+    }
+
+    @Test
+    void evolucaoAnualOrdenaPorAnoCrescenteConformeORepositorio() {
+        AnoLetivo ano2026 = anoLetivoComId(2026, 300L);
+        AnoLetivo ano2027 = anoLetivoComId(2027, 301L);
+        Ciclo cicloSaida = cicloMock(3L, "SAIDA");
+        Avaliacao av2026 = avaliacaoAnualMock(cicloSaida, ano2026, 2, 10, Instant.now());
+        Avaliacao av2027 = avaliacaoAnualMock(cicloSaida, ano2027, 3, 15, Instant.now());
+        when(avaliacaoRepository.buscarFinalizadasPorTipo(any(), any(), any())).thenReturn(List.of(av2026, av2027));
+
+        List<EvolucaoAnualLinha> linhas = service.evolucaoAnual(ALUNO_ID, TipoLeituraCodigo.PALAVRA);
+
+        assertEquals(List.of(2026, 2027), linhas.stream().map(EvolucaoAnualLinha::anoLetivo).toList());
+    }
+
+    @Test
+    void evolucaoAnualCalculaAbsolutaEPercentualEntreAnosConsecutivos() {
+        AnoLetivo ano2026 = anoLetivoComId(2026, 300L);
+        AnoLetivo ano2027 = anoLetivoComId(2027, 301L);
+        Ciclo cicloSaida = cicloMock(3L, "SAIDA");
+        Avaliacao av2026 = avaliacaoAnualMock(cicloSaida, ano2026, 2, 10, Instant.now());
+        Avaliacao av2027 = avaliacaoAnualMock(cicloSaida, ano2027, 3, 15, Instant.now());
+        when(avaliacaoRepository.buscarFinalizadasPorTipo(any(), any(), any())).thenReturn(List.of(av2026, av2027));
+
+        List<EvolucaoAnualLinha> linhas = service.evolucaoAnual(ALUNO_ID, TipoLeituraCodigo.PALAVRA);
+
+        EvolucaoValor evolucao = linhas.get(1).evolucaoSaida();
+        assertEquals(5, evolucao.absoluta());
+        assertEquals(new BigDecimal("50.00"), evolucao.percentual());
+    }
+
+    @Test
+    void evolucaoAnualComAnteriorEAtualZeroPercentualZero() {
+        AnoLetivo ano2026 = anoLetivoComId(2026, 300L);
+        AnoLetivo ano2027 = anoLetivoComId(2027, 301L);
+        Ciclo cicloSaida = cicloMock(3L, "SAIDA");
+        Avaliacao av2026 = avaliacaoAnualMock(cicloSaida, ano2026, 2, 0, Instant.now());
+        Avaliacao av2027 = avaliacaoAnualMock(cicloSaida, ano2027, 3, 0, Instant.now());
+        when(avaliacaoRepository.buscarFinalizadasPorTipo(any(), any(), any())).thenReturn(List.of(av2026, av2027));
+
+        List<EvolucaoAnualLinha> linhas = service.evolucaoAnual(ALUNO_ID, TipoLeituraCodigo.PALAVRA);
+
+        EvolucaoValor evolucao = linhas.get(1).evolucaoSaida();
+        assertEquals(0, evolucao.absoluta());
+        assertEquals(BigDecimal.ZERO, evolucao.percentual());
+    }
+
+    @Test
+    void evolucaoAnualComAnteriorZeroEAtualMaiorQueZeroPercentualNulo() {
+        AnoLetivo ano2026 = anoLetivoComId(2026, 300L);
+        AnoLetivo ano2027 = anoLetivoComId(2027, 301L);
+        Ciclo cicloSaida = cicloMock(3L, "SAIDA");
+        Avaliacao av2026 = avaliacaoAnualMock(cicloSaida, ano2026, 2, 0, Instant.now());
+        Avaliacao av2027 = avaliacaoAnualMock(cicloSaida, ano2027, 3, 8, Instant.now());
+        when(avaliacaoRepository.buscarFinalizadasPorTipo(any(), any(), any())).thenReturn(List.of(av2026, av2027));
+
+        List<EvolucaoAnualLinha> linhas = service.evolucaoAnual(ALUNO_ID, TipoLeituraCodigo.PALAVRA);
+
+        EvolucaoValor evolucao = linhas.get(1).evolucaoSaida();
+        assertEquals(8, evolucao.absoluta());
+        assertNull(evolucao.percentual());
+    }
+
+    @Test
+    void evolucaoAnualCicloSemAnoAnteriorTemEvolucaoNula() {
+        AnoLetivo ano2026 = anoLetivoComId(2026, 300L);
+        AnoLetivo ano2027 = anoLetivoComId(2027, 301L);
+        Ciclo cicloEntrada = cicloMock(1L, "ENTRADA");
+        Ciclo cicloSaida = cicloMock(3L, "SAIDA");
+        Avaliacao entrada2026 = avaliacaoAnualMock(cicloEntrada, ano2026, 2, 10, Instant.now());
+        Avaliacao saida2027 = avaliacaoAnualMock(cicloSaida, ano2027, 3, 12, Instant.now());
+        when(avaliacaoRepository.buscarFinalizadasPorTipo(any(), any(), any()))
+                .thenReturn(List.of(entrada2026, saida2027));
+
+        List<EvolucaoAnualLinha> linhas = service.evolucaoAnual(ALUNO_ID, TipoLeituraCodigo.PALAVRA);
+
+        EvolucaoValor evolucaoEntradaAno1 = linhas.get(0).evolucaoEntrada();
+        EvolucaoValor evolucaoSaidaAno2 = linhas.get(1).evolucaoSaida();
+        assertNull(evolucaoEntradaAno1.absoluta());
+        assertNull(evolucaoEntradaAno1.percentual());
+        assertNull(evolucaoSaidaAno2.absoluta());
+        assertNull(evolucaoSaidaAno2.percentual());
+    }
+
+    @Test
+    void evolucaoAnualCicloRepetidoNoMesmoAnoUsaOMaisRecente() {
+        AnoLetivo ano2026 = anoLetivoComId(2026, 300L);
+        Ciclo cicloSaida = cicloMock(3L, "SAIDA");
+        Instant agora = Instant.now();
+        Avaliacao maisRecente = avaliacaoAnualMock(cicloSaida, ano2026, 2, 18, agora);
+        Avaliacao maisAntiga = avaliacaoAnualMock(cicloSaida, ano2026, 2, 5, agora.minusSeconds(3600));
+        // já ordenada por finalizadoEm desc dentro do grupo (buscarFinalizadasPorTipo, HIST-20)
+        when(avaliacaoRepository.buscarFinalizadasPorTipo(any(), any(), any()))
+                .thenReturn(List.of(maisRecente, maisAntiga));
+
+        List<EvolucaoAnualLinha> linhas = service.evolucaoAnual(ALUNO_ID, TipoLeituraCodigo.PALAVRA);
+
+        assertSame(maisRecente, linhas.get(0).saida());
+    }
+
+    @Test
+    void evolucaoAnualListaVaziaQuandoAlunoSemFinalizadaDoTipo() {
+        when(avaliacaoRepository.buscarFinalizadasPorTipo(any(), any(), any())).thenReturn(List.of());
+
+        List<EvolucaoAnualLinha> linhas = service.evolucaoAnual(ALUNO_ID, TipoLeituraCodigo.PALAVRA);
+
+        assertTrue(linhas.isEmpty());
+    }
+
+    @Test
+    void evolucaoAnualMetricaEQuantidadeCorretasNaoPercentualAcerto() {
+        AnoLetivo ano2026 = anoLetivoComId(2026, 300L);
+        AnoLetivo ano2027 = anoLetivoComId(2027, 301L);
+        Ciclo cicloSaida = cicloMock(3L, "SAIDA");
+        // mesmo percentualAcerto nos dois anos, quantidadeCorretas diferente:
+        // se a métrica fosse percentualAcerto, a evolução daria 0.
+        Avaliacao av2026 = avaliacaoAnualMock(cicloSaida, ano2026, 2, 10, Instant.now());
+        lenient().when(av2026.getPercentualAcerto()).thenReturn(new BigDecimal("50.00"));
+        Avaliacao av2027 = avaliacaoAnualMock(cicloSaida, ano2027, 3, 20, Instant.now());
+        lenient().when(av2027.getPercentualAcerto()).thenReturn(new BigDecimal("50.00"));
+        when(avaliacaoRepository.buscarFinalizadasPorTipo(any(), any(), any())).thenReturn(List.of(av2026, av2027));
+
+        List<EvolucaoAnualLinha> linhas = service.evolucaoAnual(ALUNO_ID, TipoLeituraCodigo.PALAVRA);
+
+        EvolucaoValor evolucao = linhas.get(1).evolucaoSaida();
+        assertEquals(10, evolucao.absoluta());
+        assertEquals(new BigDecimal("100.00"), evolucao.percentual());
+    }
+
+    @Test
+    void evolucaoAnualComAlunoInexistenteLanca404() {
+        when(alunoService.buscarPorId(ALUNO_ID))
+                .thenThrow(new BusinessException(HttpStatus.NOT_FOUND, "ALUNO_NAO_ENCONTRADO", "Aluno não encontrado"));
+
+        BusinessException ex = assertThrows(
+                BusinessException.class,
+                () -> service.evolucaoAnual(ALUNO_ID, TipoLeituraCodigo.PALAVRA));
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
         assertEquals("ALUNO_NAO_ENCONTRADO", ex.getCode());

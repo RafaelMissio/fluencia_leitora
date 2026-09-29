@@ -128,15 +128,15 @@ O sistema já grava cada avaliação finalizada (`avaliacao`, feature `avaliacao
 | HIST-09 | P1: Evolução por ciclo | T4 | Implementing |
 | HIST-10 | P1: Evolução por ciclo | T4 | Implementing |
 | HIST-11 | P1: Evolução por ciclo | T4 | Implementing |
-| HIST-12 | P1: Comparação anual | Design | Pending |
-| HIST-13 | P1: Comparação anual | Design | Pending |
-| HIST-14 | P1: Comparação anual | Design | Pending |
-| HIST-15 | P1: Comparação anual | Design | Pending |
-| HIST-16 | P1: Comparação anual | Design | Pending |
-| HIST-17 | P1: Comparação anual | Design | Pending |
-| HIST-18 | P1: Comparação anual | Design | Pending |
-| HIST-19 | P1: Comparação anual | Design | Pending |
-| HIST-20 | Edge cases | T4 | Implementing |
+| HIST-12 | P1: Comparação anual | T5 | Implementing |
+| HIST-13 | P1: Comparação anual | T5 | Implementing |
+| HIST-14 | P1: Comparação anual | T5 | Implementing |
+| HIST-15 | P1: Comparação anual | T5 | Implementing |
+| HIST-16 | P1: Comparação anual | T5 | Implementing |
+| HIST-17 | P1: Comparação anual | T5 | Implementing |
+| HIST-18 | P1: Comparação anual | T5 | Implementing |
+| HIST-19 | P1: Comparação anual | T5 | Implementing |
+| HIST-20 | Edge cases | T4, T5 | Implementing |
 | HIST-21 | Edge cases | T4 | Implementing |
 | HIST-22 | Edge cases | Design | Pending |
 

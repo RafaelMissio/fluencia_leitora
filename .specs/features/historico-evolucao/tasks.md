@@ -184,7 +184,7 @@ T7 -> T8
 
 ---
 
-### T5: Adicionar `HistoricoEvolucaoService.evolucaoAnual`
+### T5: Adicionar `HistoricoEvolucaoService.evolucaoAnual` ✅ Done
 
 **What**: Método `List<EvolucaoAnualLinha> evolucaoAnual(Long alunoId, TipoLeituraCodigo tipoLeitura)` (tipo interno do service): busca `AvaliacaoRepository.buscarFinalizadasPorTipo`, agrupa em memória por `(anoLetivo.id, ciclo.id)` pegando o mais recente de cada subgrupo (HIST-20 reaproveitado), agrupa por ano (ordem já vem de `anoLetivo.ano` crescente da query - HIST-13), e para cada ciclo presente em 2 anos consecutivos calcula `EvolucaoValor` usando `quantidadeCorretas` (HIST-14, HIST-17): `absoluta = atual - anterior`; `percentual = null` se `anterior == 0 && atual > 0` (HIST-19), `0` se `anterior == 0 && atual == 0` (HIST-18), senão `(atual - anterior) / anterior * 100` arredondado 2 casas HALF_UP.
 **Where**: `src/main/java/com/missio/fluencia_leitora/historicoevolucao/HistoricoEvolucaoService.java` (modify)
@@ -197,15 +197,15 @@ T7 -> T8
 - Skill: NONE
 
 **Done when**:
-- [ ] Uma linha por ano letivo com pelo menos 1 `FINALIZADA` do tipo pedido, série da avaliação (snapshot), ordenadas por ano crescente
-- [ ] Ciclo repetido no mesmo ano/tipo → usa o de maior `finalizadoEm`
-- [ ] Ciclo presente em 2 anos consecutivos → `absoluta`/`percentual` calculados sobre `quantidadeCorretas`
-- [ ] `anterior == 0 && atual == 0` → `percentual = 0`; `anterior == 0 && atual > 0` → `percentual = null` e `absoluta` calculada
-- [ ] Ciclo sem ano anterior com esse ciclo (ex.: 1º ano com dado, ou ciclo que só apareceu esse ano) → `evolucao` com `absoluta`/`percentual` ambos `null`
-- [ ] Aluno sem nenhuma `FINALIZADA` do tipo pedido → lista vazia
-- [ ] Novos testes unitários em `HistoricoEvolucaoServiceTest`: linha por ano, ordenação, cálculo normal, os 2 casos de divisão por zero, ciclo sem anterior, ciclo repetido no grupo, lista vazia, métrica é `quantidadeCorretas` (não `percentualAcerto`)
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 9 testes novos
+- [x] Uma linha por ano letivo com pelo menos 1 `FINALIZADA` do tipo pedido, série da avaliação (snapshot), ordenadas por ano crescente
+- [x] Ciclo repetido no mesmo ano/tipo → usa o de maior `finalizadoEm`
+- [x] Ciclo presente em 2 anos consecutivos → `absoluta`/`percentual` calculados sobre `quantidadeCorretas`
+- [x] `anterior == 0 && atual == 0` → `percentual = 0`; `anterior == 0 && atual > 0` → `percentual = null` e `absoluta` calculada
+- [x] Ciclo sem ano anterior com esse ciclo (ex.: 1º ano com dado, ou ciclo que só apareceu esse ano) → `evolucao` com `absoluta`/`percentual` ambos `null`
+- [x] Aluno sem nenhuma `FINALIZADA` do tipo pedido → lista vazia
+- [x] Novos testes unitários em `HistoricoEvolucaoServiceTest`: linha por ano, ordenação, cálculo normal, os 2 casos de divisão por zero, ciclo sem anterior, ciclo repetido no grupo, lista vazia, métrica é `quantidadeCorretas` (não `percentualAcerto`) + aluno inexistente (spec.md AC8, não listado aqui mas exigido pela história)
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 9 testes novos (10 novos)
 
 **Tests**: unit
 **Gate**: quick
