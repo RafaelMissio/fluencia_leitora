@@ -203,14 +203,14 @@ T5 → T36
 - Skill: NONE
 
 **Done when**:
-- [ ] `request` injeta o header `Authorization` quando há token registrado, e não injeta quando não há (rota de login)
-- [ ] Resposta 2xx com corpo JSON retorna o objeto tipado; 2xx sem corpo (204) retorna `undefined`
-- [ ] Resposta não-2xx lança `ApiError` com `status`/`code`/`detail`/`errors` extraídos do `ProblemDetail` (`{code, errors: [{field, message}]}` para 422; `{code, detail}` para os demais)
-- [ ] Resposta `401` dispara o callback de logout registrado antes de rejeitar a promise
-- [ ] `uploadAudio` envia `multipart/form-data` com o campo `audio` e retorna sem erro em `201`
-- [ ] Novos testes unitários em `client.test.ts`: header presente/ausente, parse de 422 com `errors[]`, parse de 401/409/429 (com `Retry-After`), callback de 401 chamado, falha de rede (fetch rejeita) vira `ApiError` com `status: 0`, `uploadAudio` monta `FormData` corretamente
-- [ ] Gate check passes: `npm run test`
-- [ ] Test count: >= 8 testes novos
+- [x] `request` injeta o header `Authorization` quando há token registrado, e não injeta quando não há (rota de login)
+- [x] Resposta 2xx com corpo JSON retorna o objeto tipado; 2xx sem corpo (204) retorna `undefined`
+- [x] Resposta não-2xx lança `ApiError` com `status`/`code`/`detail`/`errors` extraídos do `ProblemDetail` (`{code, errors: [{field, message}]}` para 422; `{code, detail}` para os demais)
+- [x] Resposta `401` dispara o callback de logout registrado antes de rejeitar a promise
+- [x] `uploadAudio` envia `multipart/form-data` com o campo `audio` e retorna sem erro em `201`
+- [x] Novos testes unitários em `client.test.ts`: header presente/ausente, parse de 422 com `errors[]`, parse de 401/409/429 (com `Retry-After`), callback de 401 chamado, falha de rede (fetch rejeita) vira `ApiError` com `status: 0`, `uploadAudio` monta `FormData` corretamente
+- [x] Gate check passes: `npm run test`
+- [x] Test count: >= 8 testes novos (13 testes)
 
 **Tests**: unit
 **Gate**: quick
