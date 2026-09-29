@@ -155,7 +155,7 @@ T7 -> T8
 
 ---
 
-### T4: Adicionar `HistoricoEvolucaoService.evolucaoPorCiclo`
+### T4: Adicionar `HistoricoEvolucaoService.evolucaoPorCiclo` ✅ Done
 
 **What**: Método `EvolucaoCiclos evolucaoPorCiclo(Long alunoId, Long anoLetivoId, TipoLeituraCodigo tipoLeitura)` (tipo de retorno interno do service, mapeado a DTO na T7): resolve `anoLetivoId` (informado → `AnoLetivoRepository.findById` ou 404 `ANO_LETIVO_NAO_ENCONTRADO`; omitido → `findBySituacao(ATIVO)`), busca `AvaliacaoRepository.buscarFinalizadasPorAnoETipo`, agrupa em memória por `ciclo.id` pegando o primeiro de cada grupo (já vem ordenado por `finalizadoEm desc` dentro do grupo - HIST-20), monta os três slots (`ENTRADA`/`ACOMPANHAMENTO`/`SAIDA`), `null` quando o ciclo não tem avaliação.
 **Where**: `src/main/java/com/missio/fluencia_leitora/historicoevolucao/HistoricoEvolucaoService.java` (modify)
@@ -168,14 +168,14 @@ T7 -> T8
 - Skill: NONE
 
 **Done when**:
-- [ ] Os 3 ciclos vêm preenchidos quando há `FINALIZADA` para cada um
-- [ ] Ciclo sem `FINALIZADA` vem `null`, sem erro
-- [ ] Duas `FINALIZADA` no mesmo ciclo → usa a de maior `finalizadoEm` (HIST-20)
-- [ ] `anoLetivoId` omitido usa o ano `ATIVO`; informado e existente usa esse ano; informado e inexistente → 404 `ANO_LETIVO_NAO_ENCONTRADO`
-- [ ] Aluno inexistente → 404 `ALUNO_NAO_ENCONTRADO` (reaproveita a resolução de T3)
-- [ ] Novos testes unitários em `HistoricoEvolucaoServiceTest`: 3 ciclos preenchidos, ciclo ausente, ciclo com 2 `FINALIZADA` (mais recente vence), ano default `ATIVO`, ano informado existente, ano informado inexistente, aluno inexistente
-- [ ] Gate check passes: `./mvnw test`
-- [ ] Test count: >= 7 testes novos
+- [x] Os 3 ciclos vêm preenchidos quando há `FINALIZADA` para cada um
+- [x] Ciclo sem `FINALIZADA` vem `null`, sem erro
+- [x] Duas `FINALIZADA` no mesmo ciclo → usa a de maior `finalizadoEm` (HIST-20)
+- [x] `anoLetivoId` omitido usa o ano `ATIVO`; informado e existente usa esse ano; informado e inexistente → 404 `ANO_LETIVO_NAO_ENCONTRADO`
+- [x] Aluno inexistente → 404 `ALUNO_NAO_ENCONTRADO` (reaproveita a resolução de T3)
+- [x] Novos testes unitários em `HistoricoEvolucaoServiceTest`: 3 ciclos preenchidos, ciclo ausente, ciclo com 2 `FINALIZADA` (mais recente vence), ano default `ATIVO`, ano informado existente, ano informado inexistente, aluno inexistente
+- [x] Gate check passes: `./mvnw test`
+- [x] Test count: >= 7 testes novos
 
 **Tests**: unit
 **Gate**: quick

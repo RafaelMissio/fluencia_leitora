@@ -123,11 +123,11 @@ O sistema já grava cada avaliação finalizada (`avaliacao`, feature `avaliacao
 | HIST-04 | P1: Histórico | T1, T3 | Implementing |
 | HIST-05 | P1: Histórico | T1, T3 | Implementing |
 | HIST-06 | P1: Histórico | T1, T3 | Implementing |
-| HIST-07 | P1: Evolução por ciclo | Design | Pending |
-| HIST-08 | P1: Evolução por ciclo | Design | Pending |
-| HIST-09 | P1: Evolução por ciclo | Design | Pending |
-| HIST-10 | P1: Evolução por ciclo | Design | Pending |
-| HIST-11 | P1: Evolução por ciclo | Design | Pending |
+| HIST-07 | P1: Evolução por ciclo | T4 | Implementing |
+| HIST-08 | P1: Evolução por ciclo | T4 | Implementing |
+| HIST-09 | P1: Evolução por ciclo | T4 | Implementing |
+| HIST-10 | P1: Evolução por ciclo | T4 | Implementing |
+| HIST-11 | P1: Evolução por ciclo | T4 | Implementing |
 | HIST-12 | P1: Comparação anual | Design | Pending |
 | HIST-13 | P1: Comparação anual | Design | Pending |
 | HIST-14 | P1: Comparação anual | Design | Pending |
@@ -136,8 +136,8 @@ O sistema já grava cada avaliação finalizada (`avaliacao`, feature `avaliacao
 | HIST-17 | P1: Comparação anual | Design | Pending |
 | HIST-18 | P1: Comparação anual | Design | Pending |
 | HIST-19 | P1: Comparação anual | Design | Pending |
-| HIST-20 | Edge cases | Design | Pending |
-| HIST-21 | Edge cases | Design | Pending |
+| HIST-20 | Edge cases | T4 | Implementing |
+| HIST-21 | Edge cases | T4 | Implementing |
 | HIST-22 | Edge cases | Design | Pending |
 
 **Mapping**: HIST-01..06 = ACs 1-6 da história "Histórico"; HIST-07..11 = ACs 1-5 da história "Evolução por ciclo"; HIST-12..19 = ACs 1-8 da história "Comparação anual" (AC 9 é redundante com o edge case HIST-20 e não recebe ID próprio); HIST-20..22 = Edge Cases 2-4 (Edge Case 1 já coberto por HIST-06/HIST-09/HIST-19).

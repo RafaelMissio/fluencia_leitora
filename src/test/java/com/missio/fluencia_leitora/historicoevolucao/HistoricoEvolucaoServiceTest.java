@@ -10,6 +10,8 @@ import com.missio.fluencia_leitora.cadastros.aluno.AlunoService;
 import com.missio.fluencia_leitora.cadastros.aluno.AlunoService.AlunoBusca;
 import com.missio.fluencia_leitora.cadastros.aluno.Matricula;
 import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivo;
+import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivoRepository;
+import com.missio.fluencia_leitora.cadastros.anoletivo.SituacaoAnoLetivo;
 import com.missio.fluencia_leitora.cadastros.dominio.Ciclo;
 import com.missio.fluencia_leitora.cadastros.professor.Professor;
 import com.missio.fluencia_leitora.cadastros.turma.Turma;
@@ -17,6 +19,7 @@ import com.missio.fluencia_leitora.common.error.BusinessException;
 import com.missio.fluencia_leitora.common.security.ContextoUsuarioPort;
 import com.missio.fluencia_leitora.common.security.Perfil;
 import com.missio.fluencia_leitora.common.security.PertencimentoProfessorGuard;
+import com.missio.fluencia_leitora.historicoevolucao.HistoricoEvolucaoService.EvolucaoCiclos;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,11 +32,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -46,8 +52,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * T3 (historicoevolucao): {@link HistoricoEvolucaoService#historico} e
- * {@link HistoricoEvolucaoService#comAudio}. Cenário base: aluno com
+ * T3/T4 (historicoevolucao): {@link HistoricoEvolucaoService#historico},
+ * {@link HistoricoEvolucaoService#comAudio} e {@link
+ * HistoricoEvolucaoService#evolucaoPorCiclo}. Cenário base: aluno com
  * matrícula ativa cujo professor é o mesmo do contexto (dono).
  */
 @ExtendWith(MockitoExtension.class)
@@ -55,6 +62,7 @@ class HistoricoEvolucaoServiceTest {
 
     private static final Long ALUNO_ID = 1L;
     private static final Long PROFESSOR_ID = 7L;
+    private static final Long ANO_LETIVO_ID = 100L;
 
     @Mock
     private AvaliacaoRepository avaliacaoRepository;
@@ -66,10 +74,14 @@ class HistoricoEvolucaoServiceTest {
     private AlunoService alunoService;
 
     @Mock
+    private AnoLetivoRepository anoLetivoRepository;
+
+    @Mock
     private ContextoUsuarioPort contextoUsuario;
 
     private HistoricoEvolucaoService service;
     private Matricula matriculaAtiva;
+    private AnoLetivo anoLetivoAtivo;
 
     @BeforeEach
     void setUp() {
@@ -84,11 +96,30 @@ class HistoricoEvolucaoServiceTest {
         ReflectionTestUtils.setField(aluno, "id", ALUNO_ID);
         matriculaAtiva = new Matricula(aluno, anoLetivo, turma, 1, professor);
 
+        anoLetivoAtivo = new AnoLetivo(2026, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 12, 15));
+        ReflectionTestUtils.setField(anoLetivoAtivo, "id", ANO_LETIVO_ID);
+        lenient().when(alunoService.buscarPorId(ALUNO_ID)).thenReturn(new AlunoBusca(aluno, matriculaAtiva));
+
         service = new HistoricoEvolucaoService(
                 avaliacaoRepository,
                 avaliacaoAudioRepository,
                 alunoService,
+                anoLetivoRepository,
                 new PertencimentoProfessorGuard(contextoUsuario));
+    }
+
+    private static Ciclo cicloMock(long id, String codigo) {
+        Ciclo ciclo = mock(Ciclo.class);
+        lenient().when(ciclo.getId()).thenReturn(id);
+        lenient().when(ciclo.getCodigo()).thenReturn(codigo);
+        return ciclo;
+    }
+
+    private static Avaliacao avaliacaoMock(Ciclo ciclo, Instant finalizadoEm) {
+        Avaliacao avaliacao = mock(Avaliacao.class);
+        lenient().when(avaliacao.getCiclo()).thenReturn(ciclo);
+        lenient().when(avaliacao.getFinalizadoEm()).thenReturn(finalizadoEm);
+        return avaliacao;
     }
 
     private void mockAlunoComMatricula(Matricula matricula) {
@@ -188,5 +219,108 @@ class HistoricoEvolucaoServiceTest {
         Set<Long> resultado = service.comAudio(List.of(10L));
 
         assertTrue(resultado.isEmpty());
+    }
+
+    @Test
+    void evolucaoPorCicloComOsTresCiclosPreenchidos() {
+        when(anoLetivoRepository.findById(ANO_LETIVO_ID)).thenReturn(Optional.of(anoLetivoAtivo));
+        Ciclo cicloEntrada = cicloMock(1L, "ENTRADA");
+        Ciclo cicloAcompanhamento = cicloMock(2L, "ACOMPANHAMENTO");
+        Ciclo cicloSaida = cicloMock(3L, "SAIDA");
+        Avaliacao avEntrada = avaliacaoMock(cicloEntrada, Instant.now());
+        Avaliacao avAcompanhamento = avaliacaoMock(cicloAcompanhamento, Instant.now());
+        Avaliacao avSaida = avaliacaoMock(cicloSaida, Instant.now());
+        when(avaliacaoRepository.buscarFinalizadasPorAnoETipo(
+                        ALUNO_ID, StatusAvaliacao.FINALIZADA, ANO_LETIVO_ID, TipoLeituraCodigo.PALAVRA))
+                .thenReturn(List.of(avEntrada, avAcompanhamento, avSaida));
+
+        EvolucaoCiclos resultado = service.evolucaoPorCiclo(ALUNO_ID, ANO_LETIVO_ID, TipoLeituraCodigo.PALAVRA);
+
+        assertSame(avEntrada, resultado.entrada());
+        assertSame(avAcompanhamento, resultado.acompanhamento());
+        assertSame(avSaida, resultado.saida());
+        assertEquals(2026, resultado.anoLetivo());
+        assertEquals(ALUNO_ID, resultado.alunoId());
+    }
+
+    @Test
+    void evolucaoPorCicloComCicloAusenteVemNuloSemErro() {
+        when(anoLetivoRepository.findById(ANO_LETIVO_ID)).thenReturn(Optional.of(anoLetivoAtivo));
+        Ciclo cicloEntrada = cicloMock(1L, "ENTRADA");
+        Avaliacao avEntrada = avaliacaoMock(cicloEntrada, Instant.now());
+        when(avaliacaoRepository.buscarFinalizadasPorAnoETipo(any(), any(), any(), any()))
+                .thenReturn(List.of(avEntrada));
+
+        EvolucaoCiclos resultado = service.evolucaoPorCiclo(ALUNO_ID, ANO_LETIVO_ID, TipoLeituraCodigo.PALAVRA);
+
+        assertSame(avEntrada, resultado.entrada());
+        assertNull(resultado.acompanhamento());
+        assertNull(resultado.saida());
+    }
+
+    @Test
+    void evolucaoPorCicloComDuasFinalizadaNoMesmoCicloUsaAMaisRecente() {
+        when(anoLetivoRepository.findById(ANO_LETIVO_ID)).thenReturn(Optional.of(anoLetivoAtivo));
+        Ciclo cicloEntrada = cicloMock(1L, "ENTRADA");
+        Avaliacao maisRecente = avaliacaoMock(cicloEntrada, Instant.now());
+        Avaliacao maisAntiga = avaliacaoMock(cicloEntrada, Instant.now().minusSeconds(3600));
+        // já ordenada por finalizadoEm desc dentro do grupo (buscarFinalizadasPorAnoETipo, HIST-20)
+        when(avaliacaoRepository.buscarFinalizadasPorAnoETipo(any(), any(), any(), any()))
+                .thenReturn(List.of(maisRecente, maisAntiga));
+
+        EvolucaoCiclos resultado = service.evolucaoPorCiclo(ALUNO_ID, ANO_LETIVO_ID, TipoLeituraCodigo.PALAVRA);
+
+        assertSame(maisRecente, resultado.entrada());
+    }
+
+    @Test
+    void evolucaoPorCicloComAnoLetivoOmitidoUsaOAnoAtivo() {
+        when(anoLetivoRepository.findBySituacao(SituacaoAnoLetivo.ATIVO)).thenReturn(List.of(anoLetivoAtivo));
+        when(avaliacaoRepository.buscarFinalizadasPorAnoETipo(any(), any(), any(), any())).thenReturn(List.of());
+
+        EvolucaoCiclos resultado = service.evolucaoPorCiclo(ALUNO_ID, null, TipoLeituraCodigo.PALAVRA);
+
+        assertEquals(2026, resultado.anoLetivo());
+        verify(avaliacaoRepository)
+                .buscarFinalizadasPorAnoETipo(
+                        ALUNO_ID, StatusAvaliacao.FINALIZADA, ANO_LETIVO_ID, TipoLeituraCodigo.PALAVRA);
+    }
+
+    @Test
+    void evolucaoPorCicloComAnoLetivoInformadoEExistenteUsaEsseAno() {
+        Long outroAnoId = 200L;
+        AnoLetivo outroAno = new AnoLetivo(2027, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 12, 15));
+        ReflectionTestUtils.setField(outroAno, "id", outroAnoId);
+        when(anoLetivoRepository.findById(outroAnoId)).thenReturn(Optional.of(outroAno));
+        when(avaliacaoRepository.buscarFinalizadasPorAnoETipo(any(), any(), any(), any())).thenReturn(List.of());
+
+        EvolucaoCiclos resultado = service.evolucaoPorCiclo(ALUNO_ID, outroAnoId, TipoLeituraCodigo.PALAVRA);
+
+        assertEquals(2027, resultado.anoLetivo());
+    }
+
+    @Test
+    void evolucaoPorCicloComAnoLetivoInformadoInexistenteLanca404() {
+        when(anoLetivoRepository.findById(999L)).thenReturn(Optional.empty());
+
+        BusinessException ex = assertThrows(
+                BusinessException.class,
+                () -> service.evolucaoPorCiclo(ALUNO_ID, 999L, TipoLeituraCodigo.PALAVRA));
+
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
+        assertEquals("ANO_LETIVO_NAO_ENCONTRADO", ex.getCode());
+    }
+
+    @Test
+    void evolucaoPorCicloComAlunoInexistenteLanca404() {
+        when(alunoService.buscarPorId(ALUNO_ID))
+                .thenThrow(new BusinessException(HttpStatus.NOT_FOUND, "ALUNO_NAO_ENCONTRADO", "Aluno não encontrado"));
+
+        BusinessException ex = assertThrows(
+                BusinessException.class,
+                () -> service.evolucaoPorCiclo(ALUNO_ID, ANO_LETIVO_ID, TipoLeituraCodigo.PALAVRA));
+
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
+        assertEquals("ALUNO_NAO_ENCONTRADO", ex.getCode());
     }
 }
