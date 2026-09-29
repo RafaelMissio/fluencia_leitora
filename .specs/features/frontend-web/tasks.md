@@ -974,11 +974,11 @@ T5 → T36
 - Skill: NONE
 
 **Done when**:
-- [ ] "Sair" visível tanto para PROFESSOR quanto para COORDENADOR
-- [ ] Clicar em "Sair" chama `logout()` e navega para `/login`
-- [ ] Novo teste em `AppLayout.test.tsx`: clique em "Sair" desloga e navega
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 1 teste novo
+- [x] "Sair" visível tanto para PROFESSOR quanto para COORDENADOR
+- [x] Clicar em "Sair" chama `logout()` e navega para `/login`
+- [x] Novo teste em `AppLayout.test.tsx`: clique em "Sair" desloga e navega
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 1 teste novo (1 teste)
 
 **Tests**: unit
 **Gate**: quick

@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 
 interface MenuItem {
@@ -27,8 +27,14 @@ const COORDENADOR_MENU: MenuItem[] = [
 
 /** Menu lateral condicionado por perfil (FE-04) + área de conteúdo das rotas filhas. */
 export function AppLayout() {
-  const { perfil } = useAuth()
+  const { perfil, logout } = useAuth()
+  const navigate = useNavigate()
   const menu = perfil === 'COORDENADOR' ? COORDENADOR_MENU : PROFESSOR_MENU
+
+  function sair() {
+    logout()
+    navigate('/login')
+  }
 
   return (
     <div className="app-layout">
@@ -40,6 +46,10 @@ export function AppLayout() {
             </li>
           ))}
         </ul>
+        {/* T38: controle de logout visível para os dois perfis (gap reportado pelo Batch 1). */}
+        <button type="button" onClick={sair}>
+          Sair
+        </button>
       </nav>
       <main>
         <Outlet />
