@@ -179,9 +179,9 @@ T5 → T36
 - Skill: NONE
 
 **Done when**:
-- [ ] Todos os tipos de design.md (Data Models) existem em `types.ts`, com os mesmos nomes de campo do backend (inclusive em português)
-- [ ] `npm run build` compila sem erro de tipo
-- [ ] Gate check passes: `npm run build`
+- [x] Todos os tipos de design.md (Data Models) existem em `types.ts`, com os mesmos nomes de campo do backend (inclusive em português)
+- [x] `npm run build` compila sem erro de tipo
+- [x] Gate check passes: `npm run build`
 
 **Tests**: none
 **Gate**: build
