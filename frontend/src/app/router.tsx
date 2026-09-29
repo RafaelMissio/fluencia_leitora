@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import type { Perfil } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
+import { LoginPage } from '../auth/LoginPage'
 import { AppLayout } from '../layout/AppLayout'
 
 /**
@@ -50,6 +51,7 @@ export function RoleGate({
 export function AppRouter() {
   return (
     <Routes>
+      <Route path="/login" element={<LoginPage />} />
       <Route
         element={
           <ProtectedRoute>

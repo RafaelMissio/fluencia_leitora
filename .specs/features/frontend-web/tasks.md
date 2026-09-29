@@ -287,13 +287,13 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Login válido de PROFESSOR abre `/avaliar`; de COORDENADOR abre `/alunos`
-- [ ] Login válido com rota de retorno preservada abre essa rota em vez do padrão
-- [ ] 401 mostra "E-mail ou senha inválidos" e mantém o e-mail digitado
-- [ ] 429 mostra "Conta bloqueada. Tente novamente em N minutos" com N derivado de `Retry-After`
-- [ ] Novos testes de componente em `LoginPage.test.tsx`: os 4 pontos acima
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 4 testes novos
+- [x] Login válido de PROFESSOR abre `/avaliar`; de COORDENADOR abre `/alunos`
+- [x] Login válido com rota de retorno preservada abre essa rota em vez do padrão
+- [x] 401 mostra "E-mail ou senha inválidos" e mantém o e-mail digitado
+- [x] 429 mostra "Conta bloqueada. Tente novamente em N minutos" com N derivado de `Retry-After`
+- [x] Novos testes de componente em `LoginPage.test.tsx`: os 4 pontos acima
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 4 testes novos (5 testes)
 
 **Tests**: unit
 **Gate**: full
