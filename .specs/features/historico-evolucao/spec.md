@@ -128,15 +128,15 @@ O sistema já grava cada avaliação finalizada (`avaliacao`, feature `avaliacao
 | HIST-09 | P1: Evolução por ciclo | T4, T7 | Done |
 | HIST-10 | P1: Evolução por ciclo | T4, T7 | Done |
 | HIST-11 | P1: Evolução por ciclo | T4, T7 | Done |
-| HIST-12 | P1: Comparação anual | T5 | Implementing |
-| HIST-13 | P1: Comparação anual | T5 | Implementing |
-| HIST-14 | P1: Comparação anual | T5 | Implementing |
-| HIST-15 | P1: Comparação anual | T5 | Implementing |
-| HIST-16 | P1: Comparação anual | T5 | Implementing |
-| HIST-17 | P1: Comparação anual | T5 | Implementing |
-| HIST-18 | P1: Comparação anual | T5 | Implementing |
-| HIST-19 | P1: Comparação anual | T5 | Implementing |
-| HIST-20 | Edge cases | T4, T5 | Implementing |
+| HIST-12 | P1: Comparação anual | T5, T8 | Done |
+| HIST-13 | P1: Comparação anual | T5, T8 | Done |
+| HIST-14 | P1: Comparação anual | T5, T8 | Done |
+| HIST-15 | P1: Comparação anual | T5, T8 | Done |
+| HIST-16 | P1: Comparação anual | T5, T8 | Done |
+| HIST-17 | P1: Comparação anual | T5, T8 | Done |
+| HIST-18 | P1: Comparação anual | T5, T8 | Done |
+| HIST-19 | P1: Comparação anual | T5, T8 | Done |
+| HIST-20 | Edge cases | T4, T5 | Done |
 | HIST-21 | Edge cases | T4, T7 | Done |
 | HIST-22 | Edge cases | T6 | Done |
 
@@ -146,7 +146,7 @@ O sistema já grava cada avaliação finalizada (`avaliacao`, feature `avaliacao
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 22 total, 0 mapped to tasks, 22 unmapped ⚠️ (aguardando Design/Tasks)
+**Coverage:** 22 total, 22 mapped to tasks (T1-T8), 0 unmapped
 
 ---
 

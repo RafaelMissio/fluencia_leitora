@@ -2,7 +2,9 @@ package com.missio.fluencia_leitora.historicoevolucao;
 
 import com.missio.fluencia_leitora.avaliacao.Avaliacao;
 import com.missio.fluencia_leitora.bancopalavras.TipoLeituraCodigo;
+import com.missio.fluencia_leitora.historicoevolucao.HistoricoEvolucaoService.EvolucaoAnualLinha;
 import com.missio.fluencia_leitora.historicoevolucao.HistoricoEvolucaoService.EvolucaoCiclos;
+import com.missio.fluencia_leitora.historicoevolucao.dto.EvolucaoAnualResponse;
 import com.missio.fluencia_leitora.historicoevolucao.dto.EvolucaoCiclosResponse;
 import com.missio.fluencia_leitora.historicoevolucao.dto.HistoricoAvaliacaoItemResponse;
 import org.springframework.data.domain.Page;
@@ -18,10 +20,10 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * HIST-01..11, HIST-21..22: histórico e evolução por ciclo de avaliações
- * finalizadas de um aluno (design.md, Components). Rota aninhada sob
- * {@code /alunos/{alunoId}}, mesmo padrão de {@code MatriculaController}
- * (design.md, Tech Decisions).
+ * HIST-01..22: histórico, evolução por ciclo e comparação anual de
+ * avaliações finalizadas de um aluno (design.md, Components). Rota
+ * aninhada sob {@code /alunos/{alunoId}}, mesmo padrão de {@code
+ * MatriculaController} (design.md, Tech Decisions).
  */
 @RestController
 @RequestMapping("/api/v1/alunos/{alunoId}")
@@ -67,5 +69,13 @@ public class HistoricoEvolucaoController {
             @RequestParam TipoLeituraCodigo tipoLeitura) {
         EvolucaoCiclos evolucaoCiclos = historicoEvolucaoService.evolucaoPorCiclo(alunoId, anoLetivoId, tipoLeitura);
         return EvolucaoCiclosResponse.from(evolucaoCiclos);
+    }
+
+    /** HIST-12..19: {@code tipoLeitura} obrigatório, mesmo motivo de {@link #evolucaoCiclos}. */
+    @GetMapping("/evolucao-anos")
+    @PreAuthorize("hasRole('COORDENADOR')")
+    public EvolucaoAnualResponse evolucaoAnos(@PathVariable Long alunoId, @RequestParam TipoLeituraCodigo tipoLeitura) {
+        List<EvolucaoAnualLinha> linhas = historicoEvolucaoService.evolucaoAnual(alunoId, tipoLeitura);
+        return EvolucaoAnualResponse.from(alunoId, tipoLeitura, linhas);
     }
 }

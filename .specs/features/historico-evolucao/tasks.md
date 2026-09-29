@@ -270,7 +270,7 @@ T7 -> T8
 
 ---
 
-### T8: Adicionar `GET /evolucao-anos` a `HistoricoEvolucaoController`
+### T8: Adicionar `GET /evolucao-anos` a `HistoricoEvolucaoController` ✅ Done
 
 **What**: `GET /api/v1/alunos/{alunoId}/evolucao-anos?tipoLeitura=` (`hasRole('COORDENADOR')`, `tipoLeitura` obrigatório), delegando a `HistoricoEvolucaoService.evolucaoAnual`, com os DTOs `EvolucaoValor`/`CicloAnualResponse`/`EvolucaoAnualLinhaResponse`/`EvolucaoAnualResponse`.
 **Where**: `src/main/java/com/missio/fluencia_leitora/historicoevolucao/HistoricoEvolucaoController.java` (modify)
@@ -283,12 +283,12 @@ T7 -> T8
 - Skill: NONE
 
 **Done when**:
-- [ ] Resposta traz 1 linha por ano com `FINALIZADA`, ordenadas por ano crescente, com evolução absoluta/percentual por ciclo
-- [ ] Os 2 casos de divisão por zero (HIST-18/HIST-19) aparecem corretos na resposta HTTP
-- [ ] `tipoLeitura` ausente → 400; professor → 403; coordenador → 200; aluno inexistente → 404; aluno sem `FINALIZADA` do tipo → 200 lista vazia; sem token → 401
-- [ ] Novos testes de integração em `HistoricoEvolucaoControllerIT` cobrindo os pontos acima
-- [ ] Gate check passes: `./mvnw verify`
-- [ ] Test count: >= 8 testes novos
+- [x] Resposta traz 1 linha por ano com `FINALIZADA`, ordenadas por ano crescente, com evolução absoluta/percentual por ciclo
+- [x] Os 2 casos de divisão por zero (HIST-18/HIST-19) aparecem corretos na resposta HTTP
+- [x] `tipoLeitura` ausente → 400; professor → 403; coordenador → 200; aluno inexistente → 404; aluno sem `FINALIZADA` do tipo → 200 lista vazia; sem token → 401
+- [x] Novos testes de integração em `HistoricoEvolucaoControllerIT` cobrindo os pontos acima
+- [x] Gate check passes: `./mvnw verify`
+- [x] Test count: >= 8 testes novos (8 novos)
 
 **Tests**: integration
 **Gate**: full

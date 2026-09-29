@@ -112,8 +112,18 @@ class HistoricoEvolucaoControllerIT extends IntegrationTestBase {
         return matriculaRepository.save(new Matricula(aluno, anoLetivo, turma, 2, professor));
     }
 
+    private Matricula novaMatriculaEm(Aluno aluno, AnoLetivo anoLetivo, Professor professor) {
+        Turma turma = turmaRepository.save(new Turma("Turma Historico IT " + anoLetivo.getAno(), 2, anoLetivo, professor));
+        return matriculaRepository.save(new Matricula(aluno, anoLetivo, turma, 2, professor));
+    }
+
     private Avaliacao novaAvaliacaoFinalizada(
             Matricula matricula, Ciclo ciclo, TipoLeituraCodigo tipoLeitura, LocalDate dataAvaliacao) {
+        return novaAvaliacaoFinalizadaComCorretas(matricula, ciclo, tipoLeitura, dataAvaliacao, 2);
+    }
+
+    private Avaliacao novaAvaliacaoFinalizadaComCorretas(
+            Matricula matricula, Ciclo ciclo, TipoLeituraCodigo tipoLeitura, LocalDate dataAvaliacao, int quantidadeCorretas) {
         Avaliacao avaliacao = new Avaliacao(
                 matricula.getAluno(), matricula.getProfessor(), matricula.getProfessor().getNome(),
                 matricula.getTurma(), matricula.getTurma().getNome(), matricula.getSerie(), matricula.getAnoLetivo(),
@@ -122,7 +132,7 @@ class HistoricoEvolucaoControllerIT extends IntegrationTestBase {
         avaliacao.adicionarPalavra("casa", null);
         avaliacao.setStatus(StatusAvaliacao.FINALIZADA);
         avaliacao.setFinalizadoEm(Instant.now());
-        avaliacao.setQuantidadeCorretas(2);
+        avaliacao.setQuantidadeCorretas(quantidadeCorretas);
         avaliacao.setQuantidadeIncorretas(0);
         avaliacao.setQuantidadeNaoLidas(0);
         avaliacao.setPercentualAcerto(new BigDecimal("100.00"));
@@ -134,6 +144,10 @@ class HistoricoEvolucaoControllerIT extends IntegrationTestBase {
 
     private Ciclo primeiroCiclo() {
         return cicloRepository.findAll().get(0);
+    }
+
+    private AnoLetivo novoAnoLetivo(int ano) {
+        return anoLetivoRepository.save(new AnoLetivo(ano, LocalDate.of(ano, 2, 1), LocalDate.of(ano, 12, 15)));
     }
 
     @Test
@@ -445,6 +459,132 @@ class HistoricoEvolucaoControllerIT extends IntegrationTestBase {
         Matricula matricula = novaMatriculaAtiva(anoLetivo, professor);
 
         mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-ciclos", matricula.getAluno().getId())
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void evolucaoAnosRetornaLinhasOrdenadasComEvolucao() throws Exception {
+        AnoLetivo ano2026 = novoAnoLetivo(3330);
+        AnoLetivo ano2027 = novoAnoLetivo(3331);
+        Professor professor = professorRepository.save(new Professor("Professor Evolucao Anos"));
+        Matricula matricula2026 = novaMatriculaAtiva(ano2026, professor);
+        Aluno aluno = matricula2026.getAluno();
+        Matricula matricula2027 = novaMatriculaEm(aluno, ano2027, professor);
+        novaAvaliacaoFinalizadaComCorretas(
+                matricula2026, cicloPorCodigo("SAIDA"), TipoLeituraCodigo.PALAVRA, LocalDate.of(3330, 11, 1), 10);
+        novaAvaliacaoFinalizadaComCorretas(
+                matricula2027, cicloPorCodigo("SAIDA"), TipoLeituraCodigo.PALAVRA, LocalDate.of(3331, 11, 1), 15);
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-anos", aluno.getId())
+                        .header("Authorization", bearerCoordenador())
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.alunoId").value(aluno.getId()))
+                .andExpect(jsonPath("$.tipoLeitura").value("PALAVRA"))
+                .andExpect(jsonPath("$.anos", org.hamcrest.Matchers.hasSize(2)))
+                .andExpect(jsonPath("$.anos[0].anoLetivo").value(3330))
+                .andExpect(jsonPath("$.anos[0].saida.quantidadeCorretas").value(10))
+                .andExpect(jsonPath("$.anos[0].saida.evolucao.absoluta").doesNotExist())
+                .andExpect(jsonPath("$.anos[1].anoLetivo").value(3331))
+                .andExpect(jsonPath("$.anos[1].saida.quantidadeCorretas").value(15))
+                .andExpect(jsonPath("$.anos[1].saida.evolucao.absoluta").value(5))
+                .andExpect(jsonPath("$.anos[1].saida.evolucao.percentual").value(50.00));
+    }
+
+    @Test
+    void evolucaoAnosComAnteriorEAtualZeroPercentualZero() throws Exception {
+        AnoLetivo ano2026 = novoAnoLetivo(3332);
+        AnoLetivo ano2027 = novoAnoLetivo(3333);
+        Professor professor = professorRepository.save(new Professor("Professor Zero Zero"));
+        Matricula matricula2026 = novaMatriculaAtiva(ano2026, professor);
+        Aluno aluno = matricula2026.getAluno();
+        Matricula matricula2027 = novaMatriculaEm(aluno, ano2027, professor);
+        novaAvaliacaoFinalizadaComCorretas(
+                matricula2026, cicloPorCodigo("SAIDA"), TipoLeituraCodigo.PALAVRA, LocalDate.of(3332, 11, 1), 0);
+        novaAvaliacaoFinalizadaComCorretas(
+                matricula2027, cicloPorCodigo("SAIDA"), TipoLeituraCodigo.PALAVRA, LocalDate.of(3333, 11, 1), 0);
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-anos", aluno.getId())
+                        .header("Authorization", bearerCoordenador())
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.anos[1].saida.evolucao.absoluta").value(0))
+                .andExpect(jsonPath("$.anos[1].saida.evolucao.percentual").value(0));
+    }
+
+    @Test
+    void evolucaoAnosComAnteriorZeroEAtualMaiorQueZeroPercentualNulo() throws Exception {
+        AnoLetivo ano2026 = novoAnoLetivo(3334);
+        AnoLetivo ano2027 = novoAnoLetivo(3335);
+        Professor professor = professorRepository.save(new Professor("Professor Zero Positivo"));
+        Matricula matricula2026 = novaMatriculaAtiva(ano2026, professor);
+        Aluno aluno = matricula2026.getAluno();
+        Matricula matricula2027 = novaMatriculaEm(aluno, ano2027, professor);
+        novaAvaliacaoFinalizadaComCorretas(
+                matricula2026, cicloPorCodigo("SAIDA"), TipoLeituraCodigo.PALAVRA, LocalDate.of(3334, 11, 1), 0);
+        novaAvaliacaoFinalizadaComCorretas(
+                matricula2027, cicloPorCodigo("SAIDA"), TipoLeituraCodigo.PALAVRA, LocalDate.of(3335, 11, 1), 7);
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-anos", aluno.getId())
+                        .header("Authorization", bearerCoordenador())
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.anos[1].saida.evolucao.absoluta").value(7))
+                .andExpect(jsonPath("$.anos[1].saida.evolucao.percentual").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void evolucaoAnosSemTipoLeituraRetorna400() throws Exception {
+        AnoLetivo anoLetivo = novoAnoLetivoAtivo(3336);
+        Professor professor = professorRepository.save(new Professor("Professor Anos Sem Tipo"));
+        Matricula matricula = novaMatriculaAtiva(anoLetivo, professor);
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-anos", matricula.getAluno().getId())
+                        .header("Authorization", bearerCoordenador()))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void evolucaoAnosComProfessorRetorna403() throws Exception {
+        AnoLetivo anoLetivo = novoAnoLetivoAtivo(3337);
+        Professor professor = professorRepository.save(new Professor("Professor Anos Sem Acesso"));
+        Matricula matricula = novaMatriculaAtiva(anoLetivo, professor);
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-anos", matricula.getAluno().getId())
+                        .header("Authorization", bearerProfessor(professor))
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void evolucaoAnosComAlunoInexistenteRetorna404() throws Exception {
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-anos", 999999999L)
+                        .header("Authorization", bearerCoordenador())
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void evolucaoAnosComAlunoSemFinalizadaRetorna200ListaVazia() throws Exception {
+        AnoLetivo anoLetivo = novoAnoLetivoAtivo(3338);
+        Professor professor = professorRepository.save(new Professor("Professor Anos Sem Finalizada"));
+        Matricula matricula = novaMatriculaAtiva(anoLetivo, professor);
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-anos", matricula.getAluno().getId())
+                        .header("Authorization", bearerCoordenador())
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.anos", org.hamcrest.Matchers.hasSize(0)));
+    }
+
+    @Test
+    void evolucaoAnosSemTokenRetorna401() throws Exception {
+        AnoLetivo anoLetivo = novoAnoLetivoAtivo(3339);
+        Professor professor = professorRepository.save(new Professor("Professor Anos Sem Token"));
+        Matricula matricula = novaMatriculaAtiva(anoLetivo, professor);
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-anos", matricula.getAluno().getId())
                         .param("tipoLeitura", "PALAVRA"))
                 .andExpect(status().isUnauthorized());
     }
