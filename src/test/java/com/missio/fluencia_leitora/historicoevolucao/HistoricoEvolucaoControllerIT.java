@@ -32,6 +32,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -124,6 +125,13 @@ class HistoricoEvolucaoControllerIT extends IntegrationTestBase {
 
     private Avaliacao novaAvaliacaoFinalizadaComCorretas(
             Matricula matricula, Ciclo ciclo, TipoLeituraCodigo tipoLeitura, LocalDate dataAvaliacao, int quantidadeCorretas) {
+        return novaAvaliacaoFinalizadaComCorretasEData(
+                matricula, ciclo, tipoLeitura, dataAvaliacao, quantidadeCorretas, Instant.now());
+    }
+
+    private Avaliacao novaAvaliacaoFinalizadaComCorretasEData(
+            Matricula matricula, Ciclo ciclo, TipoLeituraCodigo tipoLeitura, LocalDate dataAvaliacao,
+            int quantidadeCorretas, Instant finalizadoEm) {
         Avaliacao avaliacao = new Avaliacao(
                 matricula.getAluno(), matricula.getProfessor(), matricula.getProfessor().getNome(),
                 matricula.getTurma(), matricula.getTurma().getNome(), matricula.getSerie(), matricula.getAnoLetivo(),
@@ -131,7 +139,7 @@ class HistoricoEvolucaoControllerIT extends IntegrationTestBase {
         avaliacao.adicionarPalavra("gato", null);
         avaliacao.adicionarPalavra("casa", null);
         avaliacao.setStatus(StatusAvaliacao.FINALIZADA);
-        avaliacao.setFinalizadoEm(Instant.now());
+        avaliacao.setFinalizadoEm(finalizadoEm);
         avaliacao.setQuantidadeCorretas(quantidadeCorretas);
         avaliacao.setQuantidadeIncorretas(0);
         avaliacao.setQuantidadeNaoLidas(0);
@@ -291,6 +299,20 @@ class HistoricoEvolucaoControllerIT extends IntegrationTestBase {
                 .andExpect(status().isBadRequest());
     }
 
+    /** HIST-22 (Verifier PASS 1, gap E4): cicloId numérico mas fora do domínio fixo de `ciclo` → 400. */
+    @Test
+    void historicoComCicloIdForaDoDominioRetorna400() throws Exception {
+        AnoLetivo anoLetivo = novoAnoLetivoAtivo(3309);
+        Professor professor = professorRepository.save(new Professor("Professor 400 Ciclo Dominio"));
+        Matricula matricula = novaMatriculaAtiva(anoLetivo, professor);
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/historico-avaliacoes", matricula.getAluno().getId())
+                        .header("Authorization", bearerProfessor(professor))
+                        .param("cicloId", "999999999"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CICLO_INVALIDO"));
+    }
+
     @Test
     void historicoComProfessorNaoDonoRetorna404() throws Exception {
         AnoLetivo anoLetivo = novoAnoLetivoAtivo(3309);
@@ -344,6 +366,24 @@ class HistoricoEvolucaoControllerIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.totalElements").value(0));
     }
 
+    /** HIST-01: página fixa de 20 itens (Verifier PASS 1, mutante M5) - 21 `FINALIZADA` devem se dividir em 2 páginas. */
+    @Test
+    void historicoPaginaEmBlocosDe20() throws Exception {
+        AnoLetivo anoLetivo = novoAnoLetivoAtivo(3313);
+        Professor professor = professorRepository.save(new Professor("Professor Paginacao 20"));
+        Matricula matricula = novaMatriculaAtiva(anoLetivo, professor);
+        for (int dia = 1; dia <= 21; dia++) {
+            novaAvaliacaoFinalizada(matricula, primeiroCiclo(), TipoLeituraCodigo.PALAVRA, LocalDate.of(3313, 1, dia));
+        }
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/historico-avaliacoes", matricula.getAluno().getId())
+                        .header("Authorization", bearerProfessor(professor)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", org.hamcrest.Matchers.hasSize(20)))
+                .andExpect(jsonPath("$.totalElements").value(21))
+                .andExpect(jsonPath("$.totalPages").value(2));
+    }
+
     private Ciclo cicloPorCodigo(String codigo) {
         return cicloRepository.findAll().stream()
                 .filter(ciclo -> ciclo.getCodigo().equals(codigo))
@@ -370,8 +410,28 @@ class HistoricoEvolucaoControllerIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.tipoLeitura").value("PALAVRA"))
                 .andExpect(jsonPath("$.entrada.ciclo").value("ENTRADA"))
                 .andExpect(jsonPath("$.entrada.quantidadeCorretas").value(2))
+                .andExpect(jsonPath("$.entrada.percentualAcerto").value(100.00))
+                .andExpect(jsonPath("$.entrada.fase").value("LEITOR_FLUENTE"))
+                .andExpect(jsonPath("$.entrada.nivel").doesNotExist())
                 .andExpect(jsonPath("$.acompanhamento.ciclo").value("ACOMPANHAMENTO"))
                 .andExpect(jsonPath("$.saida.ciclo").value("SAIDA"));
+    }
+
+    /** Edge Case 1 (spec.md): aluno sem nenhuma avaliação → 200 com os 3 ciclos `null`, nunca 404. */
+    @Test
+    void evolucaoCiclosComAlunoSemAvaliacaoRetorna200ComOsTresCiclosNulos() throws Exception {
+        AnoLetivo anoLetivo = novoAnoLetivoAtivo(3327);
+        Professor professor = professorRepository.save(new Professor("Professor Ciclos Sem Avaliacao"));
+        Matricula matricula = novaMatriculaAtiva(anoLetivo, professor);
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-ciclos", matricula.getAluno().getId())
+                        .header("Authorization", bearerCoordenador())
+                        .param("anoLetivoId", anoLetivo.getId().toString())
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entrada").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.acompanhamento").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.saida").value(org.hamcrest.Matchers.nullValue()));
     }
 
     @Test
@@ -490,6 +550,32 @@ class HistoricoEvolucaoControllerIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.anos[1].saida.quantidadeCorretas").value(15))
                 .andExpect(jsonPath("$.anos[1].saida.evolucao.absoluta").value(5))
                 .andExpect(jsonPath("$.anos[1].saida.evolucao.percentual").value(50.00));
+    }
+
+    /**
+     * HIST-20 fim a fim: prova que {@code evolucao-anos} usa a `FINALIZADA`
+     * de maior `finalizadoEm` quando há duas no mesmo (ano, ciclo), contra
+     * MySQL real - não só a lista já ordenada de {@code
+     * HistoricoEvolucaoServiceTest} (Verifier PASS 1, mutante M4).
+     */
+    @Test
+    void evolucaoAnosComDuasFinalizadaNoMesmoAnoECicloUsaAMaisRecente() throws Exception {
+        AnoLetivo anoLetivo = novoAnoLetivo(3340);
+        Professor professor = professorRepository.save(new Professor("Professor Anos Repetido"));
+        Matricula matricula = novaMatriculaAtiva(anoLetivo, professor);
+        Instant agora = Instant.now();
+        novaAvaliacaoFinalizadaComCorretasEData(
+                matricula, cicloPorCodigo("SAIDA"), TipoLeituraCodigo.PALAVRA, LocalDate.of(3340, 10, 1), 5,
+                agora.minus(Duration.ofDays(10)));
+        novaAvaliacaoFinalizadaComCorretasEData(
+                matricula, cicloPorCodigo("SAIDA"), TipoLeituraCodigo.PALAVRA, LocalDate.of(3340, 11, 1), 18, agora);
+
+        mockMvc.perform(get("/api/v1/alunos/{alunoId}/evolucao-anos", matricula.getAluno().getId())
+                        .header("Authorization", bearerCoordenador())
+                        .param("tipoLeitura", "PALAVRA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.anos", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.anos[0].saida.quantidadeCorretas").value(18));
     }
 
     @Test

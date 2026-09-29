@@ -13,6 +13,7 @@ import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivo;
 import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivoRepository;
 import com.missio.fluencia_leitora.cadastros.anoletivo.SituacaoAnoLetivo;
 import com.missio.fluencia_leitora.cadastros.dominio.Ciclo;
+import com.missio.fluencia_leitora.cadastros.dominio.CicloRepository;
 import com.missio.fluencia_leitora.cadastros.professor.Professor;
 import com.missio.fluencia_leitora.cadastros.turma.Turma;
 import com.missio.fluencia_leitora.common.error.BusinessException;
@@ -80,6 +81,9 @@ class HistoricoEvolucaoServiceTest {
     private AnoLetivoRepository anoLetivoRepository;
 
     @Mock
+    private CicloRepository cicloRepository;
+
+    @Mock
     private ContextoUsuarioPort contextoUsuario;
 
     private HistoricoEvolucaoService service;
@@ -90,6 +94,7 @@ class HistoricoEvolucaoServiceTest {
     void setUp() {
         lenient().when(contextoUsuario.perfilAtual()).thenReturn(Perfil.PROFESSOR);
         lenient().when(contextoUsuario.professorIdAtual()).thenReturn(PROFESSOR_ID);
+        lenient().when(cicloRepository.existsById(any())).thenReturn(true);
 
         Professor professor = new Professor("Professor Teste");
         ReflectionTestUtils.setField(professor, "id", PROFESSOR_ID);
@@ -108,6 +113,7 @@ class HistoricoEvolucaoServiceTest {
                 avaliacaoAudioRepository,
                 alunoService,
                 anoLetivoRepository,
+                cicloRepository,
                 new PertencimentoProfessorGuard(contextoUsuario));
     }
 
@@ -167,6 +173,20 @@ class HistoricoEvolucaoServiceTest {
 
         verify(avaliacaoRepository)
                 .buscarHistorico(ALUNO_ID, StatusAvaliacao.FINALIZADA, anoLetivoId, tipoLeitura, cicloId, pageable);
+    }
+
+    /** HIST-22 (Verifier PASS 1, gap E4): cicloId numérico fora do domínio fixo de `ciclo` → 400, não página vazia. */
+    @Test
+    void historicoComCicloIdForaDoDominioLanca400() {
+        mockAlunoComMatricula(matriculaAtiva);
+        when(cicloRepository.existsById(999L)).thenReturn(false);
+
+        BusinessException ex = assertThrows(
+                BusinessException.class,
+                () -> service.historico(ALUNO_ID, null, null, 999L, PageRequest.of(0, 20)));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+        assertEquals("CICLO_INVALIDO", ex.getCode());
     }
 
     @Test

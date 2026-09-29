@@ -367,20 +367,26 @@ class AvaliacaoRepositoryIT extends IntegrationTestBase {
         Turma turma2210 = novaTurmaEm(ano2210, "2210");
         Turma turma2211 = novaTurmaEm(ano2211, "2211");
         List<Ciclo> ciclos = ciclosOrdenadosPorId();
+        Instant agora = Instant.now();
 
-        Avaliacao ano2210Ciclo0 = novaAvaliacaoHistorico(
+        Avaliacao ano2210Ciclo0Recente = novaAvaliacaoHistorico(
                 aluno, ano2210, turma2210, ciclos.get(0), TipoLeituraCodigo.PALAVRA,
-                LocalDate.of(2210, 3, 1), StatusAvaliacao.FINALIZADA, Instant.now());
+                LocalDate.of(2210, 3, 1), StatusAvaliacao.FINALIZADA, agora);
+        // mesmo (ano, ciclo) que a anterior, finalizadoEm mais antigo (HIST-20):
+        // prova que a query ordena por finalizadoEm desc dentro do grupo, não só por inserção.
+        Avaliacao ano2210Ciclo0Antiga = novaAvaliacaoHistorico(
+                aluno, ano2210, turma2210, ciclos.get(0), TipoLeituraCodigo.PALAVRA,
+                LocalDate.of(2210, 2, 1), StatusAvaliacao.FINALIZADA, agora.minus(Duration.ofDays(10)));
         Avaliacao ano2210Ciclo1 = novaAvaliacaoHistorico(
                 aluno, ano2210, turma2210, ciclos.get(1), TipoLeituraCodigo.PALAVRA,
-                LocalDate.of(2210, 4, 1), StatusAvaliacao.FINALIZADA, Instant.now());
+                LocalDate.of(2210, 4, 1), StatusAvaliacao.FINALIZADA, agora);
         Avaliacao ano2211Ciclo0 = novaAvaliacaoHistorico(
                 aluno, ano2211, turma2211, ciclos.get(0), TipoLeituraCodigo.PALAVRA,
-                LocalDate.of(2211, 3, 1), StatusAvaliacao.FINALIZADA, Instant.now());
+                LocalDate.of(2211, 3, 1), StatusAvaliacao.FINALIZADA, agora);
         // fora do escopo: tipo de leitura diferente
         novaAvaliacaoHistorico(
                 aluno, ano2211, turma2211, ciclos.get(1), TipoLeituraCodigo.TEXTO_CURTO,
-                LocalDate.of(2211, 4, 1), StatusAvaliacao.FINALIZADA, Instant.now());
+                LocalDate.of(2211, 4, 1), StatusAvaliacao.FINALIZADA, agora);
         // fora do escopo: nao finalizada
         novaAvaliacaoHistorico(
                 aluno, ano2211, turma2211, ciclos.get(1), TipoLeituraCodigo.PALAVRA,
@@ -392,6 +398,9 @@ class AvaliacaoRepositoryIT extends IntegrationTestBase {
                 .map(Avaliacao::getId)
                 .toList();
 
-        assertEquals(List.of(ano2210Ciclo0.getId(), ano2210Ciclo1.getId(), ano2211Ciclo0.getId()), ids);
+        assertEquals(
+                List.of(ano2210Ciclo0Recente.getId(), ano2210Ciclo0Antiga.getId(), ano2210Ciclo1.getId(),
+                        ano2211Ciclo0.getId()),
+                ids);
     }
 }

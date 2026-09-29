@@ -10,6 +10,7 @@ import com.missio.fluencia_leitora.cadastros.aluno.Matricula;
 import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivo;
 import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivoRepository;
 import com.missio.fluencia_leitora.cadastros.anoletivo.SituacaoAnoLetivo;
+import com.missio.fluencia_leitora.cadastros.dominio.CicloRepository;
 import com.missio.fluencia_leitora.common.error.BusinessException;
 import com.missio.fluencia_leitora.common.security.PertencimentoProfessorGuard;
 import org.springframework.data.domain.Page;
@@ -45,6 +46,7 @@ public class HistoricoEvolucaoService {
     private final AvaliacaoAudioRepository avaliacaoAudioRepository;
     private final AlunoService alunoService;
     private final AnoLetivoRepository anoLetivoRepository;
+    private final CicloRepository cicloRepository;
     private final PertencimentoProfessorGuard pertencimentoProfessorGuard;
 
     public HistoricoEvolucaoService(
@@ -52,19 +54,25 @@ public class HistoricoEvolucaoService {
             AvaliacaoAudioRepository avaliacaoAudioRepository,
             AlunoService alunoService,
             AnoLetivoRepository anoLetivoRepository,
+            CicloRepository cicloRepository,
             PertencimentoProfessorGuard pertencimentoProfessorGuard) {
         this.avaliacaoRepository = avaliacaoRepository;
         this.avaliacaoAudioRepository = avaliacaoAudioRepository;
         this.alunoService = alunoService;
         this.anoLetivoRepository = anoLetivoRepository;
+        this.cicloRepository = cicloRepository;
         this.pertencimentoProfessorGuard = pertencimentoProfessorGuard;
     }
 
+    /** HIST-22 (Verifier PASS 1, gap E4): `cicloId` numérico mas fora do domínio fixo de `ciclo` também é 400. */
     @Transactional(readOnly = true)
     public Page<Avaliacao> historico(
             Long alunoId, Long anoLetivoId, TipoLeituraCodigo tipoLeitura, Long cicloId, Pageable pageable) {
         AlunoService.AlunoBusca alunoBusca = alunoService.buscarPorId(alunoId);
         verificarPertencimento(alunoBusca.matriculaAtiva());
+        if (cicloId != null && !cicloRepository.existsById(cicloId)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "CICLO_INVALIDO", "cicloId inválido");
+        }
 
         return avaliacaoRepository.buscarHistorico(
                 alunoId, StatusAvaliacao.FINALIZADA, anoLetivoId, tipoLeitura, cicloId, pageable);
