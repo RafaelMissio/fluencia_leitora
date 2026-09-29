@@ -1,7 +1,27 @@
 import { useEffect, useReducer, useRef } from 'react'
 import { request } from '../../api/client'
-import type { AvaliacaoResponse, PalavraAvaliacao, StatusAvaliacao } from '../../api/types'
+import type { ApiError, AvaliacaoResponse, PalavraAvaliacao, StatusAvaliacao } from '../../api/types'
 import { createRecorder, isMediaRecorderSupported, pickSupportedMimeType, type RecorderHandle } from '../../media/recorder'
+
+/** spec.md P1 "Executar avaliação", AC7: botões habilitados por status. */
+export type BotaoExecucao = 'iniciar' | 'pausar' | 'continuar' | 'resetar' | 'finalizar'
+
+function botoesParaStatus(status: StatusAvaliacao | null): BotaoExecucao[] {
+  switch (status) {
+    case 'CRIADA':
+      return ['iniciar']
+    case 'EM_ANDAMENTO':
+      return ['pausar', 'resetar', 'finalizar']
+    case 'PAUSADA':
+      return ['continuar', 'resetar', 'finalizar']
+    case 'FINALIZADA':
+    case 'CANCELADA':
+    case null:
+      return []
+    default:
+      return []
+  }
+}
 
 /** Edge case do spec.md: navegador sem `MediaRecorder` (FE-25). */
 const MENSAGEM_SEM_SUPORTE = 'Navegador sem suporte à gravação. Use Chrome, Edge, Firefox ou Safari 17+'
@@ -82,8 +102,9 @@ function reducer(state: State, action: Action): State {
  * `getUserMedia`, `MediaRecorder` (via `media/recorder.ts`) e o cronômetro
  * local, ressincronizados com as respostas do servidor. T16 cobre o
  * carregamento inicial e `iniciar()` (FE-11, FE-12, FE-13, FE-24, FE-25);
- * T17 adiciona `pausar`/`continuar`/`resetar`; `finalizar` e o resync de 409
- * chegam em T18.
+ * T17 adiciona `pausar`/`continuar`/`resetar`; T18 adiciona `finalizar`, os
+ * `botoesHabilitados` por status (FE-14) e o resync silencioso em qualquer
+ * 409 `TRANSICAO_INVALIDA` (FE-15).
  */
 export function useAvaliacaoExecucao(avaliacaoId: number) {
   const [state, dispatch] = useReducer(reducer, initialState)
@@ -133,6 +154,27 @@ export function useAvaliacaoExecucao(avaliacaoId: number) {
   }, [])
 
   /**
+   * FE-15: chama uma transição e, se o servidor responder 409
+   * `TRANSICAO_INVALIDA`, recarrega a avaliação e resincroniza o estado
+   * silenciosamente (sem lançar erro visível) em vez de propagar o erro.
+   * Retorna `null` quando resincronizou - o chamador deve pular seus efeitos
+   * locais de sucesso (recorder/cronômetro) nesse caso.
+   */
+  async function chamarTransicao(path: string): Promise<AvaliacaoResponse | null> {
+    try {
+      return await request<AvaliacaoResponse>(path, { method: 'POST' })
+    } catch (erro) {
+      const apiError = erro as ApiError
+      if (apiError.status === 409 && apiError.code === 'TRANSICAO_INVALIDA') {
+        const avaliacao = await request<AvaliacaoResponse>(`/avaliacoes/${avaliacaoId}`)
+        dispatch({ type: 'AVALIACAO_CARREGADA', avaliacao })
+        return null
+      }
+      throw erro
+    }
+  }
+
+  /**
    * FE-11/FE-12: pede o microfone ANTES de chamar a API `iniciar` - se
    * negado/indisponível, `iniciar` nunca é chamado e a avaliação continua
    * `CRIADA`. FE-13: gravação e cronômetro começam juntos ao suceder.
@@ -151,7 +193,11 @@ export function useAvaliacaoExecucao(avaliacaoId: number) {
       return
     }
 
-    const avaliacao = await request<AvaliacaoResponse>(`/avaliacoes/${avaliacaoId}/iniciar`, { method: 'POST' })
+    const avaliacao = await chamarTransicao(`/avaliacoes/${avaliacaoId}/iniciar`)
+    if (!avaliacao) {
+      stream.getTracks().forEach((track) => track.stop())
+      return
+    }
 
     streamRef.current = stream
     const mimeType = pickSupportedMimeType() ?? 'audio/webm'
@@ -165,7 +211,8 @@ export function useAvaliacaoExecucao(avaliacaoId: number) {
 
   /** spec.md P1 "Executar avaliação", AC4: pausa o cronômetro e a gravação junto com a API. */
   async function pausar(): Promise<void> {
-    const avaliacao = await request<AvaliacaoResponse>(`/avaliacoes/${avaliacaoId}/pausar`, { method: 'POST' })
+    const avaliacao = await chamarTransicao(`/avaliacoes/${avaliacaoId}/pausar`)
+    if (!avaliacao) return
     pararContagem()
     recorderRef.current?.pause()
     dispatch({ type: 'TRANSICAO_OK', avaliacao, gravando: false })
@@ -173,7 +220,8 @@ export function useAvaliacaoExecucao(avaliacaoId: number) {
 
   /** spec.md P1 "Executar avaliação", AC4: caminho inverso de `pausar`, retomando de onde parou. */
   async function continuar(): Promise<void> {
-    const avaliacao = await request<AvaliacaoResponse>(`/avaliacoes/${avaliacaoId}/continuar`, { method: 'POST' })
+    const avaliacao = await chamarTransicao(`/avaliacoes/${avaliacaoId}/continuar`)
+    if (!avaliacao) return
     recorderRef.current?.resume()
     dispatch({ type: 'TRANSICAO_OK', avaliacao, gravando: true })
     iniciarContagem(state.tempoRestanteMs)
@@ -189,7 +237,8 @@ export function useAvaliacaoExecucao(avaliacaoId: number) {
   async function resetar(confirmado: boolean): Promise<void> {
     if (!confirmado) return
 
-    const avaliacao = await request<AvaliacaoResponse>(`/avaliacoes/${avaliacaoId}/resetar`, { method: 'POST' })
+    const avaliacao = await chamarTransicao(`/avaliacoes/${avaliacaoId}/resetar`)
+    if (!avaliacao) return
     pararContagem()
     if (recorderRef.current) {
       recorderRef.current.stop().catch(() => undefined)
@@ -206,6 +255,45 @@ export function useAvaliacaoExecucao(avaliacaoId: number) {
     })
   }
 
+  /**
+   * spec.md P1 "Executar avaliação", AC6: para a gravação (`stop()`
+   * consumindo o `Blob` desta vez - ao contrário de `resetar`), chama
+   * `POST .../finalizar` e retorna o `Blob` gravado para quem chamou (a
+   * composição da tela, T23) encaminhar ao envio de áudio.
+   *
+   * SPEC_DEVIATION: o `AvaliacaoController` real (`POST
+   * /avaliacoes/{id}/finalizar`) não tem `@RequestBody` - o servidor decide
+   * sozinho se o motivo foi tempo esgotado (`AvaliacaoService.
+   * finalizarSeTempoEsgotado`, chamado antes de qualquer transição). `motivo`
+   * fica só como intenção do chamador (dispara automaticamente ao chegar a
+   * 00:00 vs. clique manual); não é enviado no corpo da requisição.
+   */
+  async function finalizar(motivo?: 'TEMPO_ESGOTADO'): Promise<Blob | null> {
+    void motivo
+    pararContagem()
+    let blob: Blob | null = null
+    if (recorderRef.current) {
+      blob = await recorderRef.current.stop()
+      recorderRef.current = null
+    }
+    streamRef.current?.getTracks().forEach((track) => track.stop())
+    streamRef.current = null
+
+    const avaliacao = await chamarTransicao(`/avaliacoes/${avaliacaoId}/finalizar`)
+    if (avaliacao) {
+      dispatch({ type: 'TRANSICAO_OK', avaliacao, gravando: false })
+    }
+    return blob
+  }
+
+  // spec.md P1 "Executar avaliação", AC6: o cronômetro chegando a 00:00 finaliza automaticamente.
+  useEffect(() => {
+    if (state.status === 'EM_ANDAMENTO' && state.tempoRestanteMs <= 0) {
+      finalizar('TEMPO_ESGOTADO')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.status, state.tempoRestanteMs])
+
   return {
     status: state.status,
     tempoRestanteMs: state.tempoRestanteMs,
@@ -213,9 +301,11 @@ export function useAvaliacaoExecucao(avaliacaoId: number) {
     erroMicrofone: state.erroMicrofone,
     interrompida: state.interrompida,
     palavras: state.palavras,
+    botoesHabilitados: botoesParaStatus(state.status),
     iniciar,
     pausar,
     continuar,
     resetar,
+    finalizar,
   }
 }

@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { AvaliacaoResponse } from '../../api/types'
+import type { AvaliacaoResponse, StatusAvaliacao } from '../../api/types'
 import { useAvaliacaoExecucao } from './useAvaliacaoExecucao'
 
 vi.mock('../../media/recorder', () => ({
@@ -279,6 +279,80 @@ describe('useAvaliacaoExecucao', () => {
 
       expect(result.current.status).toBe(statusAntes)
       expect(vi.mocked(fetch).mock.calls.length).toBe(chamadasAntes)
+    })
+  })
+
+  describe('finalizar, botoesHabilitados e resync em 409 (T18)', () => {
+    it('the countdown reaching 0 calls finalizar with motivo TEMPO_ESGOTADO automatically (spec.md AC6)', async () => {
+      const { now } = await iniciarEmAndamento(1)
+      vi.mocked(fetch).mockResolvedValueOnce(
+        jsonResponse(200, avaliacao({ status: 'FINALIZADA', tempoConfiguradoSegundos: 1 })),
+      )
+
+      now.valor += 1000
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000)
+      })
+      // Segunda passagem para deixar o `finalizar()` disparado pelo efeito (assíncrono) resolver.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+      })
+
+      const chamouFinalizar = vi
+        .mocked(fetch)
+        .mock.calls.some(([url]) => url === '/api/v1/avaliacoes/1/finalizar')
+      expect(chamouFinalizar).toBe(true)
+    })
+
+    it('a manual click on Finalizar calls finalizar() without motivo (spec.md AC6)', async () => {
+      const { result, recorderHandle } = await iniciarEmAndamento()
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(200, avaliacao({ status: 'FINALIZADA' })))
+
+      let blob: Blob | null = null
+      await act(async () => {
+        blob = await result.current.finalizar()
+      })
+
+      expect(blob).toBeInstanceOf(Blob)
+      expect(recorderHandle.stop).toHaveBeenCalledTimes(1)
+      const [url, init] = vi.mocked(fetch).mock.calls.at(-1)!
+      expect(url).toBe('/api/v1/avaliacoes/1/finalizar')
+      expect(init?.method).toBe('POST')
+      expect(init?.body).toBeUndefined()
+      expect(result.current.status).toBe('FINALIZADA')
+    })
+
+    it.each([
+      ['CRIADA', ['iniciar']],
+      ['EM_ANDAMENTO', ['pausar', 'resetar', 'finalizar']],
+      ['PAUSADA', ['continuar', 'resetar', 'finalizar']],
+      ['FINALIZADA', []],
+      ['CANCELADA', []],
+    ] satisfies [StatusAvaliacao, string[]][])(
+      'botoesHabilitados for status %s is exactly %j (spec.md AC7)',
+      async (status, esperado) => {
+        vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(200, avaliacao({ status })))
+        const { result } = renderHook(() => useAvaliacaoExecucao(1))
+
+        await waitFor(() => expect(result.current.status).toBe(status))
+        expect(result.current.botoesHabilitados).toEqual(esperado)
+      },
+    )
+
+    it('a 409 TRANSICAO_INVALIDA response in any transition reloads and resyncs, without a visible error (FE-15)', async () => {
+      const { result } = await iniciarEmAndamento()
+      vi.mocked(fetch).mockResolvedValueOnce(
+        jsonResponse(409, { code: 'TRANSICAO_INVALIDA', detail: 'Ação pausar não permitida no status FINALIZADA' }),
+      )
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(200, avaliacao({ status: 'FINALIZADA' })))
+
+      await act(async () => {
+        await result.current.pausar()
+      })
+
+      expect(result.current.status).toBe('FINALIZADA')
+      const [url] = vi.mocked(fetch).mock.calls.at(-1)!
+      expect(url).toBe('/api/v1/avaliacoes/1')
     })
   })
 })

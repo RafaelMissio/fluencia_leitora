@@ -634,13 +634,15 @@ T5 → T36
 - Skill: NONE
 
 **Done when**:
-- [ ] Cronômetro chegando a 0 chama `finalizar(motivo='TEMPO_ESGOTADO')` automaticamente
-- [ ] Clique manual em "Finalizar" chama `finalizar()` sem `motivo`
-- [ ] `botoesHabilitados` corresponde exatamente à tabela da AC7 para os 5 status
-- [ ] Uma resposta 409 `TRANSICAO_INVALIDA` em qualquer transição recarrega a avaliação e resincroniza o estado, sem lançar erro visível
-- [ ] Novos testes unitários: os 4 pontos acima, cobrindo os 5 valores de `status`
-- [ ] Gate check passes: `npm run test`
-- [ ] Test count: >= 6 testes novos
+- [x] Cronômetro chegando a 0 chama `finalizar(motivo='TEMPO_ESGOTADO')` automaticamente
+- [x] Clique manual em "Finalizar" chama `finalizar()` sem `motivo`
+- [x] `botoesHabilitados` corresponde exatamente à tabela da AC7 para os 5 status
+- [x] Uma resposta 409 `TRANSICAO_INVALIDA` em qualquer transição recarrega a avaliação e resincroniza o estado, sem lançar erro visível
+- [x] Novos testes unitários: os 4 pontos acima, cobrindo os 5 valores de `status`
+- [x] Gate check passes: `npm run test`
+- [x] Test count: >= 6 testes novos (8 testes)
+
+**SPEC_DEVIATION (endpoint)**: `AvaliacaoController.finalizar` (`POST /avaliacoes/{id}/finalizar`) não tem `@RequestBody` - o backend decide sozinho se o motivo foi tempo esgotado (`AvaliacaoService.finalizarSeTempoEsgotado`, chamado antes de qualquer transição, não pelo `finalizar` explicitamente). `finalizar(motivo?)` mantém a assinatura pedida pelo design.md/task (o chamador ainda distingue "automático" de "clique manual"), mas `motivo` não é enviado no corpo da requisição - não há corpo a enviar. Documentado também como comentário no código (`useAvaliacaoExecucao.ts`, função `finalizar`).
 
 **Tests**: unit
 **Gate**: quick
