@@ -721,14 +721,14 @@ T5 → T36
 - Skill: NONE
 
 **Done when**:
-- [ ] Envio bem-sucedido na 1ª tentativa → `status: 'enviado'`, sem esperar
-- [ ] Falha na 1ª e sucesso na 2ª → respeita a espera de 1s entre tentativas (fake timers)
-- [ ] Falha nas 3 tentativas → `status: 'falhou'`, `Blob` retido, `beforeunload` registrado
-- [ ] `reenviar()` após falha total tenta de novo e pode suceder
-- [ ] `beforeunload` não é mais bloqueado após `status: 'enviado'`
-- [ ] Novos testes unitários em `useEnvioAudio.test.ts`: os 5 pontos acima
-- [ ] Gate check passes: `npm run test`
-- [ ] Test count: >= 5 testes novos
+- [x] Envio bem-sucedido na 1ª tentativa → `status: 'enviado'`, sem esperar
+- [x] Falha na 1ª e sucesso na 2ª → respeita a espera de 1s entre tentativas (fake timers)
+- [x] Falha nas 3 tentativas → `status: 'falhou'`, `Blob` retido, `beforeunload` registrado
+- [x] `reenviar()` após falha total tenta de novo e pode suceder
+- [x] `beforeunload` não é mais bloqueado após `status: 'enviado'`
+- [x] Novos testes unitários em `useEnvioAudio.test.ts`: os 5 pontos acima
+- [x] Gate check passes: `npm run test`
+- [x] Test count: >= 5 testes novos (5 testes)
 
 **Tests**: unit
 **Gate**: quick
