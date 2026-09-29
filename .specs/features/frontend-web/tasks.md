@@ -664,12 +664,12 @@ T5 → T36
 - Skill: `web-accessibility`
 
 **Done when**:
-- [ ] 65000ms renderiza "01:05"
-- [ ] `gravando: true` mostra o indicador "Gravando"; `false` não mostra
-- [ ] `aria-label` presente para leitores de tela (SDD Edge Cases: navegação/rótulos acessíveis)
-- [ ] Novos testes de componente em `CronometroDisplay.test.tsx`: os 3 pontos acima
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 3 testes novos
+- [x] 65000ms renderiza "01:05"
+- [x] `gravando: true` mostra o indicador "Gravando"; `false` não mostra
+- [x] `aria-label` presente para leitores de tela (SDD Edge Cases: navegação/rótulos acessíveis)
+- [x] Novos testes de componente em `CronometroDisplay.test.tsx`: os 3 pontos acima
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 3 testes novos (3 testes)
 
 **Tests**: unit
 **Gate**: full
