@@ -326,12 +326,12 @@ T5 → T36
 - Skill: NONE
 
 **Done when**:
-- [ ] Digitar menos de 2 caracteres não dispara a chamada
-- [ ] A chamada só é feita 300ms após a última tecla (debounce testado com fake timers)
-- [ ] Resultado tipado como `Page<AlunoBuscaItem>`
-- [ ] Novos testes unitários em `useAlunoBusca.test.ts`: menos de 2 chars não busca, debounce de 300ms, resultado propagado
-- [ ] Gate check passes: `npm run test`
-- [ ] Test count: >= 3 testes novos
+- [x] Digitar menos de 2 caracteres não dispara a chamada
+- [x] A chamada só é feita 300ms após a última tecla (debounce testado com fake timers)
+- [x] Resultado tipado como `Page<AlunoBuscaItem>`
+- [x] Novos testes unitários em `useAlunoBusca.test.ts`: menos de 2 chars não busca, debounce de 300ms, resultado propagado
+- [x] Gate check passes: `npm run test`
+- [x] Test count: >= 3 testes novos (3 testes)
 
 **Tests**: unit
 **Gate**: quick
