@@ -260,12 +260,12 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Rota não autenticada acessando qualquer rota protegida é redirecionada para `/login`, e após login volta para a rota original
-- [ ] `AppLayout` mostra exatamente os 3 itens do PROFESSOR e exatamente os 8 itens do COORDENADOR (sem "Avaliar" para COORDENADOR)
-- [ ] `RoleGate` esconde/bloqueia conteúdo fora do perfil permitido
-- [ ] Novos testes de componente em `AppLayout.test.tsx`/`router.test.tsx`: menu por perfil, redirecionamento não autenticado, `RoleGate` bloqueando PROFESSOR de conteúdo COORDENADOR
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 5 testes novos
+- [x] Rota não autenticada acessando qualquer rota protegida é redirecionada para `/login`, e após login volta para a rota original
+- [x] `AppLayout` mostra exatamente os 3 itens do PROFESSOR e exatamente os 8 itens do COORDENADOR (sem "Avaliar" para COORDENADOR)
+- [x] `RoleGate` esconde/bloqueia conteúdo fora do perfil permitido
+- [x] Novos testes de componente em `AppLayout.test.tsx`/`router.test.tsx`: menu por perfil, redirecionamento não autenticado, `RoleGate` bloqueando PROFESSOR de conteúdo COORDENADOR
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 5 testes novos (6 testes)
 
 **Tests**: unit
 **Gate**: full
