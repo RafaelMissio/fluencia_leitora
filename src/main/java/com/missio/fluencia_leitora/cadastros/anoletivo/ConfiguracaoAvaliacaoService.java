@@ -14,6 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
  * porque esse DTO só é criado na T11 (Where da T10 lista somente
  * {@code ConfiguracaoAvaliacaoService.java}). O comportamento exigido pela
  * T10 é o mesmo; a T11 mapeia seu request DTO para estes parâmetros.
+ *
+ * <p>SPEC_DEVIATION: {@code buscarAtivaPorSerie} foi adicionada depois de
+ * {@code cadastros-base} fechar com Verifier PASS - a feature `frontend-web`
+ * (T14, spec.md AC3 "contador N/mín/máx") descobriu que não existia nenhum
+ * `GET` para o PROFESSOR ler os limites de uma série antes de enviar a
+ * avaliação (só havia o `PUT` COORDENADOR-only). Decisão do usuário: adição
+ * aditiva, sem alterar nenhum comportamento já testado.
  */
 @Service
 public class ConfiguracaoAvaliacaoService {
@@ -24,9 +31,29 @@ public class ConfiguracaoAvaliacaoService {
     private static final int QUANTIDADE_MAXIMA_PERMITIDA = 200;
 
     private final ConfiguracaoAvaliacaoRepository configuracaoAvaliacaoRepository;
+    private final AnoLetivoRepository anoLetivoRepository;
 
-    public ConfiguracaoAvaliacaoService(ConfiguracaoAvaliacaoRepository configuracaoAvaliacaoRepository) {
+    public ConfiguracaoAvaliacaoService(
+            ConfiguracaoAvaliacaoRepository configuracaoAvaliacaoRepository, AnoLetivoRepository anoLetivoRepository) {
         this.configuracaoAvaliacaoRepository = configuracaoAvaliacaoRepository;
+        this.anoLetivoRepository = anoLetivoRepository;
+    }
+
+    /**
+     * Lê a configuração de {@code serie} no ano letivo ATIVO (CAD-04
+     * garante no máximo um). 404 {@code ANO_LETIVO_ATIVO_NAO_ENCONTRADO}
+     * quando não há ano ATIVO; 404 {@code CONFIGURACAO_NAO_ENCONTRADA}
+     * quando a série não tem configuração nesse ano (ex. fora de 1-5).
+     */
+    public ConfiguracaoAvaliacao buscarAtivaPorSerie(int serie) {
+        AnoLetivo anoAtivo = anoLetivoRepository.findBySituacao(SituacaoAnoLetivo.ATIVO).stream()
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "ANO_LETIVO_ATIVO_NAO_ENCONTRADO", "Nenhum ano letivo ativo"));
+        return configuracaoAvaliacaoRepository
+                .findByAnoLetivoIdAndSerie(anoAtivo.getId(), serie)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "CONFIGURACAO_NAO_ENCONTRADA", "Configuração não encontrada"));
     }
 
     @Transactional

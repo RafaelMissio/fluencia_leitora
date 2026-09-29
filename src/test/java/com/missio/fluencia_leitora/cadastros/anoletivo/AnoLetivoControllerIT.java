@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -253,6 +254,44 @@ class AnoLetivoControllerIT extends IntegrationTestBase {
         assertTrue(anoLetivo.isAtivo());
         assertTrue(anoLetivo.getSituacao() != SituacaoAnoLetivo.ATIVO);
         assertEquals(15, configuracaoAvaliacaoRepository.findByAnoLetivoIdAndSerie(id, 1).orElseThrow().getQuantidadeMinima());
+    }
+
+    @Test
+    void getConfiguracaoAtivaDevolveOsLimitesDaSerieParaProfessorECoordenador() throws Exception {
+        Long id = criarAnoLetivo(proximoAno());
+        mockMvc.perform(post("/api/v1/anos-letivos/" + id + "/ativar").header("Authorization", bearerCoordenador()))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/anos-letivos/ativo/configuracoes/1").header("Authorization", bearerCoordenador()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.serie").value(1))
+                .andExpect(jsonPath("$.quantidadeMinima").value(15))
+                .andExpect(jsonPath("$.quantidadeMaxima").value(20));
+
+        mockMvc.perform(get("/api/v1/anos-letivos/ativo/configuracoes/2").header("Authorization", bearerProfessorAnoLetivo()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.serie").value(2))
+                .andExpect(jsonPath("$.quantidadeMinima").value(20))
+                .andExpect(jsonPath("$.quantidadeMaxima").value(60));
+    }
+
+    @Test
+    void getConfiguracaoAtivaComSerieSemConfiguracaoRetorna404() throws Exception {
+        Long id = criarAnoLetivo(proximoAno());
+        mockMvc.perform(post("/api/v1/anos-letivos/" + id + "/ativar").header("Authorization", bearerCoordenador()))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/anos-letivos/ativo/configuracoes/6").header("Authorization", bearerCoordenador()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("CONFIGURACAO_NAO_ENCONTRADA"));
+    }
+
+    private String bearerProfessorAnoLetivo() {
+        Professor professor = professorRepository.save(new Professor("Professor Ano Letivo GET " + UUID.randomUUID()));
+        Usuario usuario = usuarioRepository.save(new Usuario(
+                "prof-anoletivo-" + UUID.randomUUID() + "@escola.com", "hash-nao-usado", Perfil.PROFESSOR,
+                professor.getId()));
+        return "Bearer " + jwtService.emitir(usuario.getId());
     }
 
     private MockHttpServletResponse putConfiguracao(Long id, String payload, CyclicBarrier barrier) throws Exception {

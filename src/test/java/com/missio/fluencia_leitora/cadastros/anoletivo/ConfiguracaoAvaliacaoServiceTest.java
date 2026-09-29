@@ -8,6 +8,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -20,7 +21,8 @@ import static org.mockito.Mockito.when;
 /**
  * CAD-06: ConfiguracaoAvaliacaoService.atualizar grava novos limites válidos
  * e rejeita cada violação (intervalo invertido, mínimo/máximo fora da faixa,
- * série fora de 1-5) com 422, sem alterar o registro.
+ * série fora de 1-5) com 422, sem alterar o registro. CAD-21:
+ * buscarAtivaPorSerie lê a configuração do ano ATIVO.
  */
 @ExtendWith(MockitoExtension.class)
 class ConfiguracaoAvaliacaoServiceTest {
@@ -28,8 +30,11 @@ class ConfiguracaoAvaliacaoServiceTest {
     @Mock
     private ConfiguracaoAvaliacaoRepository configuracaoAvaliacaoRepository;
 
+    @Mock
+    private AnoLetivoRepository anoLetivoRepository;
+
     private ConfiguracaoAvaliacaoService service() {
-        return new ConfiguracaoAvaliacaoService(configuracaoAvaliacaoRepository);
+        return new ConfiguracaoAvaliacaoService(configuracaoAvaliacaoRepository, anoLetivoRepository);
     }
 
     private ConfiguracaoAvaliacao configuracaoExistente() {
@@ -88,5 +93,43 @@ class ConfiguracaoAvaliacaoServiceTest {
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
         assertEquals("SERIE_INVALIDA", exception.getCode());
         verify(configuracaoAvaliacaoRepository, never()).save(any());
+    }
+
+    @Test
+    void buscarAtivaPorSerieDevolveAConfiguracaoDoAnoAtivo() {
+        ConfiguracaoAvaliacao existente = configuracaoExistente();
+        when(anoLetivoRepository.findBySituacao(SituacaoAnoLetivo.ATIVO))
+                .thenReturn(List.of(existente.getAnoLetivo()));
+        when(configuracaoAvaliacaoRepository.findByAnoLetivoIdAndSerie(existente.getAnoLetivo().getId(), 1))
+                .thenReturn(Optional.of(existente));
+
+        ConfiguracaoAvaliacao encontrada = service().buscarAtivaPorSerie(1);
+
+        assertEquals(15, encontrada.getQuantidadeMinima());
+        assertEquals(20, encontrada.getQuantidadeMaxima());
+    }
+
+    @Test
+    void buscarAtivaPorSerieSemAnoAtivoRetorna404() {
+        when(anoLetivoRepository.findBySituacao(SituacaoAnoLetivo.ATIVO)).thenReturn(List.of());
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service().buscarAtivaPorSerie(1));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("ANO_LETIVO_ATIVO_NAO_ENCONTRADO", exception.getCode());
+    }
+
+    @Test
+    void buscarAtivaPorSerieSemConfiguracaoParaASerieRetorna404() {
+        ConfiguracaoAvaliacao existente = configuracaoExistente();
+        when(anoLetivoRepository.findBySituacao(SituacaoAnoLetivo.ATIVO))
+                .thenReturn(List.of(existente.getAnoLetivo()));
+        when(configuracaoAvaliacaoRepository.findByAnoLetivoIdAndSerie(existente.getAnoLetivo().getId(), 6))
+                .thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service().buscarAtivaPorSerie(6));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("CONFIGURACAO_NAO_ENCONTRADA", exception.getCode());
     }
 }

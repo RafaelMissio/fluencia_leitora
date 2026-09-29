@@ -181,8 +181,9 @@ Toda avaliação depende de um aluno vinculado a uma turma, a um professor e a u
 | CAD-18 | P2: Domínios fixos (ciclos e tipos de leitura) | Phase 1 (T4, T5) | Done |
 | CAD-19 | P1: Sem exclusão física (RNF006) | Phase 2 (T11, ano letivo), Phase 3 (T16-T18, turma/professor), Phase 4/5 (T25, T28, aluno) | Done |
 | CAD-20 | P1: Lock otimista | Phase 1/2 (T2, T11) | Done |
+| CAD-21 | P1: Leitura da configuração do ano ATIVO (`GET /anos-letivos/ativo/configuracoes/{serie}`), aberta a PROFESSOR+COORDENADOR | Added post-hoc for `frontend-web` (T14) - `ConfiguracaoAvaliacaoService.buscarAtivaPorSerie`, `AnoLetivoControllerIT` | Done |
 
-**Coverage:** 20 total, 20 mapped to tasks, 0 unmapped, 20 Done
+**Coverage:** 21 total, 21 mapped to tasks, 0 unmapped, 21 Done
 
 ---
 

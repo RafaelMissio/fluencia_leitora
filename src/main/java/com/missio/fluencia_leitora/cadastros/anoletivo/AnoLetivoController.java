@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -19,7 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * CAD-01/CAD-02/CAD-03/CAD-04/CAD-06/CAD-19/CAD-20: CRUD de ano letivo,
  * ativação e configuração de palavras por série. Escrita restrita ao
- * COORDENADOR (AUTH-07).
+ * COORDENADOR (AUTH-07). CAD-21: leitura da configuração do ano ATIVO,
+ * aberta a PROFESSOR+COORDENADOR - adicionada para `frontend-web` (ver
+ * javadoc de {@link ConfiguracaoAvaliacaoService#buscarAtivaPorSerie}).
  */
 @RestController
 @RequestMapping("/api/v1/anos-letivos")
@@ -62,5 +65,11 @@ public class AnoLetivoController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void inativar(@PathVariable Long id) {
         anoLetivoService.inativar(id);
+    }
+
+    @GetMapping("/ativo/configuracoes/{serie}")
+    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
+    public ConfiguracaoAvaliacaoResponse buscarConfiguracaoAtiva(@PathVariable int serie) {
+        return ConfiguracaoAvaliacaoResponse.from(configuracaoAvaliacaoService.buscarAtivaPorSerie(serie));
     }
 }
