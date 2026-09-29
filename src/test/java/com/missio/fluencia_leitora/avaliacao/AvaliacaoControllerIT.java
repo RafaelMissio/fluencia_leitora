@@ -1132,6 +1132,40 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void marcarPalavraComTempoJaEsgotadoFinalizaEGravaAntesDeResponder404ParaOrdemInexistente() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+        alterar(id, avaliacao -> avaliacao.setIniciadoEm(Instant.now().minusSeconds(90)));
+
+        marcar(bearer, id, 999, "CORRETA")
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+
+        Avaliacao gravada = avaliacaoRepository.findById(id).orElseThrow();
+        assertEquals(StatusAvaliacao.FINALIZADA, gravada.getStatus());
+        assertEquals(60, gravada.getTempoUtilizadoSegundos());
+        assertEquals(15, gravada.getQuantidadeNaoLidas());
+    }
+
+    @Test
+    void marcarPalavrasEmLoteComTempoJaEsgotadoFinalizaEGravaAntesDeResponder404ParaItemInvalido() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+        alterar(id, avaliacao -> avaliacao.setIniciadoEm(Instant.now().minusSeconds(90)));
+
+        marcarLote(bearer, id, List.of(Map.of("ordem", 999, "status", "CORRETA")))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+
+        Avaliacao gravada = avaliacaoRepository.findById(id).orElseThrow();
+        assertEquals(StatusAvaliacao.FINALIZADA, gravada.getStatus());
+        assertEquals(60, gravada.getTempoUtilizadoSegundos());
+        assertEquals(15, gravada.getQuantidadeNaoLidas());
+    }
+
     // ---- Consultas (AVA-23, AVA-26) --------------------------------------
 
     private ResultActions buscar(String bearer, Long id) throws Exception {
@@ -1370,6 +1404,37 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
         enviarAudio(bearer, id, "conteudo".getBytes(), "text/plain")
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("AUDIO_FORMATO_INVALIDO"));
+    }
+
+    @Test
+    void enviarAudioComTempoJaEsgotadoFinalizaAntesEAceitaOEnvio() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+        alterar(id, avaliacao -> avaliacao.setIniciadoEm(Instant.now().minusSeconds(90)));
+
+        enviarAudio(bearer, id, "conteudo-de-audio-fake".getBytes(), "audio/wav")
+                .andExpect(status().isCreated());
+
+        Avaliacao gravada = avaliacaoRepository.findById(id).orElseThrow();
+        assertEquals(StatusAvaliacao.FINALIZADA, gravada.getStatus());
+        assertEquals(60, gravada.getTempoUtilizadoSegundos());
+    }
+
+    @Test
+    void enviarAudioComTempoJaEsgotadoFinalizaEGravaAntesDeResponder422ParaFormatoInvalido() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.EM_ANDAMENTO);
+        alterar(id, avaliacao -> avaliacao.setIniciadoEm(Instant.now().minusSeconds(90)));
+
+        enviarAudio(bearer, id, "conteudo".getBytes(), "text/plain")
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("AUDIO_FORMATO_INVALIDO"));
+
+        Avaliacao gravada = avaliacaoRepository.findById(id).orElseThrow();
+        assertEquals(StatusAvaliacao.FINALIZADA, gravada.getStatus());
+        assertEquals(60, gravada.getTempoUtilizadoSegundos());
     }
 
     @Test

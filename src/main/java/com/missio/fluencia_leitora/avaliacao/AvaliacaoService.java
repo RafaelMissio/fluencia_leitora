@@ -224,14 +224,21 @@ public class AvaliacaoService {
         }
     }
 
-    /** AVA-15: marca uma palavra ({@code PUT .../palavras/{ordem}}). */
-    @Transactional
+    /**
+     * AVA-15: marca uma palavra ({@code PUT .../palavras/{ordem}}).
+     *
+     * <p>{@code noRollbackFor}: {@code marcar} roda a mesma finalização
+     * preguiçosa (AVA-17) das 6 transições - sem isso, uma falha própria do
+     * pedido de marcação (ex.: {@code ordem} inexistente) desfaria a
+     * finalização já aplicada (fix pós-Verifier, `.specs/features/avaliacao/validation.md`).
+     */
+    @Transactional(noRollbackFor = BusinessException.class)
     public Avaliacao marcarPalavra(Long id, int ordem, StatusPalavra status) {
         return marcar(id, List.of(new MarcacaoItem(ordem, status)));
     }
 
-    /** AVA-15: marca várias palavras numa única transação - tudo ou nada. */
-    @Transactional
+    /** AVA-15: marca várias palavras numa única transação - tudo ou nada (mesmo {@code noRollbackFor} de {@link #marcarPalavra}). */
+    @Transactional(noRollbackFor = BusinessException.class)
     public Avaliacao marcarPalavras(Long id, List<MarcacaoItem> itens) {
         return marcar(id, itens);
     }
@@ -361,10 +368,17 @@ public class AvaliacaoService {
      * {@code AudioTamanhoInvalidoException} de {@link AudioStoragePort}
      * viram 422; {@code AudioArmazenamentoException} sobe sem tratamento
      * (500 - falha de infraestrutura, não de negócio).
+     *
+     * <p>Roda a finalização preguiçosa (AVA-17) antes de checar o status -
+     * um envio que chega numa EM_ANDAMENTO com o tempo já esgotado finaliza
+     * primeiro e só então é aceito, como qualquer outra ação (fix
+     * pós-Verifier, `.specs/features/avaliacao/validation.md`); por isso o
+     * {@code noRollbackFor}, igual às transições e à marcação.
      */
-    @Transactional
+    @Transactional(noRollbackFor = BusinessException.class)
     public AvaliacaoAudio enviarAudio(Long id, byte[] conteudo, String mimeType) {
         Avaliacao avaliacao = carregar(id);
+        finalizarSeTempoEsgotado(avaliacao);
         if (avaliacao.getStatus() != StatusAvaliacao.FINALIZADA) {
             throw new BusinessException(
                     HttpStatus.CONFLICT,
