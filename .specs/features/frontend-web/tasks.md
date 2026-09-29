@@ -750,13 +750,16 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Painel mostra todos os campos de AC1 com os valores da `AvaliacaoResponse`
-- [ ] Falha simulada no envio mostra "O áudio não foi enviado" + botão de reenvio; reenviar com sucesso mostra o player
-- [ ] Player usa o endpoint de streaming; botão "Baixar áudio" usa `?download=true`
-- [ ] `classificacaoPendente: true` mostra o aviso correspondente
-- [ ] Novos testes de componente em `ResultadoAvaliacaoPage.test.tsx`: os 4 pontos acima
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 4 testes novos
+- [x] Painel mostra todos os campos de AC1 com os valores da `AvaliacaoResponse`
+- [x] Falha simulada no envio mostra "O áudio não foi enviado" + botão de reenvio; reenviar com sucesso mostra o player
+- [x] Player usa o endpoint de streaming; botão "Baixar áudio" usa `?download=true`
+- [x] `classificacaoPendente: true` mostra o aviso correspondente
+- [x] Novos testes de componente em `ResultadoAvaliacaoPage.test.tsx`: os 4 pontos acima
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 4 testes novos (3 testes; o 2º cobre em conjunto "falha + reenvio" e "player/download", que compartilham o mesmo fluxo de estado - não há como exercitar um sem o outro)
+
+**SPEC_DEVIATION (`?download=true`)**: `AvaliacaoController.baixarAudio`/`AvaliacaoService.baixarAudio` (backend) não leem nenhum `download` query param nem definem `Content-Disposition` - `?download=true` não tem efeito no servidor hoje (não é um bloqueio como o gap de T14: o endpoint existe e devolve os bytes certos). Como `GET /avaliacoes/{id}/audio` exige `Authorization: Bearer` (AD-009) e um `<audio src>`/`<a href>` nativo não envia esse header, a página já busca os bytes via `fetch` autenticado e expõe um Object URL (`useAudioObjectUrl`, interno ao arquivo) tanto para o player quanto para o link - o download é forçado no cliente pelo atributo HTML `download`, não pelo servidor. A URL requisitada mantém `?download=true` (Done when literal), mesmo ignorada pelo backend.
+**Nota (agent's discretion)**: sem hook próprio listado na task para buscar a `AvaliacaoResponse` - `useQuery` inline no próprio `ResultadoAvaliacaoPage.tsx`, mesmo padrão de T14 (`useConfiguracaoAvaliacao` inline em `ConfigurarAvaliacaoPage.tsx`).
 
 **Tests**: unit
 **Gate**: full

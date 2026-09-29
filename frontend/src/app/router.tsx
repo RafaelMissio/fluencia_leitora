@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext'
 import { LoginPage } from '../auth/LoginPage'
 import { AlunoBuscaPage } from '../features/alunos/AlunoBuscaPage'
 import { ConfigurarAvaliacaoPage } from '../features/avaliacoes/ConfigurarAvaliacaoPage'
+import { ResultadoAvaliacaoPage } from '../features/avaliacoes/ResultadoAvaliacaoPage'
 import { AppLayout } from '../layout/AppLayout'
 
 /**
@@ -64,6 +65,7 @@ export function AppRouter() {
         {/* Rotas de features entram aqui como <Route> filhas (tasks seguintes) */}
         <Route path="/alunos" element={<AlunoBuscaPage />} />
         <Route path="/avaliacoes/nova" element={<ConfigurarAvaliacaoPage />} />
+        <Route path="/avaliacoes/:id/resultado" element={<ResultadoAvaliacaoPage />} />
       </Route>
     </Routes>
   )
