@@ -174,6 +174,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: tasks.md T14 Deviations found during implementation - historicoAposDuasSubstituicoesGanhaDoisGruposNovosComOCorrentePrimeiro (integration-tests)
 - last seen: 2026-09-28T14:25:26Z
 
+### L-028 - When a lazy state-transition helper can fire inside a write method whose own later validation may still throw, annotate that method's transaction with the same noRollbackFor used on the primary transition methods, not just the methods added first.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `transactions` · harmful: 0
+- features: avaliacao
+- evidence: AvaliacaoService.java:228-237 (marcarPalavra/marcarPalavras lack noRollbackFor) (transactions)
+- last seen: 2026-09-29T00:01:05Z
+
+### L-029 - When design.md documents a shared pre-check as applying to every action of a service, grep every public method of that service for the helper call before marking the task done - do not assume it propagated from the methods it was first written for.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `avaliacao` · harmful: 0
+- features: avaliacao
+- evidence: AvaliacaoService.java:365-394 (enviarAudio never calls finalizarSeTempoEsgotado) (avaliacao)
+- last seen: 2026-09-29T00:01:05Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

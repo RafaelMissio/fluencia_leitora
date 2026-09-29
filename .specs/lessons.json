@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 28,
+  "next_id": 30,
   "lessons": [
     {
       "id": "L-001",
@@ -494,6 +494,42 @@
       ],
       "created": "2026-09-28T14:25:26Z",
       "last_seen": "2026-09-28T14:25:26Z"
+    },
+    {
+      "id": "L-028",
+      "key": "ac_gap::when a lazy state transition helper can fire inside a write method whose own later validation may still throw annotate that method s transaction with the same norollbackfor used on the primary transition methods not just the methods added first",
+      "text": "When a lazy state-transition helper can fire inside a write method whose own later validation may still throw, annotate that method's transaction with the same noRollbackFor used on the primary transition methods, not just the methods added first.",
+      "signal": "ac_gap",
+      "scope": "transactions",
+      "status": "candidate",
+      "features": [
+        "avaliacao"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AvaliacaoService.java:228-237 (marcarPalavra/marcarPalavras lack noRollbackFor) (transactions)"
+      ],
+      "created": "2026-09-29T00:01:05Z",
+      "last_seen": "2026-09-29T00:01:05Z"
+    },
+    {
+      "id": "L-029",
+      "key": "ac_gap::when design md documents a shared pre check as applying to every action of a service grep every public method of that service for the helper call before marking the task done do not assume it propagated from the methods it was first written for",
+      "text": "When design.md documents a shared pre-check as applying to every action of a service, grep every public method of that service for the helper call before marking the task done - do not assume it propagated from the methods it was first written for.",
+      "signal": "ac_gap",
+      "scope": "avaliacao",
+      "status": "candidate",
+      "features": [
+        "avaliacao"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AvaliacaoService.java:365-394 (enviarAudio never calls finalizarSeTempoEsgotado) (avaliacao)"
+      ],
+      "created": "2026-09-29T00:01:05Z",
+      "last_seen": "2026-09-29T00:01:05Z"
     }
   ]
 }
