@@ -862,12 +862,14 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Escolher um tipo de leitura mostra os 3 ciclos com corretas/classificação/evolução
-- [ ] Evolução positiva mostra ▲ verde; negativa mostra ▼ vermelho; nula mostra "—"
-- [ ] Ciclo sem avaliação (`null` do backend) é tratado sem quebrar a tabela
-- [ ] Novos testes de componente/hook: os 3 pontos acima
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 4 testes novos
+- [x] Escolher um tipo de leitura mostra os 3 ciclos com corretas/classificação/evolução
+- [x] Evolução positiva mostra ▲ verde; negativa mostra ▼ vermelho; nula mostra "—"
+- [x] Ciclo sem avaliação (`null` do backend) é tratado sem quebrar a tabela
+- [x] Novos testes de componente/hook: os 3 pontos acima
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 4 testes novos (5 testes)
+
+**Nota (agent's discretion)**: `EvolucaoCiclosResponse`/`ResultadoCiclo` (backend, `types.ts`) não trazem um campo de evolução pronto por ciclo - só corretas/classificação. A evolução exigida pela AC2 é calculada no cliente (`calcularEvolucao` em `EvolucaoCiclosTab.tsx`), comparando cada ciclo com o ciclo anterior da mesma resposta (Entrada nunca tem anterior -> sempre "—"), replicando a fórmula de `HistoricoEvolucaoService.evolucao` (HIST-14/17-19). AC2 também não define o caso `absoluta === 0`; tratado como neutro ("0", sem seta) - spec-precision gap documentado no código.
 
 **Tests**: unit
 **Gate**: full
