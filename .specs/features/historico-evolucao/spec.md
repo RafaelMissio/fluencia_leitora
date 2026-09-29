@@ -117,28 +117,28 @@ O sistema já grava cada avaliação finalizada (`avaliacao`, feature `avaliacao
 
 | Requirement ID | Story | Phase | Status |
 | --------------- | ----- | ----- | ------ |
-| HIST-01 | P1: Histórico | T1, T3, T6 | Done |
-| HIST-02 | P1: Histórico | T2, T3, T6 | Done |
-| HIST-03 | P1: Histórico | T1, T3, T6 | Done |
-| HIST-04 | P1: Histórico | T1, T3, T6 | Done |
-| HIST-05 | P1: Histórico | T1, T3, T6 | Done |
-| HIST-06 | P1: Histórico | T1, T3, T6 | Done |
-| HIST-07 | P1: Evolução por ciclo | T4, T7 | Done |
-| HIST-08 | P1: Evolução por ciclo | T4, T7 | Done |
-| HIST-09 | P1: Evolução por ciclo | T4, T7 | Done |
-| HIST-10 | P1: Evolução por ciclo | T4, T7 | Done |
-| HIST-11 | P1: Evolução por ciclo | T4, T7 | Done |
-| HIST-12 | P1: Comparação anual | T5, T8 | Done |
-| HIST-13 | P1: Comparação anual | T5, T8 | Done |
-| HIST-14 | P1: Comparação anual | T5, T8 | Done |
-| HIST-15 | P1: Comparação anual | T5, T8 | Done |
-| HIST-16 | P1: Comparação anual | T5, T8 | Done |
-| HIST-17 | P1: Comparação anual | T5, T8 | Done |
-| HIST-18 | P1: Comparação anual | T5, T8 | Done |
-| HIST-19 | P1: Comparação anual | T5, T8 | Done |
-| HIST-20 | Edge cases | T4, T5 | Done |
-| HIST-21 | Edge cases | T4, T7 | Done |
-| HIST-22 | Edge cases | T6 | Done |
+| HIST-01 | P1: Histórico | T1, T3, T6 | Verified |
+| HIST-02 | P1: Histórico | T2, T3, T6 | Verified |
+| HIST-03 | P1: Histórico | T1, T3, T6 | Verified |
+| HIST-04 | P1: Histórico | T1, T3, T6 | Verified |
+| HIST-05 | P1: Histórico | T1, T3, T6 | Verified |
+| HIST-06 | P1: Histórico | T1, T3, T6 | Verified |
+| HIST-07 | P1: Evolução por ciclo | T4, T7 | Verified |
+| HIST-08 | P1: Evolução por ciclo | T4, T7 | Verified |
+| HIST-09 | P1: Evolução por ciclo | T4, T7 | Verified |
+| HIST-10 | P1: Evolução por ciclo | T4, T7 | Verified |
+| HIST-11 | P1: Evolução por ciclo | T4, T7 | Verified |
+| HIST-12 | P1: Comparação anual | T5, T8 | Verified |
+| HIST-13 | P1: Comparação anual | T5, T8 | Verified |
+| HIST-14 | P1: Comparação anual | T5, T8 | Verified (spec-precision: ver validation.md, "dois anos letivos consecutivos" não define o caso de ano faltante) |
+| HIST-15 | P1: Comparação anual | T5, T8 | Verified |
+| HIST-16 | P1: Comparação anual | T5, T8 | Verified |
+| HIST-17 | P1: Comparação anual | T5, T8 | Verified |
+| HIST-18 | P1: Comparação anual | T5, T8 | Verified |
+| HIST-19 | P1: Comparação anual | T5, T8 | Verified |
+| HIST-20 | Edge cases | T4, T5, fix pós-Verifier | Verified |
+| HIST-21 | Edge cases | T4, T7 | Verified |
+| HIST-22 | Edge cases | T6, fix pós-Verifier | Verified |
 
 **Mapping**: HIST-01..06 = ACs 1-6 da história "Histórico"; HIST-07..11 = ACs 1-5 da história "Evolução por ciclo"; HIST-12..19 = ACs 1-8 da história "Comparação anual" (AC 9 é redundante com o edge case HIST-20 e não recebe ID próprio); HIST-20..22 = Edge Cases 2-4 (Edge Case 1 já coberto por HIST-06/HIST-09/HIST-19).
 

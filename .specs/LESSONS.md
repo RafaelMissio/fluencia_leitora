@@ -9,10 +9,10 @@
 Corroborated across multiple features. Safe to apply as guidance.
 
 ### L-003 - Assert every literal default value stated in an AC's outcome, not just the fields that come directly from user input.
-- signal: `ac_gap` · recurrence: 2 feature(s) · scope: `service-tests` · harmful: 0
-- features: cadastros-base, banco-palavras
-- evidence: src/main/java/com/missio/fluencia_leitora/cadastros/aluno/Matricula.java:45 (CAD-11 AC1) (service-tests) (+1 more)
-- last seen: 2026-09-28T09:30:50Z
+- signal: `ac_gap` · recurrence: 3 feature(s) · scope: `service-tests` · harmful: 0
+- features: cadastros-base, banco-palavras, historico-evolucao
+- evidence: src/main/java/com/missio/fluencia_leitora/cadastros/aluno/Matricula.java:45 (CAD-11 AC1) (service-tests) (+2 more)
+- last seen: 2026-09-29T13:11:19Z
 
 ### L-006 - When an AC cannot be exercised because its endpoints belong to a later feature, record the deferral in spec.md traceability and add the AC to the owning feature spec in the same change.
 - signal: `ac_gap` · recurrence: 2 feature(s) · scope: `traceability` · harmful: 0
@@ -185,6 +185,30 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - features: avaliacao
 - evidence: AvaliacaoService.java:365-394 (enviarAudio never calls finalizarSeTempoEsgotado) (avaliacao)
 - last seen: 2026-09-29T00:01:05Z
+
+### L-030 - When a query's ORDER BY decides which row per group the caller keeps, test it with two rows in the same group whose tie-break values differ.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `repo-layer` · harmful: 0
+- features: historico-evolucao
+- evidence: M4 src/main/java/com/missio/fluencia_leitora/avaliacao/AvaliacaoRepository.java:57 (repo-layer)
+- last seen: 2026-09-29T13:11:19Z
+
+### L-031 - When a spec says an out-of-domain id returns 400, validate the id against its table, since type conversion only rejects non-numeric input.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `controller` · harmful: 0
+- features: historico-evolucao
+- evidence: HIST-22 src/main/java/com/missio/fluencia_leitora/historicoevolucao/HistoricoEvolucaoController.java:46 (controller)
+- last seen: 2026-09-29T13:11:19Z
+
+### L-032 - When a spec compares consecutive periods, state whether a missing period breaks the comparison or falls back to the last available one.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `spec` · harmful: 0
+- features: historico-evolucao
+- evidence: spec.md Anual AC3 (HistoricoEvolucaoService.java:136-152) (spec)
+- last seen: 2026-09-29T13:11:19Z
+
+### L-033 - Use an explicit @Query to project a single column in Spring Data JPA, since find<Property>By derived names return whole entities.
+- signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `repo-layer` · harmful: 0
+- features: historico-evolucao
+- evidence: SPEC_DEVIATION src/main/java/com/missio/fluencia_leitora/avaliacao/AvaliacaoAudioRepository.java:17 (repo-layer)
+- last seen: 2026-09-29T13:11:19Z
 
 ## Quarantined (failed when applied - ignore)
 

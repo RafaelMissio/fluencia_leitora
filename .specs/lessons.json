@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 30,
+  "next_id": 34,
   "lessons": [
     {
       "id": "L-001",
@@ -50,16 +50,18 @@
       "status": "confirmed",
       "features": [
         "cadastros-base",
-        "banco-palavras"
+        "banco-palavras",
+        "historico-evolucao"
       ],
-      "recurrence": 2,
+      "recurrence": 3,
       "harmful": 0,
       "evidence": [
         "src/main/java/com/missio/fluencia_leitora/cadastros/aluno/Matricula.java:45 (CAD-11 AC1) (service-tests)",
-        "PAL-01 (service-tests)"
+        "PAL-01 (service-tests)",
+        "HIST-01 page size 20 (M5 src/main/java/com/missio/fluencia_leitora/historicoevolucao/HistoricoEvolucaoController.java:32) (service-tests)"
       ],
       "created": "2026-09-27T19:41:55Z",
-      "last_seen": "2026-09-28T09:30:50Z"
+      "last_seen": "2026-09-29T13:11:19Z"
     },
     {
       "id": "L-004",
@@ -530,6 +532,78 @@
       ],
       "created": "2026-09-29T00:01:05Z",
       "last_seen": "2026-09-29T00:01:05Z"
+    },
+    {
+      "id": "L-030",
+      "key": "surviving_mutant::when a query s order by decides which row per group the caller keeps test it with two rows in the same group whose tie break values differ",
+      "text": "When a query's ORDER BY decides which row per group the caller keeps, test it with two rows in the same group whose tie-break values differ.",
+      "signal": "surviving_mutant",
+      "scope": "repo-layer",
+      "status": "candidate",
+      "features": [
+        "historico-evolucao"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "M4 src/main/java/com/missio/fluencia_leitora/avaliacao/AvaliacaoRepository.java:57 (repo-layer)"
+      ],
+      "created": "2026-09-29T13:11:19Z",
+      "last_seen": "2026-09-29T13:11:19Z"
+    },
+    {
+      "id": "L-031",
+      "key": "ac_gap::when a spec says an out of domain id returns 400 validate the id against its table since type conversion only rejects non numeric input",
+      "text": "When a spec says an out-of-domain id returns 400, validate the id against its table, since type conversion only rejects non-numeric input.",
+      "signal": "ac_gap",
+      "scope": "controller",
+      "status": "candidate",
+      "features": [
+        "historico-evolucao"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "HIST-22 src/main/java/com/missio/fluencia_leitora/historicoevolucao/HistoricoEvolucaoController.java:46 (controller)"
+      ],
+      "created": "2026-09-29T13:11:19Z",
+      "last_seen": "2026-09-29T13:11:19Z"
+    },
+    {
+      "id": "L-032",
+      "key": "spec_precision_gap::when a spec compares consecutive periods state whether a missing period breaks the comparison or falls back to the last available one",
+      "text": "When a spec compares consecutive periods, state whether a missing period breaks the comparison or falls back to the last available one.",
+      "signal": "spec_precision_gap",
+      "scope": "spec",
+      "status": "candidate",
+      "features": [
+        "historico-evolucao"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md Anual AC3 (HistoricoEvolucaoService.java:136-152) (spec)"
+      ],
+      "created": "2026-09-29T13:11:19Z",
+      "last_seen": "2026-09-29T13:11:19Z"
+    },
+    {
+      "id": "L-033",
+      "key": "spec_deviation::use an explicit query to project a single column in spring data jpa since find property by derived names return whole entities",
+      "text": "Use an explicit @Query to project a single column in Spring Data JPA, since find<Property>By derived names return whole entities.",
+      "signal": "spec_deviation",
+      "scope": "repo-layer",
+      "status": "candidate",
+      "features": [
+        "historico-evolucao"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "SPEC_DEVIATION src/main/java/com/missio/fluencia_leitora/avaliacao/AvaliacaoAudioRepository.java:17 (repo-layer)"
+      ],
+      "created": "2026-09-29T13:11:19Z",
+      "last_seen": "2026-09-29T13:11:19Z"
     }
   ]
 }
