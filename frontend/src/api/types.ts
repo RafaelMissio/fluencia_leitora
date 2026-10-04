@@ -198,3 +198,15 @@ export interface MatriculaResponse {
 }
 export interface UsuarioResponse { id: number; email: string; perfil: Perfil; professorId: number | null; ativo: boolean }
 export interface CriarUsuarioRequest { email: string; senha: string; perfil: Perfil; professorId?: number | null }
+export type TipoPalavra = 'CANONICA' | 'NAO_CANONICA'
+export interface ItemPalavra { palavra: string; tipoPalavra: TipoPalavra }
+export interface ListaPalavrasRequest {
+  nome: string; serie: number; tipoLeitura: TipoLeituraCodigo; tipoPalavra?: TipoPalavra
+  texto?: string; itens?: ItemPalavra[]
+}
+export interface ListaPalavrasResponse {
+  id: number; nome: string; serie: number; tipoLeitura: TipoLeituraCodigo; tipoPalavra: TipoPalavra | null
+  texto: string | null; ativo: boolean; quantidadePalavras: number
+  itens: (ItemPalavra & { ordem: number })[]
+  version: number
+}

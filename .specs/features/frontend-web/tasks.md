@@ -1169,15 +1169,17 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Criar uma lista válida (série != 1) mostra "Salvo com sucesso" e permite escolher `NAO_CANONICA`
-- [ ] Criar uma lista do 1º ano desabilita a opção `NAO_CANONICA` na UI
-- [ ] 409/422 tratados como em T30
-- [ ] Novos testes de componente em `ListasPalavrasPage.test.tsx`: os 3 pontos acima
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 3 testes novos
+- [x] Criar uma lista válida (série != 1) mostra "Salvo com sucesso" e permite escolher `NAO_CANONICA`
+- [x] Criar uma lista do 1º ano desabilita a opção `NAO_CANONICA` na UI
+- [x] 409/422 tratados como em T30
+- [x] Novos testes de componente em `ListasPalavrasPage.test.tsx`: os 3 pontos acima
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 3 testes novos
 
 **Tests**: unit
 **Gate**: full
+
+**SPEC_DEVIATION (endpoint)**: `ListaPalavrasResponse` não expunha `version`, exigido por `AtualizarListaPalavrasRequest` (lock otimista); campo adicionado no backend (aditivo) para a edição funcionar. A tela consulta por série + tipo de leitura (único GET de listagem existente).
 
 **Commit**: `feat(frontend-web): add ListasPalavrasPage with 1st-grade NAO_CANONICA restriction`
 
