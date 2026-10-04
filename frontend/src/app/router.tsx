@@ -73,6 +73,10 @@ export function AppRouter() {
       >
         {/* Rotas de features entram aqui como <Route> filhas (tasks seguintes) */}
         <Route path="/alunos" element={<AlunoBuscaPage />} />
+        {/* Itens de menu que partem da busca de aluno (escolhe o aluno e segue para avaliar/ver histórico) */}
+        <Route path="/avaliar" element={<AlunoBuscaPage />} />
+        <Route path="/historico" element={<AlunoBuscaPage />} />
+        <Route path="/cadastros/avaliacoes" element={<AlunoBuscaPage />} />
         <Route path="/avaliacoes/nova" element={<ConfigurarAvaliacaoPage />} />
         <Route path="/avaliacoes/:id/executar" element={<ExecutarAvaliacaoPage />} />
         <Route path="/avaliacoes/:id/resultado" element={<ResultadoAvaliacaoPage />} />

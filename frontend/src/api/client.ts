@@ -116,9 +116,12 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
 
 /** `POST /api/v1/avaliacoes/{id}/audio` via `multipart/form-data` (não passa por `request` - precisa de `FormData`, não JSON). */
 export async function uploadAudio(avaliacaoId: number, blob: Blob, mimeType: string): Promise<void> {
-  const extension = mimeType.split('/')[1]?.split(';')[0] ?? 'webm'
+  // O MediaRecorder do Chrome grava `audio/webm;codecs=opus`, mas o backend só aceita o mimeType puro
+  // (AUDIO_FORMATO_INVALIDO com parâmetros): remove os parâmetros do Content-Type da parte.
+  const baseType = mimeType.split(';')[0]
+  const extension = baseType.split('/')[1] ?? 'webm'
   const formData = new FormData()
-  formData.append('audio', blob, `avaliacao-${avaliacaoId}.${extension}`)
+  formData.append('audio', new Blob([blob], { type: baseType }), `avaliacao-${avaliacaoId}.${extension}`)
 
   const headers = new Headers()
   if (currentToken) {

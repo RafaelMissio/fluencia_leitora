@@ -60,6 +60,9 @@ export function ResumoAlunoPanel({ alunoId }: { alunoId: number }) {
       <button type="button" onClick={() => navigate(`/avaliacoes/nova?alunoId=${alunoId}`)}>
         Configurar avaliação
       </button>
+      <button type="button" onClick={() => navigate(`/alunos/${alunoId}/historico`)}>
+        Ver histórico
+      </button>
     </section>
   )
 }

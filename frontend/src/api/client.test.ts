@@ -161,6 +161,7 @@ describe('apiClient uploadAudio', () => {
     const formData = init?.body as FormData
     expect(formData).toBeInstanceOf(FormData)
     const audioEntry = formData.get('audio')
+    expect((audioEntry as Blob).type).toBe('audio/webm')
     expect(audioEntry).toBeInstanceOf(Blob)
   })
 

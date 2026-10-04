@@ -119,4 +119,30 @@ describe('ResumoAlunoPanel', () => {
 
     expect(screen.getByText('Tela de configurar avaliação')).toBeInTheDocument()
   })
+
+  it('navigates to /alunos/:id/historico when "Ver histórico" is clicked', async () => {
+    vi.mocked(useAlunoResumo).mockReturnValue({
+      aluno: ALUNO,
+      cicloAtual: 'ENTRADA',
+      ultimasAvaliacoes: [],
+      ultimaClassificacao: null,
+      evolucao: null,
+      isLoading: false,
+      error: null,
+    })
+
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/alunos']}>
+        <Routes>
+          <Route path="/alunos" element={<ResumoAlunoPanel alunoId={42} />} />
+          <Route path="/alunos/:id/historico" element={<div>Tela de histórico</div>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Ver histórico' }))
+
+    expect(screen.getByText('Tela de histórico')).toBeInTheDocument()
+  })
 })

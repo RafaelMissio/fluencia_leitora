@@ -59,7 +59,7 @@ test.describe('Fluxo completo do professor (SDD §20)', () => {
     await page.locator('#login-email').fill(PROFESSOR_EMAIL)
     await page.locator('#login-senha').fill(PROFESSOR_SENHA)
     await page.getByRole('button', { name: 'Entrar' }).click()
-    await page.waitForURL('**/alunos')
+    await page.waitForURL('**/avaliar')
 
     // 2. Busca do aluno + seleção (spec.md P1 "Buscar aluno", AC1/AC2)
     await page.locator('#busca-aluno-nome').fill(ALUNO_NOME)
@@ -80,8 +80,8 @@ test.describe('Fluxo completo do professor (SDD §20)', () => {
     await page.locator('#config-avaliacao-tempo').fill(String(TEMPO_TESTE_SEGUNDOS))
 
     const fonteSelect = page.locator('#config-avaliacao-fonte')
-    const opcoesLista = await fonteSelect.locator('option').all()
-    expect(opcoesLista.length).toBeGreaterThan(1) // "Digitar palavras" + ao menos 1 lista cadastrada
+    // "Digitar palavras" + ao menos 1 lista cadastrada (as listas chegam de forma assíncrona: espera a 2ª opção)
+    await expect(fonteSelect.locator('option').nth(1)).toBeAttached()
     await fonteSelect.selectOption({ index: 1 })
 
     const criarButton = page.getByRole('button', { name: 'Criar avaliação' })

@@ -1002,12 +1002,14 @@ T5 → T36
 - Skill: `playwright-skill`
 
 **Done when**:
-- [ ] O teste cobre login → busca → configuração → iniciar → marcar → tempo zerado → resultado → áudio, sem intervenção manual
-- [ ] O microfone falso é aceito sem prompt real do SO
-- [ ] Gate check passes: `npm run build && npm run test:e2e`
+- [x] O teste cobre login → busca → configuração → iniciar → marcar → tempo zerado → resultado → áudio, sem intervenção manual
+- [x] O microfone falso é aceito sem prompt real do SO
+- [x] Gate check passes: `npm run build && npm run test:e2e`
 
 **Tests**: e2e
 **Gate**: e2e (`npm run build && npm run test:e2e`)
+
+**Execução real (2026-10-04)**: rodou contra backend + MySQL reais (Chrome estável via `channel: 'chrome'`, microfone falso), 2/2 execuções passando. Revelou 3 bugs, corrigidos: (1) login do PROFESSOR abria `/avaliar`, rota inexistente (também `/historico` e `/cadastros/avaliacoes` do menu) - rotas adicionadas; (2) upload de áudio recusado com 422 `AUDIO_FORMATO_INVALIDO` porque o MediaRecorder do Chrome envia `audio/webm;codecs=opus` - o `Content-Type` da parte agora vai sem parâmetros; (3) o teste lia as listas de palavras antes de chegarem (corrida) - agora espera a 2ª opção. Também faltava um caminho na UI até o histórico do aluno: botão "Ver histórico" no `ResumoAlunoPanel`.
 
 **Commit**: `test(frontend-web): add Playwright E2E for the full professor flow`
 
