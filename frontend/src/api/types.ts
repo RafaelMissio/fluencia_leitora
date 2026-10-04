@@ -210,3 +210,8 @@ export interface ListaPalavrasResponse {
   itens: (ItemPalavra & { ordem: number })[]
   version: number
 }
+export type Fase = 'PRE_LEITOR' | 'LEITOR_INICIANTE' | 'LEITOR_FLUENTE'
+export interface FaixaRequest {
+  quantidadeMinimaAcertos: number; quantidadeMaximaAcertos: number | null; fase: Fase; nivel: number | null
+}
+export interface RegraClassificacaoResponse extends FaixaRequest { id: number; serie: number; ativo: boolean }

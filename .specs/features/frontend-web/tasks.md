@@ -1198,13 +1198,13 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Editar as faixas de uma série mostra a régua 0-60 com uma cor por fase
-- [ ] Uma lacuna entre faixas é destacada visualmente antes do envio
-- [ ] Uma sobreposição entre faixas é destacada visualmente antes do envio
-- [ ] Salvar sem lacunas/sobreposições mostra "Salvo com sucesso"; 409/422 tratados como em T30
-- [ ] Novos testes: `reguaClassificacao.test.ts` (helper: lacuna, sobreposição, régua completa sem problemas) + `RegrasClassificacaoPage.test.tsx` (integração visual básica)
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 6 testes novos
+- [x] Editar as faixas de uma série mostra a régua 0-60 com uma cor por fase
+- [x] Uma lacuna entre faixas é destacada visualmente antes do envio
+- [x] Uma sobreposição entre faixas é destacada visualmente antes do envio
+- [x] Salvar sem lacunas/sobreposições mostra "Salvo com sucesso"; 409/422 tratados como em T30
+- [x] Novos testes: `reguaClassificacao.test.ts` (helper: lacuna, sobreposição, régua completa sem problemas) + `RegrasClassificacaoPage.test.tsx` (integração visual básica)
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 6 testes novos
 
 **Tests**: unit
 **Gate**: full

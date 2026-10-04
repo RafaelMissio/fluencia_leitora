@@ -13,6 +13,7 @@ import { ProfessoresPage } from '../features/cadastros/professores/ProfessoresPa
 import { AlunosCadastroPage } from '../features/cadastros/alunos/AlunosCadastroPage'
 import { UsuariosPage } from '../features/cadastros/usuarios/UsuariosPage'
 import { ListasPalavrasPage } from '../features/cadastros/listas/ListasPalavrasPage'
+import { RegrasClassificacaoPage } from '../features/cadastros/regras/RegrasClassificacaoPage'
 import { HistoricoPage } from '../features/historico/HistoricoPage'
 import { AppLayout } from '../layout/AppLayout'
 
@@ -76,6 +77,14 @@ export function AppRouter() {
         <Route path="/avaliacoes/:id/executar" element={<ExecutarAvaliacaoPage />} />
         <Route path="/avaliacoes/:id/resultado" element={<ResultadoAvaliacaoPage />} />
         <Route path="/alunos/:id/historico" element={<HistoricoPage />} />
+        <Route
+          path="/cadastros/regras-classificacao"
+          element={
+            <RoleGate allow={['COORDENADOR']}>
+              <RegrasClassificacaoPage />
+            </RoleGate>
+          }
+        />
         <Route
           path="/cadastros/listas-palavras"
           element={
