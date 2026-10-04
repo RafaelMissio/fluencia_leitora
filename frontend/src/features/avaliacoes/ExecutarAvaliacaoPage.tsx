@@ -85,6 +85,15 @@ export function ExecutarAvaliacaoPage() {
     <div>
       <h1>Executar avaliação</h1>
 
+      {exec.erroCarga && (
+        <p role="alert">
+          Não foi possível carregar a avaliação. Verifique se você entrou como professor e se a avaliação existe.
+        </p>
+      )}
+      {exec.status === 'CRIADA' && (
+        <p>Tudo pronto. Ao clicar em "Iniciar avaliação", o navegador pede acesso ao microfone e o cronômetro começa.</p>
+      )}
+      {exec.status === 'CANCELADA' && <p role="note">Esta avaliação foi cancelada e não pode ser executada.</p>}
       {exec.erroMicrofone && <p role="alert">{exec.erroMicrofone}</p>}
       {exec.interrompida && <p>{MENSAGEM_INTERROMPIDA}</p>}
 
@@ -92,7 +101,12 @@ export function ExecutarAvaliacaoPage() {
 
       <div>
         {botoesExibidos.map((botao) => (
-          <button key={botao} type="button" onClick={() => aoClicarBotao(botao)}>
+          <button
+            key={botao}
+            type="button"
+            className={botao === 'iniciar' ? 'primary start' : botao === 'finalizar' ? 'primary' : undefined}
+            onClick={() => aoClicarBotao(botao)}
+          >
             {ROTULO_BOTAO[botao]}
           </button>
         ))}

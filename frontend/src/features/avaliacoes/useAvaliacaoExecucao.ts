@@ -33,6 +33,8 @@ const INTERVALO_TICK_MS = 250
 
 interface State {
   carregado: boolean
+  /** A avaliação não pôde ser carregada (rede, 403, 404): a tela explica em vez de ficar vazia. */
+  erroCarga: boolean
   status: StatusAvaliacao | null
   tempoConfiguradoSegundos: number
   tempoRestanteMs: number
@@ -54,6 +56,7 @@ interface State {
 
 const initialState: State = {
   carregado: false,
+  erroCarga: false,
   status: null,
   tempoConfiguradoSegundos: 0,
   tempoRestanteMs: 0,
@@ -66,6 +69,7 @@ const initialState: State = {
 
 type Action =
   | { type: 'AVALIACAO_CARREGADA'; avaliacao: AvaliacaoResponse }
+  | { type: 'ERRO_CARGA' }
   | { type: 'ERRO_MICROFONE'; mensagem: string }
   | { type: 'TRANSICAO_OK'; avaliacao: AvaliacaoResponse; gravando: boolean; tempoRestanteMs?: number; blob?: Blob | null }
   | { type: 'TICK'; tempoRestanteMs: number }
@@ -77,6 +81,7 @@ function reducer(state: State, action: Action): State {
       return {
         ...state,
         carregado: true,
+        erroCarga: false,
         status: avaliacao.status,
         tempoConfiguradoSegundos: avaliacao.tempoConfiguradoSegundos,
         tempoRestanteMs: avaliacao.tempoConfiguradoSegundos * 1000,
@@ -86,6 +91,8 @@ function reducer(state: State, action: Action): State {
         blobGravado: null,
       }
     }
+    case 'ERRO_CARGA':
+      return { ...state, erroCarga: true }
     case 'ERRO_MICROFONE':
       return { ...state, erroMicrofone: action.mensagem }
     case 'TRANSICAO_OK': {
@@ -129,11 +136,15 @@ export function useAvaliacaoExecucao(avaliacaoId: number) {
 
   useEffect(() => {
     let cancelado = false
-    request<AvaliacaoResponse>(`/avaliacoes/${avaliacaoId}`).then((avaliacao) => {
-      if (!cancelado) {
-        dispatch({ type: 'AVALIACAO_CARREGADA', avaliacao })
-      }
-    })
+    request<AvaliacaoResponse>(`/avaliacoes/${avaliacaoId}`)
+      .then((avaliacao) => {
+        if (!cancelado) {
+          dispatch({ type: 'AVALIACAO_CARREGADA', avaliacao })
+        }
+      })
+      .catch(() => {
+        if (!cancelado) dispatch({ type: 'ERRO_CARGA' })
+      })
     return () => {
       cancelado = true
     }
@@ -317,6 +328,7 @@ export function useAvaliacaoExecucao(avaliacaoId: number) {
     tempoRestanteMs: state.tempoRestanteMs,
     gravando: state.gravando,
     erroMicrofone: state.erroMicrofone,
+    erroCarga: state.erroCarga,
     interrompida: state.interrompida,
     palavras: state.palavras,
     blobGravado: state.blobGravado,

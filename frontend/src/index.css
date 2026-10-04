@@ -593,3 +593,10 @@ td button,
 li button {
   white-space: nowrap;
 }
+
+/* Ação principal da execução: "Iniciar avaliação" precisa saltar aos olhos. */
+button.start {
+  padding: 14px 28px;
+  font-size: 18px;
+  border-radius: 12px;
+}

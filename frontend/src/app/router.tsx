@@ -77,8 +77,22 @@ export function AppRouter() {
         <Route path="/avaliar" element={<AlunoBuscaPage />} />
         <Route path="/historico" element={<AlunoBuscaPage />} />
         <Route path="/cadastros/avaliacoes" element={<AlunoBuscaPage />} />
-        <Route path="/avaliacoes/nova" element={<ConfigurarAvaliacaoPage />} />
-        <Route path="/avaliacoes/:id/executar" element={<ExecutarAvaliacaoPage />} />
+        <Route
+          path="/avaliacoes/nova"
+          element={
+            <RoleGate allow={['PROFESSOR']} fallback={<Navigate to="/alunos" replace />}>
+              <ConfigurarAvaliacaoPage />
+            </RoleGate>
+          }
+        />
+        <Route
+          path="/avaliacoes/:id/executar"
+          element={
+            <RoleGate allow={['PROFESSOR']} fallback={<Navigate to="/alunos" replace />}>
+              <ExecutarAvaliacaoPage />
+            </RoleGate>
+          }
+        />
         <Route path="/avaliacoes/:id/resultado" element={<ResultadoAvaliacaoPage />} />
         <Route path="/alunos/:id/historico" element={<HistoricoPage />} />
         <Route

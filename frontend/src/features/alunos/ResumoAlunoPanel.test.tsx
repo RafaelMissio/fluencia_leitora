@@ -1,14 +1,26 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AlunoBuscaItem, HistoricoAvaliacaoItem } from '../../api/types'
+import { useAuth } from '../../auth/AuthContext'
 import { ResumoAlunoPanel } from './ResumoAlunoPanel'
 import { useAlunoResumo } from './useAlunoResumo'
 
 vi.mock('./useAlunoResumo', () => ({
   useAlunoResumo: vi.fn(),
 }))
+
+vi.mock('../../auth/AuthContext', () => ({
+  useAuth: vi.fn(),
+}))
+
+function comPerfil(perfil: 'PROFESSOR' | 'COORDENADOR'): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  vi.mocked(useAuth).mockReturnValue({ perfil } as any)
+}
+
+beforeEach(() => comPerfil('PROFESSOR'))
 
 const ALUNO: AlunoBuscaItem = {
   alunoId: 42,
@@ -144,5 +156,27 @@ describe('ResumoAlunoPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Ver histórico' }))
 
     expect(screen.getByText('Tela de histórico')).toBeInTheDocument()
+  })
+
+  it('hides "Configurar avaliação" for the COORDENADOR (only the professor applies evaluations)', () => {
+    comPerfil('COORDENADOR')
+    vi.mocked(useAlunoResumo).mockReturnValue({
+      aluno: ALUNO,
+      cicloAtual: 'ENTRADA',
+      ultimasAvaliacoes: [],
+      ultimaClassificacao: null,
+      evolucao: null,
+      isLoading: false,
+      error: null,
+    })
+
+    render(
+      <MemoryRouter>
+        <ResumoAlunoPanel alunoId={42} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.queryByRole('button', { name: 'Configurar avaliação' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ver histórico' })).toBeInTheDocument()
   })
 })

@@ -188,6 +188,13 @@ export function ConfigurarAvaliacaoPage() {
       {alunoCarregando ? <p>Carregando dados do aluno…</p> : null}
 
       <form onSubmit={(event) => void handleSubmit(event)}>
+        {criarAvaliacao.error && !criarAvaliacao.error.errors ? (
+          <p role="alert">
+            {criarAvaliacao.error.status === 403
+              ? 'Seu perfil não pode criar avaliações. Entre como professor.'
+              : (criarAvaliacao.error.detail ?? 'Não foi possível criar a avaliação')}
+          </p>
+        ) : null}
         <label htmlFor="config-avaliacao-tipo-leitura">Tipo de leitura</label>
         <select
           id="config-avaliacao-tipo-leitura"

@@ -83,6 +83,27 @@ describe('ExecutarAvaliacaoPage', () => {
     vi.restoreAllMocks()
   })
 
+  it('explains when the avaliação cannot be loaded instead of showing an empty screen', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(403, { code: 'ACESSO_NEGADO' }))
+    render(
+      <MemoryRouter initialEntries={['/avaliacoes/1/executar']}>
+        <Routes>
+          <Route path="/avaliacoes/:id/executar" element={<ExecutarAvaliacaoPage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível carregar a avaliação')
+  })
+
+  it('shows the "Iniciar avaliação" button as the primary action with guidance when the avaliação is CRIADA', async () => {
+    renderPagina(avaliacao())
+
+    const botao = await screen.findByRole('button', { name: 'Iniciar avaliação' })
+    expect(botao).toHaveClass('primary')
+    expect(screen.getByText(/pede acesso ao microfone/)).toBeInTheDocument()
+  })
+
   it('denying the microphone keeps the screen in CRIADA with the error message visible (spec.md AC2)', async () => {
     vi.mocked(isMediaRecorderSupported).mockReturnValue(true)
     const getUserMedia = stubGetUserMedia()

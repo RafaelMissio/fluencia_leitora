@@ -1,3 +1,4 @@
+import { useAuth } from '../../auth/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { useAlunoResumo } from './useAlunoResumo'
 
@@ -14,6 +15,7 @@ function formatarEvolucao(evolucao: number | null): string {
  */
 export function ResumoAlunoPanel({ alunoId }: { alunoId: number }) {
   const navigate = useNavigate()
+  const { perfil } = useAuth()
   const { aluno, cicloAtual, ultimasAvaliacoes, ultimaClassificacao, evolucao, isLoading } =
     useAlunoResumo(alunoId)
 
@@ -57,9 +59,12 @@ export function ResumoAlunoPanel({ alunoId }: { alunoId: number }) {
         </ul>
       )}
 
-      <button type="button" onClick={() => navigate(`/avaliacoes/nova?alunoId=${alunoId}`)}>
-        Configurar avaliação
-      </button>
+      {/* Só o PROFESSOR aplica avaliações (o backend responde 403 ao COORDENADOR em POST /avaliacoes). */}
+      {perfil === 'PROFESSOR' ? (
+        <button type="button" className="primary" onClick={() => navigate(`/avaliacoes/nova?alunoId=${alunoId}`)}>
+          Configurar avaliação
+        </button>
+      ) : null}
       <button type="button" onClick={() => navigate(`/alunos/${alunoId}/historico`)}>
         Ver histórico
       </button>
