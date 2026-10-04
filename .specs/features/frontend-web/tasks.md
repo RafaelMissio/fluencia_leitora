@@ -1084,11 +1084,11 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Criar um professor válido mostra "Salvo com sucesso" e aparece na lista com suas turmas
-- [ ] 409/422 tratados como em T30
-- [ ] Novos testes de componente em `ProfessoresPage.test.tsx`: os 2 pontos acima
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 2 testes novos
+- [x] Criar um professor válido mostra "Salvo com sucesso" e aparece na lista com suas turmas
+- [x] 409/422 tratados como em T30
+- [x] Novos testes de componente em `ProfessoresPage.test.tsx`: os 2 pontos acima
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 2 testes novos
 
 **Tests**: unit
 **Gate**: full

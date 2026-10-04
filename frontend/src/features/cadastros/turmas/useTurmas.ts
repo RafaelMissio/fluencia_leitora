@@ -1,15 +1,10 @@
 import { useMutation, useQuery, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 import { request } from '../../../api/client'
-import type { ApiError, CriarTurmaRequest, ProfessorResponse, TurmaResponse } from '../../../api/types'
+import type { ApiError, CriarTurmaRequest, TurmaResponse } from '../../../api/types'
 
 /** `GET /turmas` (COORDENADOR; só turmas ativas). */
 export function useTurmas() {
   return useQuery({ queryKey: ['turmas'], queryFn: () => request<TurmaResponse[]>('/turmas') })
-}
-
-/** `GET /professores` (COORDENADOR; só ativos) - usado para o seletor de professor. */
-export function useProfessores() {
-  return useQuery({ queryKey: ['professores'], queryFn: () => request<ProfessorResponse[]>('/professores') })
 }
 
 export function useCriarTurma(): UseMutationResult<TurmaResponse, ApiError, CriarTurmaRequest> {

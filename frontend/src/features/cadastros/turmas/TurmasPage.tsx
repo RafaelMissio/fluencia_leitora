@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import type { ApiError, TurmaResponse } from '../../../api/types'
 import { useAnosLetivos } from '../anosletivos/useAnosLetivos'
-import { useCriarTurma, useProfessores, useTrocarProfessorDaTurma, useTurmas } from './useTurmas'
+import { useProfessores } from '../professores/useProfessores'
+import { useCriarTurma, useTrocarProfessorDaTurma, useTurmas } from './useTurmas'
 
 function mensagensPorCampo(error: ApiError | null | undefined): Record<string, string> {
   if (!error?.errors) return {}
