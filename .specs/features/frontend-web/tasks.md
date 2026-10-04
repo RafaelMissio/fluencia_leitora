@@ -1110,16 +1110,18 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Criar aluno+matrícula válidos mostra "Salvo com sucesso" e aparece na lista
-- [ ] Inativar um aluno remove/marca-o como inativo na lista
-- [ ] Nova matrícula para um aluno existente reflete a mudança
-- [ ] 409/422 tratados como em T30
-- [ ] Novos testes de componente em `AlunosCadastroPage.test.tsx`: os 4 pontos acima
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 4 testes novos
+- [x] Criar aluno+matrícula válidos mostra "Salvo com sucesso" e aparece na lista
+- [x] Inativar um aluno remove/marca-o como inativo na lista
+- [x] Nova matrícula para um aluno existente reflete a mudança
+- [x] 409/422 tratados como em T30
+- [x] Novos testes de componente em `AlunosCadastroPage.test.tsx`: os 4 pontos acima
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 4 testes novos
 
 **Tests**: unit
 **Gate**: full
+
+**SPEC_DEVIATION (listagem)**: sem `GET /alunos` de listagem geral; por decisão do usuário a "lista" é a busca por nome (`useAlunoBusca`), e um aluno recém-criado aparece porque a busca passa a usar o nome dele.
 
 **Commit**: `feat(frontend-web): add AlunosCadastroPage with matrícula management`
 

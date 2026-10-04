@@ -190,3 +190,9 @@ export interface TurmaResponse { id: number; nome: string; serie: number; anoLet
 export interface CriarTurmaRequest { nome: string; serie: number; anoLetivoId: number; professorId?: number | null }
 export interface TurmaResumo { id: number; nome: string; serie: number }
 export interface ProfessorResponse { id: number; nome: string; ativo: boolean; turmas: TurmaResumo[] }
+export interface CriarAlunoRequest { nome: string; turmaId: number }
+export interface CriarAlunoResponse { alunoId: number; matriculaId: number }
+export interface MatriculaResponse {
+  id: number; alunoId: number; anoLetivoId: number; turmaId: number; serie: number
+  professorId: number | null; anoFinalizado: boolean
+}
