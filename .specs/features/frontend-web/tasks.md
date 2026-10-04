@@ -1026,15 +1026,17 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Criar um ano letivo válido mostra "Salvo com sucesso" e aparece na lista
-- [ ] 409 (ex. ano duplicado) mostra a mensagem do `code` no topo do formulário
-- [ ] 422 mostra a mensagem por campo
-- [ ] Novos testes de componente em `AnoLetivoPage.test.tsx`: os 3 pontos acima
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 3 testes novos
+- [x] Criar um ano letivo válido mostra "Salvo com sucesso" e aparece na lista
+- [x] 409 (ex. ano duplicado) mostra a mensagem do `code` no topo do formulário
+- [x] 422 mostra a mensagem por campo
+- [x] Novos testes de componente em `AnoLetivoPage.test.tsx`: os 3 pontos acima
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 3 testes novos
 
 **Tests**: unit
 **Gate**: full
+
+**SPEC_DEVIATION (endpoint)**: `GET /anos-letivos` e `GET /anos-letivos/{id}/configuracoes` não existiam no backend; adicionados (COORDENADOR-only, aditivos) em `5287f54` por decisão do usuário. T31-T35 vão precisar do mesmo para turmas/professores/usuários.
 
 **Commit**: `feat(frontend-web): add AnoLetivoPage CRUD screen`
 

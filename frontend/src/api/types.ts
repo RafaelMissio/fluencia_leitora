@@ -173,3 +173,16 @@ export interface ApiError {
   detail?: string
   errors?: { field: string; message: string }[]
 }
+
+// Cadastros (P2)
+export interface AnoLetivoResponse {
+  id: number
+  ano: number
+  dataInicio: string
+  dataFim: string
+  situacao: string
+  ativo: boolean
+}
+export interface CriarAnoLetivoRequest { ano: number; dataInicio: string; dataFim: string }
+export interface ConfiguracaoAvaliacaoResponse { id: number; serie: number; quantidadeMinima: number; quantidadeMaxima: number }
+export interface AtualizarConfiguracaoRequest { quantidadeMinima: number; quantidadeMaxima: number }
