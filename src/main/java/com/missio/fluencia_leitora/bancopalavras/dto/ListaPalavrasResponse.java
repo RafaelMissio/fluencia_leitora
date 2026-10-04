@@ -10,7 +10,9 @@ import java.util.List;
  * PAL-11: detalhe completo de uma lista, incluindo os itens na ordem e,
  * quando {@code tipoLeitura == TEXTO_CURTO}, o texto original ("se for
  * TEXTO_CURTO, também o texto original" - spec.md). Para os outros tipos,
- * {@code texto} vem {@code null}.
+ * {@code texto} vem {@code null}. {@code version} é o valor do lock otimista que o
+ * cliente devolve em {@code AtualizarListaPalavrasRequest} (adicionado para o
+ * frontend-web T35, que precisa dele para editar).
  */
 public record ListaPalavrasResponse(
         Long id,
@@ -21,7 +23,8 @@ public record ListaPalavrasResponse(
         String texto,
         boolean ativo,
         long quantidadePalavras,
-        List<ItemPalavraResponse> itens) {
+        List<ItemPalavraResponse> itens,
+        Long version) {
 
     public static ListaPalavrasResponse from(ListaPalavras lista) {
         List<ItemPalavraResponse> itens = lista.getItens().stream().map(ItemPalavraResponse::from).toList();
@@ -35,6 +38,7 @@ public record ListaPalavrasResponse(
                 texto,
                 lista.isAtivo(),
                 itens.size(),
-                itens);
+                itens,
+                lista.getVersion());
     }
 }

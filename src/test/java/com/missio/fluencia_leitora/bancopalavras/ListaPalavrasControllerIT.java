@@ -529,7 +529,8 @@ class ListaPalavrasControllerIT extends IntegrationTestBase {
 
         mockMvc.perform(get("/api/v1/listas-palavras/" + id).header("Authorization", bearerCoordenador()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.texto").value(nullValue()));
+                .andExpect(jsonPath("$.texto").value(nullValue()))
+                .andExpect(jsonPath("$.version").isNumber());
     }
 
     @Test
