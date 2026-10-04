@@ -9,6 +9,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 /**
  * AUTH-11/AUTH-12/AUTH-13: cadastro de usuários e redefinição de senha.
  *
@@ -33,6 +35,12 @@ public class UsuarioService {
         this.usuarioRepository = usuarioRepository;
         this.professorRepository = professorRepository;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    /** Listagem para a tela de cadastro (frontend-web T34): por e-mail, sem senha nem hash. */
+    @Transactional(readOnly = true)
+    public List<UsuarioResumo> listar() {
+        return usuarioRepository.findAllByOrderByEmailAsc().stream().map(UsuarioResumo::from).toList();
     }
 
     @Transactional

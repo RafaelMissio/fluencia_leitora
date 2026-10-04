@@ -7,11 +7,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     Optional<Usuario> findByEmailIgnoreCase(String email);
+
+    List<Usuario> findAllByOrderByEmailAsc();
 
     /**
      * AUTH-03: incrementa o contador de falhas e, só quando o novo valor

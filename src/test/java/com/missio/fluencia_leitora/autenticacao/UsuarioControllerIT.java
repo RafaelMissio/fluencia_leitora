@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -173,5 +174,21 @@ class UsuarioControllerIT extends IntegrationTestBase {
 
         assertTrue(passwordEncoder.matches(
                 "SenhaAntiga1", usuarioRepository.findById(alvo.getId()).orElseThrow().getSenhaHash()));
+    }
+
+    @Test
+    void getListaUsuariosSemSenhaNemHashEExigeCoordenador() throws Exception {
+        String email = emailUnico();
+        usuarioRepository.save(new Usuario(email, passwordEncoder.encode("SenhaAntiga1"), Perfil.COORDENADOR, null));
+
+        String corpo = mockMvc.perform(get("/api/v1/usuarios").header("Authorization", bearerCoordenador()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        org.junit.jupiter.api.Assertions.assertTrue(corpo.contains(email));
+        org.junit.jupiter.api.Assertions.assertFalse(corpo.toLowerCase().contains("senha"));
+        org.junit.jupiter.api.Assertions.assertFalse(corpo.contains("$2"));
+        mockMvc.perform(get("/api/v1/usuarios").header("Authorization", bearerProfessor()))
+                .andExpect(status().isForbidden());
     }
 }

@@ -6,6 +6,7 @@ import com.missio.fluencia_leitora.autenticacao.dto.UsuarioResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /** AUTH-11/AUTH-12/AUTH-13: gestão de usuários, restrita ao COORDENADOR (AUTH-07). */
 @RestController
@@ -24,6 +27,11 @@ public class UsuarioController {
 
     public UsuarioController(UsuarioService usuarioService) {
         this.usuarioService = usuarioService;
+    }
+
+    @GetMapping
+    public List<UsuarioResponse> listar() {
+        return usuarioService.listar().stream().map(UsuarioResponse::from).toList();
     }
 
     @PostMapping
