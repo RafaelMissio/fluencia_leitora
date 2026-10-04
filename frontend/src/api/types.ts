@@ -186,3 +186,7 @@ export interface AnoLetivoResponse {
 export interface CriarAnoLetivoRequest { ano: number; dataInicio: string; dataFim: string }
 export interface ConfiguracaoAvaliacaoResponse { id: number; serie: number; quantidadeMinima: number; quantidadeMaxima: number }
 export interface AtualizarConfiguracaoRequest { quantidadeMinima: number; quantidadeMaxima: number }
+export interface TurmaResponse { id: number; nome: string; serie: number; anoLetivoId: number; professorId: number | null; ativo: boolean }
+export interface CriarTurmaRequest { nome: string; serie: number; anoLetivoId: number; professorId?: number | null }
+export interface TurmaResumo { id: number; nome: string; serie: number }
+export interface ProfessorResponse { id: number; nome: string; ativo: boolean; turmas: TurmaResumo[] }

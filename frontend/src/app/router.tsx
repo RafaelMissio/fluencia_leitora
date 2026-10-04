@@ -8,6 +8,7 @@ import { ConfigurarAvaliacaoPage } from '../features/avaliacoes/ConfigurarAvalia
 import { ExecutarAvaliacaoPage } from '../features/avaliacoes/ExecutarAvaliacaoPage'
 import { ResultadoAvaliacaoPage } from '../features/avaliacoes/ResultadoAvaliacaoPage'
 import { AnoLetivoPage } from '../features/cadastros/anosletivos/AnoLetivoPage'
+import { TurmasPage } from '../features/cadastros/turmas/TurmasPage'
 import { HistoricoPage } from '../features/historico/HistoricoPage'
 import { AppLayout } from '../layout/AppLayout'
 
@@ -71,6 +72,14 @@ export function AppRouter() {
         <Route path="/avaliacoes/:id/executar" element={<ExecutarAvaliacaoPage />} />
         <Route path="/avaliacoes/:id/resultado" element={<ResultadoAvaliacaoPage />} />
         <Route path="/alunos/:id/historico" element={<HistoricoPage />} />
+        <Route
+          path="/cadastros/turmas"
+          element={
+            <RoleGate allow={['COORDENADOR']}>
+              <TurmasPage />
+            </RoleGate>
+          }
+        />
         <Route
           path="/cadastros/anos-letivos"
           element={

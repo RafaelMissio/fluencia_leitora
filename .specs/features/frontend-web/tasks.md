@@ -1055,15 +1055,17 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Criar uma turma válida mostra "Salvo com sucesso" e aparece na lista
-- [ ] Trocar o professor de uma turma existente reflete na lista
-- [ ] 409/422 tratados como em T30
-- [ ] Novos testes de componente em `TurmasPage.test.tsx`: os 3 pontos acima
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 3 testes novos
+- [x] Criar uma turma válida mostra "Salvo com sucesso" e aparece na lista
+- [x] Trocar o professor de uma turma existente reflete na lista
+- [x] 409/422 tratados como em T30
+- [x] Novos testes de componente em `TurmasPage.test.tsx`: os 3 pontos acima
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 3 testes novos
 
 **Tests**: unit
 **Gate**: full
+
+**SPEC_DEVIATION (endpoint)**: `GET /turmas` e `GET /professores` (com turmas ativas) não existiam; adicionados no backend (COORDENADOR-only) junto com esta task - o `GET /professores` já cobre a listagem de T32.
 
 **Commit**: `feat(frontend-web): add TurmasPage CRUD screen`
 
