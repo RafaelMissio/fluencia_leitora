@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * CAD-01/CAD-02/CAD-03/CAD-04/CAD-06/CAD-19/CAD-20: CRUD de ano letivo,
  * ativação e configuração de palavras por série. Escrita restrita ao
@@ -35,6 +37,20 @@ public class AnoLetivoController {
             AnoLetivoService anoLetivoService, ConfiguracaoAvaliacaoService configuracaoAvaliacaoService) {
         this.anoLetivoService = anoLetivoService;
         this.configuracaoAvaliacaoService = configuracaoAvaliacaoService;
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('COORDENADOR')")
+    public List<AnoLetivoResponse> listar() {
+        return anoLetivoService.listar().stream().map(AnoLetivoResponse::from).toList();
+    }
+
+    @GetMapping("/{id}/configuracoes")
+    @PreAuthorize("hasRole('COORDENADOR')")
+    public List<ConfiguracaoAvaliacaoResponse> listarConfiguracoes(@PathVariable Long id) {
+        return configuracaoAvaliacaoService.listarPorAnoLetivo(id).stream()
+                .map(ConfiguracaoAvaliacaoResponse::from)
+                .toList();
     }
 
     @PostMapping

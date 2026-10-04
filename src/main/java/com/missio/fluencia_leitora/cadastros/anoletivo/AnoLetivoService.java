@@ -78,4 +78,10 @@ public class AnoLetivoService {
         anoLetivo.setAtivo(false);
         anoLetivoRepository.save(anoLetivo);
     }
+
+    /** Listagem para a tela de cadastro (frontend-web T30): só registros com {@code ativo=true}, do ano mais recente ao mais antigo. */
+    @Transactional(readOnly = true)
+    public List<AnoLetivo> listar() {
+        return anoLetivoRepository.findByAtivoTrueOrderByAnoDesc();
+    }
 }

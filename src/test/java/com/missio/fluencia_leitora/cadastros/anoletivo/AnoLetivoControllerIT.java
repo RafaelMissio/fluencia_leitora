@@ -286,6 +286,53 @@ class AnoLetivoControllerIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.code").value("CONFIGURACAO_NAO_ENCONTRADA"));
     }
 
+    @Test
+    void getListaDevolveSoAnosAtivosDoMaisRecenteAoMaisAntigoEExigeCoordenador() throws Exception {
+        int anoAntigo = proximoAno();
+        int anoNovo = proximoAno();
+        int anoInativado = proximoAno();
+        criarAnoLetivo(anoAntigo);
+        criarAnoLetivo(anoNovo);
+        Long idInativado = criarAnoLetivo(anoInativado);
+        mockMvc.perform(delete("/api/v1/anos-letivos/" + idInativado).header("Authorization", bearerCoordenador()))
+                .andExpect(status().isNoContent());
+
+        String corpo = mockMvc.perform(get("/api/v1/anos-letivos").header("Authorization", bearerCoordenador()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        List<Integer> anos = objectMapper.readTree(corpo).findValuesAsText("ano").stream().map(Integer::valueOf).toList();
+
+        assertTrue(anos.contains(anoNovo));
+        assertTrue(anos.contains(anoAntigo));
+        assertFalse(anos.contains(anoInativado));
+        assertTrue(anos.indexOf(anoNovo) < anos.indexOf(anoAntigo));
+
+        mockMvc.perform(get("/api/v1/anos-letivos").header("Authorization", bearerProfessorAnoLetivo()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void getConfiguracoesDoAnoDevolveAsCincoSeriesEmOrdemEExigeCoordenador() throws Exception {
+        Long id = criarAnoLetivo(proximoAno());
+
+        mockMvc.perform(get("/api/v1/anos-letivos/" + id + "/configuracoes").header("Authorization", bearerCoordenador()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(5))
+                .andExpect(jsonPath("$[0].serie").value(1))
+                .andExpect(jsonPath("$[0].quantidadeMinima").value(15))
+                .andExpect(jsonPath("$[4].serie").value(5));
+
+        mockMvc.perform(get("/api/v1/anos-letivos/" + id + "/configuracoes").header("Authorization", bearerProfessorAnoLetivo()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void getConfiguracoesDeAnoInexistenteRetorna404() throws Exception {
+        mockMvc.perform(get("/api/v1/anos-letivos/999999999/configuracoes").header("Authorization", bearerCoordenador()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ANO_LETIVO_NAO_ENCONTRADO"));
+    }
+
     private String bearerProfessorAnoLetivo() {
         Professor professor = professorRepository.save(new Professor("Professor Ano Letivo GET " + UUID.randomUUID()));
         Usuario usuario = usuarioRepository.save(new Usuario(

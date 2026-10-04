@@ -9,4 +9,6 @@ public interface AnoLetivoRepository extends JpaRepository<AnoLetivo, Long> {
     boolean existsByAno(int ano);
 
     List<AnoLetivo> findBySituacao(SituacaoAnoLetivo situacao);
+
+    List<AnoLetivo> findByAtivoTrueOrderByAnoDesc();
 }

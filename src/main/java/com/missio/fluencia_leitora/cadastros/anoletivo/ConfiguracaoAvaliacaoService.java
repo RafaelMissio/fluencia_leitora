@@ -5,6 +5,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 /**
  * CAD-06: valida e atualiza os limites mínimo/máximo de palavras de uma
  * série, dentro de um ano letivo.
@@ -54,6 +56,16 @@ public class ConfiguracaoAvaliacaoService {
                 .findByAnoLetivoIdAndSerie(anoAtivo.getId(), serie)
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND, "CONFIGURACAO_NAO_ENCONTRADA", "Configuração não encontrada"));
+    }
+
+    /** Configurações (séries 1-5) de um ano letivo, para a tela de cadastro (frontend-web T30). 404 {@code ANO_LETIVO_NAO_ENCONTRADO} se o ano não existe. */
+    @Transactional(readOnly = true)
+    public List<ConfiguracaoAvaliacao> listarPorAnoLetivo(Long anoLetivoId) {
+        if (!anoLetivoRepository.existsById(anoLetivoId)) {
+            throw new BusinessException(
+                    HttpStatus.NOT_FOUND, "ANO_LETIVO_NAO_ENCONTRADO", "Ano letivo não encontrado");
+        }
+        return configuracaoAvaliacaoRepository.findByAnoLetivoIdOrderBySerieAsc(anoLetivoId);
     }
 
     @Transactional
