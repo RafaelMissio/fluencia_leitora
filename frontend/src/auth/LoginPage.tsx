@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate, type Location } from 'react-router-dom'
 import type { ApiErrorComRetry } from '../api/client'
 import { useAuth } from './AuthContext'
+import './LoginPage.css'
 
 function defaultPathFor(perfil: 'PROFESSOR' | 'COORDENADOR'): string {
   return perfil === 'COORDENADOR' ? '/alunos' : '/avaliar'
@@ -54,32 +55,52 @@ export function LoginPage() {
   }
 
   return (
-    <form onSubmit={(event) => void handleSubmit(event)}>
-      <h1>Entrar</h1>
-      {error ? <p role="alert">{error}</p> : null}
-      <label htmlFor="login-email">E-mail</label>
-      <input
-        id="login-email"
-        name="email"
-        type="email"
-        autoComplete="username"
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        required
-      />
-      <label htmlFor="login-senha">Senha</label>
-      <input
-        id="login-senha"
-        name="senha"
-        type="password"
-        autoComplete="current-password"
-        value={senha}
-        onChange={(event) => setSenha(event.target.value)}
-        required
-      />
-      <button type="submit" disabled={submitting}>
-        Entrar
-      </button>
-    </form>
+    <main className="login">
+      <form className="login__card" onSubmit={(event) => void handleSubmit(event)}>
+        <div className="login__brand">
+          <span className="login__logo" aria-hidden="true">
+            F
+          </span>
+          <p className="login__brand-name">
+            <strong>Fluência Leitora</strong>
+            Avaliação de leitura
+          </p>
+        </div>
+        <h1>Entrar</h1>
+        <p className="login__subtitle">Use seu e-mail e senha para acessar.</p>
+        {error ? (
+          <p role="alert" className="login__error">
+            {error}
+          </p>
+        ) : null}
+        <div className="login__field">
+          <label htmlFor="login-email">E-mail</label>
+          <input
+            id="login-email"
+            name="email"
+            type="email"
+            autoComplete="username"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+          />
+        </div>
+        <div className="login__field">
+          <label htmlFor="login-senha">Senha</label>
+          <input
+            id="login-senha"
+            name="senha"
+            type="password"
+            autoComplete="current-password"
+            value={senha}
+            onChange={(event) => setSenha(event.target.value)}
+            required
+          />
+        </div>
+        <button className="login__submit" type="submit" disabled={submitting}>
+          Entrar
+        </button>
+      </form>
+    </main>
   )
 }
