@@ -136,6 +136,7 @@ function EditorFaixas({ serie, inicial }: { serie: number; inicial: FaixaEdicao[
               <td>
                 <button
                   type="button"
+                  className="danger"
                   onClick={() => {
                     setSalvo(false)
                     setFaixas((atuais) => atuais.filter((_, i) => i !== indice))

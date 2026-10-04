@@ -100,7 +100,7 @@ export function GradePalavras({ palavras, avaliacaoStatus, onMarcar, onAposMarca
     <div>
       {erro && <span role="alert">{erro}</span>}
       {avisoAuditoria && <span role="status">{avisoAuditoria}</span>}
-      <ul>
+      <ul className="grade-palavras">
         {local.map((palavra) => {
           const config = CONFIG_STATUS[palavra.status]
           const estilo: CSSProperties = { color: config.cor, border: config.borda }

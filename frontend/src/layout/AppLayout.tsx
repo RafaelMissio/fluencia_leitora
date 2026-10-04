@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { ThemeToggle } from '../theme/ThemeToggle'
 
 interface MenuItem {
   label: string
@@ -39,6 +40,12 @@ export function AppLayout() {
   return (
     <div className="app-layout">
       <nav aria-label="Menu principal">
+        <div className="app-brand">
+          <span className="app-brand__logo" aria-hidden="true">
+            F
+          </span>
+          <span className="app-brand__name">Fluência Leitora</span>
+        </div>
         <ul>
           {menu.map((item) => (
             <li key={item.to}>
@@ -47,9 +54,12 @@ export function AppLayout() {
           ))}
         </ul>
         {/* T38: controle de logout visível para os dois perfis (gap reportado pelo Batch 1). */}
-        <button type="button" onClick={sair}>
-          Sair
-        </button>
+        <div className="app-nav-actions">
+          <ThemeToggle />
+          <button type="button" onClick={sair}>
+            Sair
+          </button>
+        </div>
       </nav>
       <main>
         <Outlet />

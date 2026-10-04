@@ -77,7 +77,7 @@ function AlunoLinha({ aluno, turmas }: { aluno: AlunoBuscaItem; turmas: TurmaRes
         Nova matrícula de {aluno.nome}
       </button>
 
-      <button type="button" disabled={inativar.isPending} onClick={() => inativar.mutate(aluno.alunoId)}>
+      <button type="button" className="danger" disabled={inativar.isPending} onClick={() => inativar.mutate(aluno.alunoId)}>
         Inativar {aluno.nome}
       </button>
 

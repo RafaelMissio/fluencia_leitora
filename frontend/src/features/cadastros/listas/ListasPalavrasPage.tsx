@@ -206,7 +206,7 @@ export function ListasPalavrasPage() {
             <button type="button" onClick={() => void iniciarEdicao(lista.id)}>
               Editar {lista.nome}
             </button>
-            <button type="button" disabled={inativar.isPending} onClick={() => inativar.mutate(lista.id)}>
+            <button type="button" className="danger" disabled={inativar.isPending} onClick={() => inativar.mutate(lista.id)}>
               Inativar {lista.nome}
             </button>
           </li>

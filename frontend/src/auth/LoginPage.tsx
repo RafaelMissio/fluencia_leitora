@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate, type Location } from 'react-router-dom'
 import type { ApiErrorComRetry } from '../api/client'
 import { useAuth } from './AuthContext'
+import { ThemeToggle } from '../theme/ThemeToggle'
 import './LoginPage.css'
 
 function defaultPathFor(perfil: 'PROFESSOR' | 'COORDENADOR'): string {
@@ -56,6 +57,7 @@ export function LoginPage() {
 
   return (
     <main className="login">
+      <ThemeToggle className="theme-toggle login__theme" />
       <form className="login__card" onSubmit={(event) => void handleSubmit(event)}>
         <div className="login__brand">
           <span className="login__logo" aria-hidden="true">
@@ -69,7 +71,7 @@ export function LoginPage() {
         <h1>Entrar</h1>
         <p className="login__subtitle">Use seu e-mail e senha para acessar.</p>
         {error ? (
-          <p role="alert" className="login__error">
+          <p role="alert">
             {error}
           </p>
         ) : null}
