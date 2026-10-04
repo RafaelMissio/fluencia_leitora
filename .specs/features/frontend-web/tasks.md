@@ -1140,15 +1140,17 @@ T5 → T36
 - Skill: `react-best-practices`
 
 **Done when**:
-- [ ] Criar um usuário válido mostra "Salvo com sucesso" e aparece na lista
-- [ ] Alterar senha de um usuário existente funciona e não expõe a senha em nenhum lugar da UI/log
-- [ ] 409/422 tratados como em T30
-- [ ] Novos testes de componente em `UsuariosPage.test.tsx`: os 3 pontos acima
-- [ ] Gate check passes: `npm run lint && npm run test`
-- [ ] Test count: >= 3 testes novos
+- [x] Criar um usuário válido mostra "Salvo com sucesso" e aparece na lista
+- [x] Alterar senha de um usuário existente funciona e não expõe a senha em nenhum lugar da UI/log
+- [x] 409/422 tratados como em T30
+- [x] Novos testes de componente em `UsuariosPage.test.tsx`: os 3 pontos acima
+- [x] Gate check passes: `npm run lint && npm run test`
+- [x] Test count: >= 3 testes novos
 
 **Tests**: unit
 **Gate**: full
+
+**SPEC_DEVIATION (endpoint)**: `GET /usuarios` não existia; adicionado no backend (COORDENADOR-only, sem senha/hash) por decisão do usuário.
 
 **Commit**: `feat(frontend-web): add UsuariosPage CRUD screen`
 

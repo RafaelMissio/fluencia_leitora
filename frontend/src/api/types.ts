@@ -196,3 +196,5 @@ export interface MatriculaResponse {
   id: number; alunoId: number; anoLetivoId: number; turmaId: number; serie: number
   professorId: number | null; anoFinalizado: boolean
 }
+export interface UsuarioResponse { id: number; email: string; perfil: Perfil; professorId: number | null; ativo: boolean }
+export interface CriarUsuarioRequest { email: string; senha: string; perfil: Perfil; professorId?: number | null }
