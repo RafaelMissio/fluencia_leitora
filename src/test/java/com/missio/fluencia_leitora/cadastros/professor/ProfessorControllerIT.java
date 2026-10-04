@@ -151,4 +151,33 @@ class ProfessorControllerIT extends IntegrationTestBase {
         assertEquals(totalAntes, professorRepository.count());
         assertTrue(professorRepository.findById(alvoId).orElseThrow().isAtivo());
     }
+
+    @Test
+    void getListaSoProfessoresAtivosComSuasTurmasEExigeCoordenador() throws Exception {
+        Long idComTurma = criarProfessor("Professor Lista Com Turma");
+        Long idInativo = criarProfessor("Professor Lista Inativo");
+        Long anoLetivoId = anoLetivoRepository.save(
+                new com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivo(
+                        proximoAno(), java.time.LocalDate.of(2026, 2, 1), java.time.LocalDate.of(2026, 12, 15))).getId();
+        turmaRepository.save(new com.missio.fluencia_leitora.cadastros.turma.Turma(
+                "Turma do Professor Lista", 3, anoLetivoRepository.findById(anoLetivoId).orElseThrow(),
+                professorRepository.findById(idComTurma).orElseThrow()));
+        mockMvc.perform(delete("/api/v1/professores/" + idInativo).header("Authorization", bearerCoordenador()))
+                .andExpect(status().isNoContent());
+
+        String corpo = mockMvc.perform(get("/api/v1/professores").header("Authorization", bearerCoordenador()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        com.fasterxml.jackson.databind.JsonNode lista = objectMapper.readTree(corpo);
+        com.fasterxml.jackson.databind.JsonNode comTurma = null;
+        for (com.fasterxml.jackson.databind.JsonNode item : lista) {
+            if (item.get("id").asLong() == idComTurma) comTurma = item;
+            org.junit.jupiter.api.Assertions.assertNotEquals(idInativo, item.get("id").asLong());
+        }
+        org.junit.jupiter.api.Assertions.assertNotNull(comTurma);
+        assertEquals("Turma do Professor Lista", comTurma.get("turmas").get(0).get("nome").asText());
+
+        mockMvc.perform(get("/api/v1/professores").header("Authorization", bearerProfessor()))
+                .andExpect(status().isForbidden());
+    }
 }

@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -204,5 +206,33 @@ class TurmaControllerIT extends IntegrationTestBase {
         Turma turma = turmaRepository.findById(turmaId).orElseThrow();
         assertTrue(turma.isAtivo());
         assertEquals(professorOriginal, turma.getProfessor().getId());
+    }
+
+    @Test
+    void getListaSoTurmasAtivasEExigeCoordenador() throws Exception {
+        Long anoLetivoId = novoAnoLetivo();
+        Long idAtiva = criarTurmaId("Turma Lista Ativa", anoLetivoId);
+        Long idInativa = criarTurmaId("Turma Lista Inativa", anoLetivoId);
+        mockMvc.perform(delete("/api/v1/turmas/" + idInativa).header("Authorization", bearerCoordenador()))
+                .andExpect(status().isNoContent());
+
+        String corpo = mockMvc.perform(get("/api/v1/turmas").header("Authorization", bearerCoordenador()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        List<Long> ids = objectMapper.readTree(corpo).findValues("id").stream().map(n -> n.asLong()).toList();
+
+        assertTrue(ids.contains(idAtiva));
+        assertFalse(ids.contains(idInativa));
+        mockMvc.perform(get("/api/v1/turmas").header("Authorization", bearerProfessor()))
+                .andExpect(status().isForbidden());
+    }
+
+    private Long criarTurmaId(String nome, Long anoLetivoId) throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/v1/turmas").header("Authorization", bearerCoordenador())
+                        .contentType("application/json")
+                        .content(turmaPayload(nome, 2, anoLetivoId, null)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
     }
 }

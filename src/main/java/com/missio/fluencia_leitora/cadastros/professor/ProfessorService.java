@@ -42,6 +42,15 @@ public class ProfessorService {
         return professorRepository.save(new Professor(nome));
     }
 
+    /** Listagem para a tela de cadastro (frontend-web T32): professores ativos, por nome, cada um com suas turmas ativas. */
+    @Transactional(readOnly = true)
+    public List<ProfessorComTurmas> listarComTurmas() {
+        return professorRepository.findByAtivoTrueOrderByNomeAsc().stream()
+                .map(professor -> new ProfessorComTurmas(
+                        professor, turmaRepository.findByProfessorIdAndAtivoTrue(professor.getId())))
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     public ProfessorComTurmas buscarComTurmas(Long id) {
         Professor professor = professorRepository.findById(id)

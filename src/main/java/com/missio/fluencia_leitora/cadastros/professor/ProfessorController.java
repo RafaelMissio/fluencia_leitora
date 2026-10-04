@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * CAD-07/CAD-08/CAD-09/CAD-19: CRUD de professor com consulta de turmas
  * ativas. Escrita restrita ao COORDENADOR (AUTH-07).
@@ -26,6 +28,12 @@ public class ProfessorController {
 
     public ProfessorController(ProfessorService professorService) {
         this.professorService = professorService;
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('COORDENADOR')")
+    public List<ProfessorResponse> listar() {
+        return professorService.listarComTurmas().stream().map(ProfessorResponse::from).toList();
     }
 
     @PostMapping

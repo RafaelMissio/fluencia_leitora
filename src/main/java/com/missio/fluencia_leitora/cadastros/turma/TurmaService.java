@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 /**
  * CAD-07/CAD-10: cadastro de turma vinculada a um ano letivo e a um
  * professor opcional, e troca do professor responsável sem afetar
@@ -39,6 +41,12 @@ public class TurmaService {
         this.turmaRepository = turmaRepository;
         this.professorRepository = professorRepository;
         this.anoLetivoRepository = anoLetivoRepository;
+    }
+
+    /** Listagem para a tela de cadastro (frontend-web T31): só turmas ativas, por nome. */
+    @Transactional(readOnly = true)
+    public List<Turma> listar() {
+        return turmaRepository.findByAtivoTrueOrderByNomeAsc();
     }
 
     @Transactional

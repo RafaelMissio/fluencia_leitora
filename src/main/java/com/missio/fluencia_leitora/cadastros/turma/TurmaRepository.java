@@ -8,5 +8,7 @@ public interface TurmaRepository extends JpaRepository<Turma, Long> {
 
     boolean existsByNomeIgnoreCaseAndAnoLetivoId(String nome, Long anoLetivoId);
 
+    List<Turma> findByAtivoTrueOrderByNomeAsc();
+
     List<Turma> findByProfessorIdAndAtivoTrue(Long professorId);
 }
