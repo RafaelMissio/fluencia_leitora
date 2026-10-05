@@ -600,3 +600,13 @@ button.start {
   font-size: 18px;
   border-radius: 12px;
 }
+
+/* Modo refazer: uma palavra por vez, verde (acerto) / vermelho (erro). */
+.palavra-por-vez { text-align: center; }
+.palavra-por-vez .palavra-atual {
+  font-size: 4rem; font-weight: 700; margin: 1rem 0; padding: 1.5rem;
+  border-radius: 12px; border: 2px solid transparent; transition: background-color .2s, color .2s;
+}
+.palavra-por-vez .palavra-atual.correta { background: #e8f5e9; color: #1b5e20; border-color: #1b5e20; }
+.palavra-por-vez .palavra-atual.incorreta { background: #ffebee; color: #b71c1c; border-color: #b71c1c; }
+.palavra-por-vez .palavra-atual.nao-lida { background: #f5f5f5; color: #616161; border-color: #616161; }

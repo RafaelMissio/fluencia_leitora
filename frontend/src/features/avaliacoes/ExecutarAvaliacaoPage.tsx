@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { request } from '../../api/client'
 import type { AvaliacaoResponse, StatusPalavra } from '../../api/types'
+import { PalavraPorVez } from '../../components/PalavraPorVez'
 import { GradePalavras } from '../../components/GradePalavras'
 import { CronometroDisplay } from './CronometroDisplay'
 import { useAvaliacaoExecucao, type BotaoExecucao } from './useAvaliacaoExecucao'
@@ -31,6 +32,8 @@ export function ExecutarAvaliacaoPage() {
   const { id } = useParams<{ id: string }>()
   const avaliacaoId = Number(id)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const modoRefazer = searchParams.get('modo') === 'refazer'
   const exec = useAvaliacaoExecucao(avaliacaoId)
 
   const jaNavegouRef = useRef(false)
@@ -112,7 +115,12 @@ export function ExecutarAvaliacaoPage() {
         ))}
       </div>
 
-      {exec.status && <GradePalavras palavras={exec.palavras} avaliacaoStatus={exec.status} onMarcar={aoMarcar} />}
+      {exec.status && modoRefazer && (
+        <PalavraPorVez palavras={exec.palavras} avaliacaoStatus={exec.status} onMarcar={aoMarcar} />
+      )}
+      {exec.status && !modoRefazer && (
+        <GradePalavras palavras={exec.palavras} avaliacaoStatus={exec.status} onMarcar={aoMarcar} />
+      )}
     </div>
   )
 }
