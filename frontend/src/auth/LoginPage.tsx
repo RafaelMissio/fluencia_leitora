@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useLocation, useNavigate, type Location } from 'react-router-dom'
+import { Link, useLocation, useNavigate, type Location } from 'react-router-dom'
 import type { ApiErrorComRetry } from '../api/client'
 import { useAuth } from './AuthContext'
 import { ThemeToggle } from '../theme/ThemeToggle'
@@ -17,6 +17,7 @@ export function LoginPage() {
 
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
+  const [mostrarSenha, setMostrarSenha] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -89,16 +90,29 @@ export function LoginPage() {
         </div>
         <div className="login__field">
           <label htmlFor="login-senha">Senha</label>
-          <input
-            id="login-senha"
-            name="senha"
-            type="password"
-            autoComplete="current-password"
-            value={senha}
-            onChange={(event) => setSenha(event.target.value)}
-            required
-          />
+          <div className="login__password">
+            <input
+              id="login-senha"
+              name="senha"
+              type={mostrarSenha ? 'text' : 'password'}
+              autoComplete="current-password"
+              value={senha}
+              onChange={(event) => setSenha(event.target.value)}
+              required
+            />
+            <button
+              type="button"
+              className="login__toggle"
+              aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+              onClick={() => setMostrarSenha((atual) => !atual)}
+            >
+              {mostrarSenha ? 'Ocultar' : 'Mostrar'}
+            </button>
+          </div>
         </div>
+        <p className="login__forgot">
+          <Link to="/esqueci-senha">Esqueci a senha</Link>
+        </p>
         <button className="login__submit" type="submit" disabled={submitting}>
           Entrar
         </button>

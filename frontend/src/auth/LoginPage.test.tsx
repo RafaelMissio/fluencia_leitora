@@ -44,6 +44,25 @@ describe('LoginPage', () => {
     vi.unstubAllGlobals()
   })
 
+  it('toggles password visibility', async () => {
+    renderLoginPage(['/login'])
+    const user = userEvent.setup()
+    const senha = screen.getByLabelText('Senha')
+    expect(senha).toHaveAttribute('type', 'password')
+
+    await user.click(screen.getByRole('button', { name: /mostrar senha/i }))
+    expect(senha).toHaveAttribute('type', 'text')
+
+    await user.click(screen.getByRole('button', { name: /ocultar senha/i }))
+    expect(senha).toHaveAttribute('type', 'password')
+  })
+
+  it('links to the forgot-password page', () => {
+    renderLoginPage(['/login'])
+
+    expect(screen.getByRole('link', { name: 'Esqueci a senha' })).toHaveAttribute('href', '/esqueci-senha')
+  })
+
   it('a valid PROFESSOR login opens /avaliar (spec.md P1 "Login", AC1)', async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       jsonResponse(200, { accessToken: 'tok', expiresIn: 3600, perfil: 'PROFESSOR', professorId: 1 }),

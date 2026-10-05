@@ -96,6 +96,43 @@
   box-shadow: 0 0 0 4px var(--accent-bg);
 }
 
+.login__password {
+  position: relative;
+}
+
+.login__password input {
+  padding-right: 88px;
+}
+
+.login__toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login__toggle:focus-visible {
+  outline: 3px solid var(--accent-border);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .login__submit {
   width: 100%;
   margin-top: 8px;
@@ -133,4 +170,26 @@
   position: fixed;
   top: 16px;
   right: 16px;
+}
+
+.login__forgot {
+  margin: -4px 0 8px;
+  text-align: right;
+  font-size: 14px;
+}
+
+.login__forgot a,
+.login__link a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.login__link {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 14px;
+}
+
+.login__success {
+  margin: 0 0 16px;
 }

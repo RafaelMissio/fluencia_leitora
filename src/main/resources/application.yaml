@@ -7,3 +7,17 @@ spring:
     password: ${DB_PASSWORD:root}
   flyway:
     locations: classpath:db/migration
+  # Envio de e-mail só é ativado quando MAIL_HOST está definido; sem ele o link
+  # de redefinição de senha é apenas registrado no log (ambiente de dev).
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+app:
+  frontend-url: ${APP_FRONTEND_URL:http://localhost:5173}
+  mail-from: ${MAIL_FROM:no-reply@fluencia-leitora.local}

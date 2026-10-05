@@ -42,7 +42,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(
-                                "/api/v1/auth/login", "/v3/api-docs/**", "/swagger-ui/**", "/actuator/health")
+                                "/api/v1/auth/login", "/api/v1/auth/esqueci-senha", "/api/v1/auth/redefinir-senha",
+                                "/v3/api-docs/**", "/swagger-ui/**", "/actuator/health")
                         .permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e

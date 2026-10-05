@@ -3,6 +3,8 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import type { Perfil } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { LoginPage } from '../auth/LoginPage'
+import { EsqueciSenhaPage } from '../auth/EsqueciSenhaPage'
+import { RedefinirSenhaPage } from '../auth/RedefinirSenhaPage'
 import { AlunoBuscaPage } from '../features/alunos/AlunoBuscaPage'
 import { ConfigurarAvaliacaoPage } from '../features/avaliacoes/ConfigurarAvaliacaoPage'
 import { ExecutarAvaliacaoPage } from '../features/avaliacoes/ExecutarAvaliacaoPage'
@@ -65,6 +67,8 @@ export function AppRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/esqueci-senha" element={<EsqueciSenhaPage />} />
+      <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
       <Route
         element={
           <ProtectedRoute>
