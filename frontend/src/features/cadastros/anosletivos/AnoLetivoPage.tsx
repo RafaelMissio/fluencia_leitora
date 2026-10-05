@@ -1,11 +1,18 @@
 import { useState, type FormEvent } from 'react'
 import type { ApiError, ConfiguracaoAvaliacaoResponse } from '../../../api/types'
 import {
+  useAlterarSituacao,
   useAnosLetivos,
   useAtualizarConfiguracao,
   useConfiguracoesDoAno,
   useCriarAnoLetivo,
 } from './useAnosLetivos'
+
+const SITUACOES = [
+  { valor: 'PLANEJADO', rotulo: 'Planejado' },
+  { valor: 'ATIVO', rotulo: 'Ativo' },
+  { valor: 'ENCERRADO', rotulo: 'Inativo' },
+]
 
 function mensagensPorCampo(error: ApiError | null | undefined): Record<string, string> {
   if (!error?.errors) return {}
@@ -18,7 +25,13 @@ function mensagemNoTopo(error: ApiError | null | undefined): string | null {
   return error.detail ?? error.code ?? 'Não foi possível salvar'
 }
 
-function ConfiguracaoLinha({ anoLetivoId, configuracao }: { anoLetivoId: number; configuracao: ConfiguracaoAvaliacaoResponse }) {
+function ConfiguracaoLinha({
+  anoLetivoId,
+  configuracao,
+}: {
+  anoLetivoId: number
+  configuracao: ConfiguracaoAvaliacaoResponse
+}) {
   const [minimo, setMinimo] = useState(configuracao.quantidadeMinima)
   const [maximo, setMaximo] = useState(configuracao.quantidadeMaxima)
   const atualizar = useAtualizarConfiguracao(anoLetivoId)
@@ -47,7 +60,13 @@ function ConfiguracaoLinha({ anoLetivoId, configuracao }: { anoLetivoId: number;
         <button
           type="button"
           disabled={atualizar.isPending}
-          onClick={() => atualizar.mutate({ serie: configuracao.serie, quantidadeMinima: minimo, quantidadeMaxima: maximo })}
+          onClick={() =>
+            atualizar.mutate({
+              serie: configuracao.serie,
+              quantidadeMinima: minimo,
+              quantidadeMaxima: maximo,
+            })
+          }
         >
           Salvar série {configuracao.serie}
         </button>
@@ -73,7 +92,11 @@ function ConfiguracoesDoAno({ anoLetivoId }: { anoLetivoId: number }) {
       </thead>
       <tbody>
         {(configuracoesQuery.data ?? []).map((configuracao) => (
-          <ConfiguracaoLinha key={configuracao.id} anoLetivoId={anoLetivoId} configuracao={configuracao} />
+          <ConfiguracaoLinha
+            key={configuracao.id}
+            anoLetivoId={anoLetivoId}
+            configuracao={configuracao}
+          />
         ))}
       </tbody>
     </table>
@@ -85,12 +108,16 @@ function ConfiguracoesDoAno({ anoLetivoId }: { anoLetivoId: number }) {
  * limites de palavras por série. Sucesso mostra "Salvo com sucesso"; 409 vai
  * para o topo do formulário e 422 para o campo (`errors[].field`).
  */
-export function AnoLetivoPage() {
+export type ModoAnoLetivo = 'cadastrar' | 'listar'
+
+export function AnoLetivoPage({ modo }: { modo: ModoAnoLetivo }) {
   const anosQuery = useAnosLetivos()
   const criar = useCriarAnoLetivo()
+  const alterarSituacao = useAlterarSituacao()
   const [ano, setAno] = useState('')
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
+  const [situacao, setSituacao] = useState('PLANEJADO')
   const [anoSelecionado, setAnoSelecionado] = useState<number | undefined>()
 
   const erros = mensagensPorCampo(criar.error)
@@ -99,12 +126,13 @@ export function AnoLetivoPage() {
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault()
     criar.mutate(
-      { ano: Number(ano), dataInicio, dataFim },
+      { ano: Number(ano), dataInicio, dataFim, situacao },
       {
         onSuccess: () => {
           setAno('')
           setDataInicio('')
           setDataFim('')
+          setSituacao('PLANEJADO')
         },
       },
     )
@@ -112,62 +140,103 @@ export function AnoLetivoPage() {
 
   return (
     <div>
-      <h1>Anos letivos</h1>
+      <h1>{modo === 'cadastrar' ? 'Cadastrar ano letivo' : 'Anos letivos cadastrados'}</h1>
 
-      <form onSubmit={handleSubmit}>
-        {topo ? <p role="alert">{topo}</p> : null}
-        {criar.isSuccess ? <p role="status">Salvo com sucesso</p> : null}
+      {modo === 'cadastrar' ? (
+        <form onSubmit={handleSubmit}>
+          {topo ? <p role="alert">{topo}</p> : null}
+          {criar.isSuccess ? <p role="status">Salvo com sucesso</p> : null}
 
-        <label htmlFor="ano-letivo-ano">Ano</label>
-        <input id="ano-letivo-ano" type="number" value={ano} onChange={(event) => setAno(event.target.value)} />
-        {erros.ano ? <p>{erros.ano}</p> : null}
+          <label htmlFor="ano-letivo-ano">Ano</label>
+          <input
+            id="ano-letivo-ano"
+            type="number"
+            value={ano}
+            onChange={(event) => setAno(event.target.value)}
+          />
+          {erros.ano ? <p>{erros.ano}</p> : null}
 
-        <label htmlFor="ano-letivo-inicio">Data de início</label>
-        <input
-          id="ano-letivo-inicio"
-          type="date"
-          value={dataInicio}
-          onChange={(event) => setDataInicio(event.target.value)}
-        />
-        {erros.dataInicio ? <p>{erros.dataInicio}</p> : null}
+          <label htmlFor="ano-letivo-inicio">Data de início</label>
+          <input
+            id="ano-letivo-inicio"
+            type="date"
+            value={dataInicio}
+            onChange={(event) => setDataInicio(event.target.value)}
+          />
+          {erros.dataInicio ? <p>{erros.dataInicio}</p> : null}
 
-        <label htmlFor="ano-letivo-fim">Data de fim</label>
-        <input id="ano-letivo-fim" type="date" value={dataFim} onChange={(event) => setDataFim(event.target.value)} />
-        {erros.dataFim ? <p>{erros.dataFim}</p> : null}
+          <label htmlFor="ano-letivo-fim">Data de fim</label>
+          <input
+            id="ano-letivo-fim"
+            type="date"
+            value={dataFim}
+            onChange={(event) => setDataFim(event.target.value)}
+          />
+          {erros.dataFim ? <p>{erros.dataFim}</p> : null}
 
-        <button type="submit" disabled={criar.isPending}>
-          Criar ano letivo
-        </button>
-      </form>
+          <label htmlFor="ano-letivo-situacao">Situação</label>
+          <select
+            id="ano-letivo-situacao"
+            value={situacao}
+            onChange={(event) => setSituacao(event.target.value)}
+          >
+            <option value="PLANEJADO">Planejado</option>
+            <option value="ATIVO">Ativo</option>
+          </select>
 
-      <table aria-label="Anos letivos cadastrados">
-        <thead>
-          <tr>
-            <th>Ano</th>
-            <th>Início</th>
-            <th>Fim</th>
-            <th>Situação</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {(anosQuery.data ?? []).map((item) => (
-            <tr key={item.id}>
-              <td>{item.ano}</td>
-              <td>{item.dataInicio}</td>
-              <td>{item.dataFim}</td>
-              <td>{item.situacao}</td>
-              <td>
-                <button type="button" onClick={() => setAnoSelecionado(item.id)}>
-                  Configurar {item.ano}
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          <button type="submit" disabled={criar.isPending}>
+            Criar ano letivo
+          </button>
+        </form>
+      ) : (
+        <>
+          <table aria-label="Anos letivos cadastrados">
+            <thead>
+              <tr>
+                <th>Ano</th>
+                <th>Início</th>
+                <th>Fim</th>
+                <th>Situação</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {(anosQuery.data ?? []).map((item) => (
+                <tr key={item.id}>
+                  <td>{item.ano}</td>
+                  <td>{item.dataInicio}</td>
+                  <td>{item.dataFim}</td>
+                  <td>
+                    <select
+                      aria-label={`Situação de ${item.ano}`}
+                      value={item.situacao}
+                      disabled={alterarSituacao.isPending}
+                      onChange={(event) =>
+                        alterarSituacao.mutate({ id: item.id, situacao: event.target.value })
+                      }
+                    >
+                      {SITUACOES.map((opcao) => (
+                        <option key={opcao.valor} value={opcao.valor}>
+                          {opcao.rotulo}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <button type="button" onClick={() => setAnoSelecionado(item.id)}>
+                      Configurar {item.ano}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-      {anoSelecionado !== undefined ? <ConfiguracoesDoAno anoLetivoId={anoSelecionado} /> : null}
+          {anoSelecionado !== undefined ? (
+            <ConfiguracoesDoAno anoLetivoId={anoSelecionado} />
+          ) : null}
+        </>
+      )}
     </div>
   )
 }

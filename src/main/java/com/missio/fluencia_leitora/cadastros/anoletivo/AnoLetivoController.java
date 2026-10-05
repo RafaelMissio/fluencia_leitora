@@ -1,5 +1,6 @@
 package com.missio.fluencia_leitora.cadastros.anoletivo;
 
+import com.missio.fluencia_leitora.cadastros.anoletivo.dto.AlterarSituacaoAnoLetivoRequest;
 import com.missio.fluencia_leitora.cadastros.anoletivo.dto.AnoLetivoResponse;
 import com.missio.fluencia_leitora.cadastros.anoletivo.dto.AtualizarConfiguracaoRequest;
 import com.missio.fluencia_leitora.cadastros.anoletivo.dto.ConfiguracaoAvaliacaoResponse;
@@ -58,6 +59,9 @@ public class AnoLetivoController {
     @ResponseStatus(HttpStatus.CREATED)
     public AnoLetivoResponse criar(@Valid @RequestBody CriarAnoLetivoRequest request) {
         AnoLetivo criado = anoLetivoService.criar(request.ano(), request.dataInicio(), request.dataFim());
+        if (request.situacao() != null && request.situacao() != SituacaoAnoLetivo.PLANEJADO) {
+            criado = anoLetivoService.alterarSituacao(criado.getId(), request.situacao());
+        }
         return AnoLetivoResponse.from(criado);
     }
 
@@ -65,6 +69,13 @@ public class AnoLetivoController {
     @PreAuthorize("hasRole('COORDENADOR')")
     public AnoLetivoResponse ativar(@PathVariable Long id) {
         return AnoLetivoResponse.from(anoLetivoService.ativar(id));
+    }
+
+    @PutMapping("/{id}/situacao")
+    @PreAuthorize("hasRole('COORDENADOR')")
+    public AnoLetivoResponse alterarSituacao(
+            @PathVariable Long id, @Valid @RequestBody AlterarSituacaoAnoLetivoRequest request) {
+        return AnoLetivoResponse.from(anoLetivoService.alterarSituacao(id, request.situacao()));
     }
 
     @PutMapping("/{id}/configuracoes/{serie}")

@@ -205,6 +205,24 @@ a {
   font-weight: 650;
 }
 
+.app-layout > nav button.app-nav-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 9px 12px 4px;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  color: var(--text-h);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.app-layout > nav .app-nav-sub {
+  padding-left: 12px;
+}
+
 .app-nav-actions {
   margin-top: auto;
   display: flex;
@@ -610,3 +628,8 @@ button.start {
 .palavra-por-vez .palavra-atual.correta { background: #e8f5e9; color: #1b5e20; border-color: #1b5e20; }
 .palavra-por-vez .palavra-atual.incorreta { background: #ffebee; color: #b71c1c; border-color: #b71c1c; }
 .palavra-por-vez .palavra-atual.nao-lida { background: #f5f5f5; color: #616161; border-color: #616161; }
+
+tr.inativa td {
+  opacity: 0.55;
+  font-style: italic;
+}

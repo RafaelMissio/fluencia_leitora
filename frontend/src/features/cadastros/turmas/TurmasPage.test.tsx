@@ -2,8 +2,8 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { AnoLetivoResponse, ProfessorResponse, TurmaResponse } from '../../../api/types'
-import { TurmasPage } from './TurmasPage'
+import type { AlunoDaTurma, AnoLetivoResponse, ProfessorResponse, TurmaResponse } from '../../../api/types'
+import { TurmasPage, type ModoTurmas } from './TurmasPage'
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -18,6 +18,14 @@ const PROFESSORES: ProfessorResponse[] = [
 ]
 const TURMA_A: TurmaResponse = { id: 100, nome: 'Turma A', serie: 2, anoLetivoId: 1, professorId: 7, ativo: true }
 
+const TURMA_INATIVA: TurmaResponse = { id: 200, nome: 'Turma Velha', serie: 3, anoLetivoId: 1, professorId: null, ativo: false }
+const ALUNOS: Record<number, AlunoDaTurma[]> = {
+  100: [
+    { alunoId: 1, nome: 'Bia', alunoAtivo: true, matriculaId: 11, status: 'CURSANDO' },
+    { alunoId: 2, nome: 'Caio', alunoAtivo: true, matriculaId: 12, status: 'APROVADO' },
+  ],
+}
+
 interface Estado {
   turmas: TurmaResponse[]
   post?: () => Response
@@ -27,7 +35,9 @@ function mockApi(estado: Estado): void {
   vi.mocked(fetch).mockImplementation(async (input, init) => {
     const url = String(input)
     const method = init?.method ?? 'GET'
-    if (url === '/api/v1/turmas' && method === 'GET') return jsonResponse(200, estado.turmas)
+    if (url === '/api/v1/turmas?incluirInativas=true') return jsonResponse(200, estado.turmas)
+    if (url === '/api/v1/turmas' && method === 'GET') return jsonResponse(200, estado.turmas.filter((t) => t.ativo))
+    if (url.endsWith('/alunos')) return jsonResponse(200, ALUNOS[Number(url.split('/')[4])] ?? [])
     if (url === '/api/v1/turmas' && method === 'POST') return estado.post!()
     if (url.startsWith('/api/v1/turmas/') && method === 'PUT') {
       const id = Number(url.split('/').pop())
@@ -41,11 +51,11 @@ function mockApi(estado: Estado): void {
   })
 }
 
-function renderPage() {
+function renderPage(modo: ModoTurmas = 'cadastrar') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <TurmasPage />
+      <TurmasPage modo={modo} />
     </QueryClientProvider>,
   )
 }
@@ -66,7 +76,7 @@ describe('TurmasPage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('creates a valid turma, shows "Salvo com sucesso" and lists it', async () => {
+  it('creates a valid turma and shows "Salvo com sucesso"', async () => {
     const estado: Estado = { turmas: [TURMA_A] }
     estado.post = () => {
       const nova = { ...TURMA_A, id: 101, nome: 'Turma B' }
@@ -76,18 +86,17 @@ describe('TurmasPage', () => {
     mockApi(estado)
     const user = userEvent.setup()
     renderPage()
-    await screen.findByText('Turma A')
 
     await preencherEEnviar(user)
 
     expect(await screen.findByText('Salvo com sucesso')).toBeInTheDocument()
-    expect(await screen.findByText('Turma B')).toBeInTheDocument()
+    expect(estado.turmas.map((t) => t.nome)).toContain('Turma B')
   })
 
   it('changes the professor of an existing turma and reflects it in the list', async () => {
     mockApi({ turmas: [TURMA_A] })
     const user = userEvent.setup()
-    renderPage()
+    renderPage('listar')
     const select = await screen.findByLabelText('Professor da turma Turma A')
     const professorDaLinha = () => within(screen.getByText('Turma A').closest('tr')!).getAllByRole('cell')[2]
     await waitFor(() => expect(professorDaLinha()).toHaveTextContent('Maria Souza'))
@@ -106,7 +115,6 @@ describe('TurmasPage', () => {
     mockApi(estado)
     const user = userEvent.setup()
     renderPage()
-    await screen.findByText('Turma A')
 
     await preencherEEnviar(user)
     expect(await screen.findByRole('alert')).toHaveTextContent('Já existe uma turma com esse nome nesse ano letivo')
@@ -114,5 +122,33 @@ describe('TurmasPage', () => {
     estado.post = () => jsonResponse(422, { errors: [{ field: 'nome', message: 'não deve estar em branco' }] })
     await user.click(screen.getByRole('button', { name: 'Criar turma' }))
     expect(await screen.findByText('não deve estar em branco')).toBeInTheDocument()
+  })
+
+  it('lists active and inactive turmas with their status', async () => {
+    mockApi({ turmas: [TURMA_A, TURMA_INATIVA] })
+    renderPage('listar')
+
+    const ativa = (await screen.findByText('Turma A')).closest('tr')!
+    const inativa = screen.getByText('Turma Velha').closest('tr')!
+    expect(ativa).toHaveTextContent('Ativa')
+    expect(inativa).toHaveTextContent('Inativa')
+  })
+
+  it('shows the alunos of the selected turma with turma and matrícula status', async () => {
+    mockApi({ turmas: [TURMA_A, TURMA_INATIVA] })
+    const user = userEvent.setup()
+    renderPage('alunos')
+
+    await screen.findByRole('option', { name: 'Turma A' })
+    await user.selectOptions(screen.getByLabelText('Turma'), '100')
+
+    expect(await screen.findByText('Bia')).toBeInTheDocument()
+    expect(screen.getByText('Status da turma: Ativa')).toBeInTheDocument()
+    expect(screen.getByText('Bia').closest('tr')).toHaveTextContent('Cursando')
+    expect(screen.getByText('Caio').closest('tr')).toHaveTextContent('Aprovado')
+
+    await user.selectOptions(screen.getByLabelText('Turma'), '200')
+    expect(await screen.findByText('Status da turma: Inativa')).toBeInTheDocument()
+    expect(await screen.findByText('Nenhum aluno matriculado nesta turma')).toBeInTheDocument()
   })
 })

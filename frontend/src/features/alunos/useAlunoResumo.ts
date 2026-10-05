@@ -103,9 +103,11 @@ export function useAlunoResumo(alunoId: number): AlunoResumo {
     queryFn: () => request<Page<HistoricoAvaliacaoItem>>(`/alunos/${alunoId}/historico-avaliacoes?page=0`),
   })
 
-  const itens = historicoQuery.data?.content ?? []
+  const todos = historicoQuery.data?.content ?? []
+  // Inativas (refeitas) são listadas, mas não entram em ciclo atual, classificação nem evolução.
+  const itens = todos.filter((item) => item.ativa)
   const cicloAtual = calcularCicloAtual(itens)
-  const ultimasAvaliacoes = itens.slice(0, QUANTIDADE_ULTIMAS_AVALIACOES)
+  const ultimasAvaliacoes = todos.slice(0, QUANTIDADE_ULTIMAS_AVALIACOES)
   const ultimaClassificacao = itens[0] ? { fase: itens[0].fase, nivel: itens[0].nivel } : null
   const tipoLeituraMaisRecente = itens[0]?.tipoLeitura
 

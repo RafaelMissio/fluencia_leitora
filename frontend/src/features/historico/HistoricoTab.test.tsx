@@ -31,6 +31,7 @@ const COM_AUDIO: HistoricoAvaliacaoItem = {
   nivel: 2,
   tempoUtilizadoSegundos: 55,
   temAudio: true,
+  ativa: true,
 }
 
 const SEM_AUDIO: HistoricoAvaliacaoItem = {
@@ -38,6 +39,7 @@ const SEM_AUDIO: HistoricoAvaliacaoItem = {
   avaliacaoId: 2,
   dataAvaliacao: '2026-04-01',
   temAudio: false,
+  ativa: true,
 }
 
 describe('HistoricoTab', () => {

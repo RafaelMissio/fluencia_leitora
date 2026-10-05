@@ -9,6 +9,7 @@ import com.missio.fluencia_leitora.cadastros.aluno.Aluno;
 import com.missio.fluencia_leitora.cadastros.aluno.AlunoService;
 import com.missio.fluencia_leitora.cadastros.aluno.AlunoService.AlunoBusca;
 import com.missio.fluencia_leitora.cadastros.aluno.Matricula;
+import com.missio.fluencia_leitora.cadastros.aluno.MatriculaRepository;
 import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivo;
 import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivoRepository;
 import com.missio.fluencia_leitora.cadastros.anoletivo.SituacaoAnoLetivo;
@@ -86,6 +87,9 @@ class HistoricoEvolucaoServiceTest {
     @Mock
     private ContextoUsuarioPort contextoUsuario;
 
+    @Mock
+    private MatriculaRepository matriculaRepository;
+
     private HistoricoEvolucaoService service;
     private Matricula matriculaAtiva;
     private AnoLetivo anoLetivoAtivo;
@@ -114,7 +118,8 @@ class HistoricoEvolucaoServiceTest {
                 alunoService,
                 anoLetivoRepository,
                 cicloRepository,
-                new PertencimentoProfessorGuard(contextoUsuario));
+                new PertencimentoProfessorGuard(contextoUsuario),
+                matriculaRepository);
     }
 
     private static Ciclo cicloMock(long id, String codigo) {
@@ -308,6 +313,22 @@ class HistoricoEvolucaoServiceTest {
     }
 
     @Test
+    void evolucaoPorCicloUsaATentativaComMaisCorretasMesmoSendoMaisAntiga() {
+        when(anoLetivoRepository.findById(ANO_LETIVO_ID)).thenReturn(Optional.of(anoLetivoAtivo));
+        Ciclo cicloEntrada = cicloMock(1L, "ENTRADA");
+        Avaliacao maisRecente = avaliacaoMock(cicloEntrada, Instant.now());
+        Avaliacao melhor = avaliacaoMock(cicloEntrada, Instant.now().minusSeconds(3600));
+        when(maisRecente.getQuantidadeCorretas()).thenReturn(7);
+        when(melhor.getQuantidadeCorretas()).thenReturn(10);
+        when(avaliacaoRepository.buscarFinalizadasPorAnoETipo(any(), any(), any(), any()))
+                .thenReturn(List.of(maisRecente, melhor));
+
+        EvolucaoCiclos resultado = service.evolucaoPorCiclo(ALUNO_ID, ANO_LETIVO_ID, TipoLeituraCodigo.PALAVRA);
+
+        assertSame(melhor, resultado.entrada());
+    }
+
+    @Test
     void evolucaoPorCicloComAnoLetivoOmitidoUsaOAnoAtivo() {
         when(anoLetivoRepository.findBySituacao(SituacaoAnoLetivo.ATIVO)).thenReturn(List.of(anoLetivoAtivo));
         when(avaliacaoRepository.buscarFinalizadasPorAnoETipo(any(), any(), any(), any())).thenReturn(List.of());
@@ -381,6 +402,26 @@ class HistoricoEvolucaoServiceTest {
         assertEquals(2, linhas.get(0).serie());
         assertEquals(2027, linhas.get(1).anoLetivo());
         assertEquals(3, linhas.get(1).serie());
+    }
+
+    @Test
+    void evolucaoAnualTrazATurmaDeCadaAnoQuandoOAlunoMudaDeTurma() {
+        AnoLetivo ano2026 = anoLetivoComId(2026, 300L);
+        AnoLetivo ano2027 = anoLetivoComId(2027, 301L);
+        Ciclo cicloEntrada = cicloMock(1L, "ENTRADA");
+        Avaliacao av2026 = avaliacaoAnualMock(cicloEntrada, ano2026, 1, 10, Instant.now());
+        Avaliacao av2027 = avaliacaoAnualMock(cicloEntrada, ano2027, 2, 15, Instant.now());
+        when(avaliacaoRepository.buscarFinalizadasPorTipo(ALUNO_ID, StatusAvaliacao.FINALIZADA, TipoLeituraCodigo.PALAVRA))
+                .thenReturn(List.of(av2026, av2027));
+        Aluno aluno = matriculaAtiva.getAluno();
+        when(matriculaRepository.findByAlunoId(ALUNO_ID)).thenReturn(List.of(
+                new Matricula(aluno, ano2026, new Turma("1º A", 1, ano2026, null), 1, null),
+                new Matricula(aluno, ano2027, new Turma("2º B", 2, ano2027, null), 2, null)));
+
+        List<EvolucaoAnualLinha> linhas = service.evolucaoAnual(ALUNO_ID, TipoLeituraCodigo.PALAVRA);
+
+        assertEquals("1º A", linhas.get(0).turma());
+        assertEquals("2º B", linhas.get(1).turma());
     }
 
     @Test

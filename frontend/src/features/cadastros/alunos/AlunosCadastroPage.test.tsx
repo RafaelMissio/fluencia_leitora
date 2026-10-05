@@ -6,16 +6,28 @@ import type { AlunoBuscaItem, TurmaResponse } from '../../../api/types'
 import { AlunosCadastroPage } from './AlunosCadastroPage'
 
 function jsonResponse(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
 }
 
 const TURMAS: TurmaResponse[] = [
   { id: 1, nome: 'Turma A', serie: 2, anoLetivoId: 1, professorId: null, ativo: true },
   { id: 2, nome: 'Turma B', serie: 3, anoLetivoId: 2, professorId: null, ativo: true },
+  { id: 3, nome: 'Turma C', serie: 2, anoLetivoId: 1, professorId: null, ativo: true },
 ]
 
 function aluno(alunoId: number, nome: string, turma: string): AlunoBuscaItem {
-  return { alunoId, nome, turma, serie: 2, professor: null, anoLetivo: 2026, situacao: 'EM_ANDAMENTO' }
+  return {
+    alunoId,
+    nome,
+    turma,
+    serie: 2,
+    professor: null,
+    anoLetivo: 2026,
+    situacao: 'EM_ANDAMENTO',
+  }
 }
 
 interface Estado {
@@ -34,7 +46,13 @@ function mockApi(estado: Estado): void {
     if (url.startsWith('/api/v1/alunos?nome=')) {
       const termo = decodeURIComponent(url.split('nome=')[1].split('&')[0]).toLowerCase()
       const content = estado.alunos.filter((item) => item.nome.toLowerCase().includes(termo))
-      return jsonResponse(200, { content, totalElements: content.length, totalPages: 1, number: 0, size: 20 })
+      return jsonResponse(200, {
+        content,
+        totalElements: content.length,
+        totalPages: 1,
+        number: 0,
+        size: 20,
+      })
     }
     if (url === '/api/v1/alunos' && method === 'POST') return estado.post!()
     if (url.endsWith('/matriculas') && method === 'POST') return estado.matricula!()
@@ -45,7 +63,9 @@ function mockApi(estado: Estado): void {
 }
 
 function renderPage() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
   return render(
     <QueryClientProvider client={queryClient}>
       <AlunosCadastroPage />
@@ -86,50 +106,93 @@ describe('AlunosCadastroPage', () => {
     await criar(user, 'Pedro Alves')
 
     expect(await screen.findByText('Salvo com sucesso')).toBeInTheDocument()
-    expect(await screen.findByLabelText('Nome de Pedro Alves')).toBeInTheDocument()
+    expect(
+      await screen.findByRole('button', { name: 'Selecionar Pedro Alves' }),
+    ).toBeInTheDocument()
   })
 
-  it('inactivating an aluno removes it from the list', async () => {
-    const estado: Estado = { alunos: [aluno(5, 'Pedro Alves', 'Turma A')] }
-    estado.delete = () => {
-      estado.alunos = []
-      return new Response(null, { status: 204 })
+  it('changes the turma of the active matrícula via PATCH', async () => {
+    const base = aluno(5, 'Pedro Alves', 'Turma A')
+    const estado: Estado = {
+      alunos: [
+        {
+          ...base,
+          matriculas: [
+            {
+              matriculaId: 10,
+              anoLetivoId: 1,
+              anoLetivo: 2026,
+              situacaoAnoLetivo: 'ATIVO',
+              turmaId: 1,
+              turma: 'Turma A',
+              serie: 2,
+              professorId: null,
+              status: 'CURSANDO',
+            },
+          ],
+        },
+      ],
     }
     mockApi(estado)
+    const original = vi.mocked(fetch).getMockImplementation()!
+    let corpo = ''
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      if (String(input) === '/api/v1/matriculas/10' && init?.method === 'PATCH') {
+        corpo = String(init.body)
+        return jsonResponse(200, {
+          id: 10,
+          alunoId: 5,
+          anoLetivoId: 1,
+          turmaId: 3,
+          serie: 2,
+          professorId: null,
+          anoFinalizado: false,
+          status: 'CURSANDO',
+        })
+      }
+      return original(input, init)
+    })
     const user = userEvent.setup()
     renderPage()
     await buscar(user, 'Pedro')
-    await user.click(await screen.findByRole('button', { name: 'Inativar Pedro Alves' }))
+    await user.click(await screen.findByRole('button', { name: 'Selecionar Pedro Alves' }))
+    expect(await screen.findByLabelText('Status de Pedro Alves')).toHaveValue('ATIVO')
+    await screen.findAllByRole('option', { name: 'Turma A' })
+    await user.selectOptions(screen.getByLabelText('Turma de Pedro Alves'), '3')
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações de Pedro Alves' }))
 
-    await vi.waitFor(() => expect(screen.queryByLabelText('Nome de Pedro Alves')).not.toBeInTheDocument())
+    expect(await screen.findByText('Salvo com sucesso')).toBeInTheDocument()
+    expect(JSON.parse(corpo)).toEqual({ turmaId: 3 })
   })
 
-  it('a new matrícula for an existing aluno is sent to the chosen turma and reflected in the list', async () => {
-    const estado: Estado = { alunos: [aluno(5, 'Pedro Alves', 'Turma A')] }
-    estado.matricula = () => {
-      estado.alunos = [aluno(5, 'Pedro Alves', 'Turma B')]
-      return jsonResponse(201, { id: 10, alunoId: 5, anoLetivoId: 2, turmaId: 2, serie: 3, professorId: null, anoFinalizado: false })
-    }
+  it('inactivates the aluno through the Status field', async () => {
+    const estado: Estado = { alunos: [{ ...aluno(5, 'Pedro Alves', 'Turma A'), ativo: true }] }
     mockApi(estado)
+    const original = vi.mocked(fetch).getMockImplementation()!
+    let corpo = ''
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      if (String(input) === '/api/v1/alunos/5/situacao' && init?.method === 'PATCH') {
+        corpo = String(init.body)
+        return jsonResponse(200, { id: 5, nome: 'Pedro Alves', ativo: false })
+      }
+      return original(input, init)
+    })
     const user = userEvent.setup()
     renderPage()
     await buscar(user, 'Pedro')
-    await screen.findByText(/Turma A - 2026/)
-    await screen.findAllByRole('option', { name: 'Turma B' })
+    await user.click(await screen.findByRole('button', { name: 'Selecionar Pedro Alves' }))
+    await user.selectOptions(screen.getByLabelText('Status de Pedro Alves'), 'INATIVO')
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações de Pedro Alves' }))
 
-    await user.selectOptions(screen.getByLabelText('Turma da nova matrícula de Pedro Alves'), '2')
-    await user.click(screen.getByRole('button', { name: 'Nova matrícula de Pedro Alves' }))
-
-    expect(await screen.findByText(/Turma B - 2026/)).toBeInTheDocument()
-    const post = vi.mocked(fetch).mock.calls.find(([url, init]) => String(url).endsWith('/matriculas') && init?.method === 'POST')
-    expect(String(post?.[0])).toBe('/api/v1/alunos/5/matriculas')
-    expect(JSON.parse(String(post?.[1]?.body))).toEqual({ turmaId: 2 })
+    expect(await screen.findByText('Salvo com sucesso')).toBeInTheDocument()
+    expect(JSON.parse(corpo)).toEqual({ ativo: false })
   })
 
   it('shows the 409 message at the top and the 422 message next to the field', async () => {
     const estado: Estado = {
       alunos: [],
-      post: () => jsonResponse(409, { code: 'ALUNO_DUPLICADO', detail: 'Aluno já matriculado nessa turma' }),
+      post: () =>
+        jsonResponse(409, { code: 'ALUNO_DUPLICADO', detail: 'Aluno já matriculado nessa turma' }),
     }
     mockApi(estado)
     const user = userEvent.setup()
@@ -138,7 +201,8 @@ describe('AlunosCadastroPage', () => {
     await criar(user, 'Pedro Alves')
     expect(await screen.findByRole('alert')).toHaveTextContent('Aluno já matriculado nessa turma')
 
-    estado.post = () => jsonResponse(422, { errors: [{ field: 'nome', message: 'tamanho deve ser entre 3 e 150' }] })
+    estado.post = () =>
+      jsonResponse(422, { errors: [{ field: 'nome', message: 'tamanho deve ser entre 3 e 150' }] })
     await user.click(screen.getByRole('button', { name: 'Criar aluno' }))
     expect(await screen.findByText('tamanho deve ser entre 3 e 150')).toBeInTheDocument()
   })
@@ -152,9 +216,10 @@ describe('AlunosCadastroPage', () => {
     const user = userEvent.setup()
     renderPage()
     await buscar(user, 'Pedro')
+    await user.click(await screen.findByRole('button', { name: 'Selecionar Pedro Alves' }))
     const campo = await screen.findByLabelText('Nome de Pedro Alves')
     await user.type(campo, ' Jr')
-    await user.click(screen.getByRole('button', { name: 'Salvar nome de Pedro Alves' }))
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações de Pedro Alves' }))
 
     expect(await screen.findByText('Salvo com sucesso')).toBeInTheDocument()
     const put = vi.mocked(fetch).mock.calls.find(([, init]) => init?.method === 'PUT')

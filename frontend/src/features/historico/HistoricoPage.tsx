@@ -20,14 +20,14 @@ type Aba = 'historico' | 'evolucao' | 'comparacao'
  * `ComparacaoAnualTab` (e os hooks que eles chamam) nunca montam para
  * PROFESSOR. Não é um 403 na tela - a aba simplesmente não existe para ele.
  */
-export function HistoricoPage() {
+export function HistoricoPage({ alunoId: alunoIdProp }: { alunoId?: number } = {}) {
   const { id } = useParams<{ id: string }>()
-  const alunoId = Number(id)
+  const alunoId = alunoIdProp ?? Number(id)
   const [aba, setAba] = useState<Aba>('historico')
 
   return (
     <div>
-      <h1>Histórico e evolução</h1>
+      {alunoIdProp === undefined ? <h1>Histórico e evolução</h1> : <h2>Histórico e evolução</h2>}
       <nav aria-label="Abas de histórico">
         <button type="button" aria-pressed={aba === 'historico'} onClick={() => setAba('historico')}>
           Histórico

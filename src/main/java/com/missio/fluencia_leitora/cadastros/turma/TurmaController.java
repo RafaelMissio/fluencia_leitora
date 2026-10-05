@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,8 +35,9 @@ public class TurmaController {
 
     @GetMapping
     @PreAuthorize("hasRole('COORDENADOR')")
-    public List<TurmaResponse> listar() {
-        return turmaService.listar().stream().map(TurmaResponse::from).toList();
+    public List<TurmaResponse> listar(@RequestParam(defaultValue = "false") boolean incluirInativas) {
+        List<Turma> turmas = incluirInativas ? turmaService.listarTodas() : turmaService.listar();
+        return turmas.stream().map(TurmaResponse::from).toList();
     }
 
     @PostMapping

@@ -29,6 +29,22 @@ public interface AvaliacaoRepository extends JpaRepository<Avaliacao, Long> {
 
     boolean existsByAlunoIdAndStatusNot(Long alunoId, StatusAvaliacao status);
 
+    List<Avaliacao> findByAlunoIdAndAtivaTrueAndStatusInOrderByDataAvaliacaoAscIdAsc(Long alunoId, List<StatusAvaliacao> status);
+
+    List<Avaliacao> findByAlunoIdAndProgramadaIdNotNullAndStatusNot(Long alunoId, StatusAvaliacao status);
+
+    List<Avaliacao> findByAtivaTrueAndIdOrAtivaTrueAndRefeitaDeId(Long id, Long refeitaDeId);
+
+    /** Quantas avaliações (a original e as refeitas, exceto canceladas) existem na cadeia de {@code raizId}. */
+    @Query("select count(a) from Avaliacao a where (a.id = :raizId or a.refeitaDeId = :raizId) "
+            + "and a.status <> com.missio.fluencia_leitora.avaliacao.StatusAvaliacao.CANCELADA")
+    long contarCadeia(@Param("raizId") Long raizId);
+
+    /** Quantas avaliações da cadeia de {@code raizId} já estão finalizadas. */
+    @Query("select count(a) from Avaliacao a where (a.id = :raizId or a.refeitaDeId = :raizId) "
+            + "and a.status = com.missio.fluencia_leitora.avaliacao.StatusAvaliacao.FINALIZADA")
+    long contarFinalizadasCadeia(@Param("raizId") Long raizId);
+
     List<Avaliacao> findByStatusAndUltimaAtividadeEmBefore(StatusAvaliacao status, Instant limite);
 
     @Query("select a from Avaliacao a where a.aluno.id = :alunoId and a.status = :status "

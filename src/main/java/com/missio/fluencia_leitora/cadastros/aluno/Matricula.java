@@ -5,6 +5,8 @@ import com.missio.fluencia_leitora.cadastros.professor.Professor;
 import com.missio.fluencia_leitora.cadastros.turma.Turma;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -43,6 +45,10 @@ public class Matricula {
 
     @Column(name = "ano_finalizado", nullable = false)
     private boolean anoFinalizado = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private StatusMatricula status = StatusMatricula.CURSANDO;
 
     @Version
     private Long version;
@@ -100,6 +106,16 @@ public class Matricula {
 
     public void setAnoFinalizado(boolean anoFinalizado) {
         this.anoFinalizado = anoFinalizado;
+    }
+
+    public StatusMatricula getStatus() {
+        return status;
+    }
+
+    /** Mantém {@code anoFinalizado} coerente: finalizado quando aprovado ou reprovado. */
+    public void setStatus(StatusMatricula status) {
+        this.status = status;
+        this.anoFinalizado = status != StatusMatricula.CURSANDO;
     }
 
     public Long getVersion() {

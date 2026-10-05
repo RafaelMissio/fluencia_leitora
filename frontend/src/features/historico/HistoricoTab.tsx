@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AudioHistorico } from './AudioHistorico'
 import { useHistorico } from './useHistorico'
 
 /**
@@ -20,6 +21,7 @@ export function HistoricoTab({ alunoId }: { alunoId: number }) {
         <table>
           <thead>
             <tr>
+              <th>Avaliação</th>
               <th>Ano letivo</th>
               <th>Série</th>
               <th>Turma</th>
@@ -36,11 +38,13 @@ export function HistoricoTab({ alunoId }: { alunoId: number }) {
               <th>Nível</th>
               <th>Tempo</th>
               <th>Áudio</th>
+              <th>Situação</th>
             </tr>
           </thead>
           <tbody>
             {itens.map((item) => (
-              <tr key={item.avaliacaoId}>
+              <tr key={item.avaliacaoId} className={item.ativa ? undefined : 'inativa'}>
+                <td>{item.nomeAvaliacao ?? '—'}</td>
                 <td>{item.anoLetivo}</td>
                 <td>{item.serie}ª série</td>
                 <td>{item.turma}</td>
@@ -57,12 +61,9 @@ export function HistoricoTab({ alunoId }: { alunoId: number }) {
                 <td>{item.nivel ?? '—'}</td>
                 <td>{item.tempoUtilizadoSegundos ?? '—'}</td>
                 <td>
-                  {item.temAudio ? (
-                    <span role="img" aria-label={`Avaliação de ${item.dataAvaliacao} tem áudio`}>
-                      ▶
-                    </span>
-                  ) : null}
+                  {item.temAudio ? <AudioHistorico avaliacaoId={item.avaliacaoId} dataAvaliacao={item.dataAvaliacao} /> : null}
                 </td>
+                <td>{item.ativa ? 'Ativa' : 'Inativa'}</td>
               </tr>
             ))}
           </tbody>

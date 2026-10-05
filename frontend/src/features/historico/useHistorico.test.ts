@@ -27,6 +27,7 @@ const ITEM: HistoricoAvaliacaoItem = {
   nivel: 2,
   tempoUtilizadoSegundos: 55,
   temAudio: true,
+  ativa: true,
 }
 
 function pageOf(content: HistoricoAvaliacaoItem[]): Page<HistoricoAvaliacaoItem> {

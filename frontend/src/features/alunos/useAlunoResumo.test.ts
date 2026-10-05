@@ -37,6 +37,7 @@ function historicoItem(overrides: Partial<HistoricoAvaliacaoItem>): HistoricoAva
     nivel: 2,
     tempoUtilizadoSegundos: 55,
     temAudio: true,
+    ativa: true,
     ...overrides,
   }
 }

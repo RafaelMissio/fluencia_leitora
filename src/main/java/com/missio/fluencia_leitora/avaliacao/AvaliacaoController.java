@@ -1,6 +1,7 @@
 package com.missio.fluencia_leitora.avaliacao;
 
 import com.missio.fluencia_leitora.avaliacao.dto.AvaliacaoAuditoriaResponse;
+import com.missio.fluencia_leitora.avaliacao.dto.AvaliacaoPendenteResponse;
 import com.missio.fluencia_leitora.avaliacao.dto.AvaliacaoResponse;
 import com.missio.fluencia_leitora.avaliacao.dto.CancelarAvaliacaoRequest;
 import com.missio.fluencia_leitora.avaliacao.dto.MarcarPalavraRequest;
@@ -44,65 +45,79 @@ public class AvaliacaoController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('PROFESSOR')")
+    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
     @ResponseStatus(HttpStatus.CREATED)
     public AvaliacaoResponse criar(@Valid @RequestBody NovaAvaliacaoRequest request) {
         return AvaliacaoResponse.from(avaliacaoService.criar(request));
     }
 
+    /** Cria uma nova avaliação com o mesmo conteúdo de uma finalizada, para o aluno refazê-la. */
+    @PostMapping("/{id}/refazer")
+    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AvaliacaoResponse refazer(@PathVariable Long id) {
+        return comContagem(avaliacaoService.refazer(id));
+    }
+
     @PostMapping("/{id}/iniciar")
-    @PreAuthorize("hasRole('PROFESSOR')")
+    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
     public AvaliacaoResponse iniciar(@PathVariable Long id) {
         return AvaliacaoResponse.from(avaliacaoService.iniciar(id));
     }
 
     @PostMapping("/{id}/pausar")
-    @PreAuthorize("hasRole('PROFESSOR')")
+    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
     public AvaliacaoResponse pausar(@PathVariable Long id) {
         return AvaliacaoResponse.from(avaliacaoService.pausar(id));
     }
 
     @PostMapping("/{id}/continuar")
-    @PreAuthorize("hasRole('PROFESSOR')")
+    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
     public AvaliacaoResponse continuar(@PathVariable Long id) {
         return AvaliacaoResponse.from(avaliacaoService.continuar(id));
     }
 
     @PostMapping("/{id}/resetar")
-    @PreAuthorize("hasRole('PROFESSOR')")
+    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
     public AvaliacaoResponse resetar(@PathVariable Long id) {
         return AvaliacaoResponse.from(avaliacaoService.resetar(id));
     }
 
     @PostMapping("/{id}/finalizar")
-    @PreAuthorize("hasRole('PROFESSOR')")
+    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
     public AvaliacaoResponse finalizar(@PathVariable Long id) {
         return AvaliacaoResponse.from(avaliacaoService.finalizar(id));
     }
 
     @PostMapping("/{id}/cancelar")
-    @PreAuthorize("hasRole('PROFESSOR')")
+    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
     public AvaliacaoResponse cancelar(@PathVariable Long id, @Valid @RequestBody CancelarAvaliacaoRequest request) {
         return AvaliacaoResponse.from(avaliacaoService.cancelar(id, request.justificativa()));
     }
 
     @PutMapping("/{id}/palavras/{ordem}")
-    @PreAuthorize("hasRole('PROFESSOR')")
+    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
     public AvaliacaoResponse marcarPalavra(
             @PathVariable Long id, @PathVariable int ordem, @Valid @RequestBody MarcarPalavraRequest request) {
         return AvaliacaoResponse.from(avaliacaoService.marcarPalavra(id, ordem, request.status()));
     }
 
     @PutMapping("/{id}/palavras")
-    @PreAuthorize("hasRole('PROFESSOR')")
+    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
     public AvaliacaoResponse marcarPalavras(@PathVariable Long id, @Valid @RequestBody MarcarPalavrasRequest request) {
         return AvaliacaoResponse.from(avaliacaoService.marcarPalavras(id, request.itens()));
+    }
+
+    @GetMapping("/pendentes")
+    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
+    public List<AvaliacaoPendenteResponse> listarPendentes(@RequestParam Long alunoId) {
+        return avaliacaoService.listarPendentes(alunoId);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
     public AvaliacaoResponse buscar(@PathVariable Long id) {
-        return AvaliacaoResponse.from(avaliacaoService.buscar(id));
+        return comContagem(avaliacaoService.buscar(id));
     }
 
     @GetMapping("/{id}/auditoria")
@@ -113,7 +128,7 @@ public class AvaliacaoController {
 
     /** AVA-27..AVA-30: o {@code mimeType} vem do {@code Content-Type} do próprio arquivo enviado. */
     @PostMapping("/{id}/audio")
-    @PreAuthorize("hasRole('PROFESSOR')")
+    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
     @ResponseStatus(HttpStatus.CREATED)
     public void enviarAudio(@PathVariable Long id, @RequestParam("audio") MultipartFile audio) throws IOException {
         avaliacaoService.enviarAudio(id, audio.getBytes(), audio.getContentType());
@@ -127,5 +142,9 @@ public class AvaliacaoController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(audio.mimeType()))
                 .body(audio.conteudo());
+    }
+
+    private AvaliacaoResponse comContagem(Avaliacao avaliacao) {
+        return AvaliacaoResponse.from(avaliacao, avaliacaoService.contarRefeitas(avaliacao));
     }
 }

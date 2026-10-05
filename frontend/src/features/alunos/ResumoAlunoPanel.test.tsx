@@ -1,11 +1,24 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AlunoBuscaItem, HistoricoAvaliacaoItem } from '../../api/types'
 import { useAuth } from '../../auth/AuthContext'
 import { ResumoAlunoPanel } from './ResumoAlunoPanel'
 import { useAlunoResumo } from './useAlunoResumo'
+import { useAplicarAvaliacaoProgramada } from '../avaliacoes/useAplicarAvaliacaoProgramada'
+import { useAvaliacoesPendentes } from '../avaliacoes/useAvaliacoesPendentes'
+
+vi.mock('../avaliacoes/useAplicarAvaliacaoProgramada', () => ({
+  useAplicarAvaliacaoProgramada: vi.fn(),
+}))
+
+vi.mock('../avaliacoes/useRefazerAvaliacao', () => ({
+  useRefazerAvaliacao: () => ({ mutateAsync: vi.fn(), isPending: false, error: null }),
+}))
+vi.mock('../avaliacoes/useAvaliacoesPendentes', () => ({
+  useAvaliacoesPendentes: vi.fn(),
+}))
 
 vi.mock('./useAlunoResumo', () => ({
   useAlunoResumo: vi.fn(),
@@ -20,7 +33,13 @@ function comPerfil(perfil: 'PROFESSOR' | 'COORDENADOR'): void {
   vi.mocked(useAuth).mockReturnValue({ perfil } as any)
 }
 
-beforeEach(() => comPerfil('PROFESSOR'))
+beforeEach(() => {
+  comPerfil('PROFESSOR')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  vi.mocked(useAvaliacoesPendentes).mockReturnValue({ data: [] } as any)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  vi.mocked(useAplicarAvaliacaoProgramada).mockReturnValue({ mutateAsync: vi.fn(), isPending: false, error: null } as any)
+})
 
 const ALUNO: AlunoBuscaItem = {
   alunoId: 42,
@@ -50,10 +69,11 @@ const AVALIACAO: HistoricoAvaliacaoItem = {
   nivel: 2,
   tempoUtilizadoSegundos: 55,
   temAudio: true,
+  ativa: true,
 }
 
 describe('ResumoAlunoPanel', () => {
-  it('renders every AC2 field, including the current cycle', () => {
+  it('renders only the student evaluations and the configure button', () => {
     vi.mocked(useAlunoResumo).mockReturnValue({
       aluno: ALUNO,
       cicloAtual: 'ACOMPANHAMENTO',
@@ -71,35 +91,9 @@ describe('ResumoAlunoPanel', () => {
     )
 
     expect(screen.getByRole('heading', { name: 'João' })).toBeInTheDocument()
-    expect(screen.getByText('A')).toBeInTheDocument()
-    expect(screen.getByText('Maria')).toBeInTheDocument()
-    expect(screen.getByText('2026')).toBeInTheDocument()
-    expect(screen.getByText('2ª série')).toBeInTheDocument()
-    expect(screen.getByText('ACOMPANHAMENTO')).toBeInTheDocument()
-    expect(screen.getByText('ALFABETICA (nível 2)')).toBeInTheDocument()
-    expect(screen.getByText('+3')).toBeInTheDocument()
+    expect(screen.queryByText('Turma')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Ver histórico' })).not.toBeInTheDocument()
     expect(screen.getByText(/2026-03-01.*ENTRADA.*PALAVRA.*15\/20 corretas/)).toBeInTheDocument()
-  })
-
-  it('shows "—" when evolucao has no comparison pair', () => {
-    vi.mocked(useAlunoResumo).mockReturnValue({
-      aluno: ALUNO,
-      cicloAtual: 'ENTRADA',
-      ultimasAvaliacoes: [],
-      ultimaClassificacao: { fase: 'ALFABETICA', nivel: 1 },
-      evolucao: null,
-      isLoading: false,
-      error: null,
-    })
-
-    render(
-      <MemoryRouter>
-        <ResumoAlunoPanel alunoId={42} />
-      </MemoryRouter>,
-    )
-
-    const evolucaoDt = screen.getByText('Evolução no ano')
-    expect(evolucaoDt.nextElementSibling).toHaveTextContent('—')
   })
 
   it('navigates to /avaliacoes/nova?alunoId= when "Configurar avaliação" is clicked', async () => {
@@ -132,33 +126,7 @@ describe('ResumoAlunoPanel', () => {
     expect(screen.getByText('Tela de configurar avaliação')).toBeInTheDocument()
   })
 
-  it('navigates to /alunos/:id/historico when "Ver histórico" is clicked', async () => {
-    vi.mocked(useAlunoResumo).mockReturnValue({
-      aluno: ALUNO,
-      cicloAtual: 'ENTRADA',
-      ultimasAvaliacoes: [],
-      ultimaClassificacao: null,
-      evolucao: null,
-      isLoading: false,
-      error: null,
-    })
-
-    const user = userEvent.setup()
-    render(
-      <MemoryRouter initialEntries={['/alunos']}>
-        <Routes>
-          <Route path="/alunos" element={<ResumoAlunoPanel alunoId={42} />} />
-          <Route path="/alunos/:id/historico" element={<div>Tela de histórico</div>} />
-        </Routes>
-      </MemoryRouter>,
-    )
-
-    await user.click(screen.getByRole('button', { name: 'Ver histórico' }))
-
-    expect(screen.getByText('Tela de histórico')).toBeInTheDocument()
-  })
-
-  it('hides "Configurar avaliação" for the COORDENADOR (only the professor applies evaluations)', () => {
+  it('shows "Configurar avaliação" for the COORDENADOR too', () => {
     comPerfil('COORDENADOR')
     vi.mocked(useAlunoResumo).mockReturnValue({
       aluno: ALUNO,
@@ -176,7 +144,48 @@ describe('ResumoAlunoPanel', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.queryByRole('button', { name: 'Configurar avaliação' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Ver histórico' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Configurar avaliação' })).toBeInTheDocument()
+  })
+
+  it('lists pending evaluations; started ones open directly, series ones are created first', async () => {
+    vi.mocked(useAlunoResumo).mockReturnValue({
+      aluno: ALUNO,
+      cicloAtual: 'ENTRADA',
+      ultimasAvaliacoes: [],
+      ultimaClassificacao: null,
+      evolucao: null,
+      isLoading: false,
+      error: null,
+    })
+    vi.mocked(useAvaliacoesPendentes).mockReturnValue({
+      data: [
+        { programadaId: null, avaliacaoId: 8, nome: null, status: 'PAUSADA', tipoLeitura: 'TEXTO_CURTO', cicloId: 1, tempoSegundos: 90 },
+        { programadaId: 3, avaliacaoId: null, nome: 'Diagnóstica', status: null, tipoLeitura: 'PALAVRA', cicloId: 1, tempoSegundos: 60 },
+      ],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+    const mutateAsync = vi.fn().mockResolvedValue({ id: 99 })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(useAplicarAvaliacaoProgramada).mockReturnValue({ mutateAsync, isPending: false, error: null } as any)
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter initialEntries={['/alunos']}>
+        <Routes>
+          <Route path="/alunos" element={<ResumoAlunoPanel alunoId={42} />} />
+          <Route path="/avaliacoes/:id/executar" element={<ExecutarFake />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('button', { name: 'Continuar avaliação' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Iniciar avaliação' }))
+    expect(mutateAsync).toHaveBeenCalledWith(3)
+    expect(await screen.findByText('executando 99')).toBeInTheDocument()
   })
 })
+
+function ExecutarFake() {
+  const { id } = useParams()
+  return <p>executando {id}</p>
+}

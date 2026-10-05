@@ -78,6 +78,10 @@ public class Avaliacao {
     @Column(name = "tipo_leitura", nullable = false)
     private TipoLeituraCodigo tipoLeitura;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "programada_id")
+    private AvaliacaoProgramada programada;
+
     @Column(name = "data_avaliacao", nullable = false)
     private LocalDate dataAvaliacao;
 
@@ -134,6 +138,22 @@ public class Avaliacao {
     @JoinColumn(name = "avaliacao_id", nullable = false)
     @OrderBy("ordem")
     private List<PalavraAvaliacao> palavras = new ArrayList<>();
+
+    /** {@code false} quando a avaliação foi refeita: fica só como registro e sai do histórico/evolução. */
+    @Column(nullable = false)
+    private boolean ativa = true;
+
+    /** Id da primeira avaliação da cadeia de "refazer" (null se esta não é uma refeita). */
+    @Column(name = "refeita_de_id")
+    private Long refeitaDeId;
+
+    /** Quantas vezes esta avaliação pode ser refeita (copiado da avaliação programada). */
+    @Column(name = "max_refazeres", nullable = false)
+    private int maxRefazeres = 3;
+
+    /** 1 na original; nas refeitas, a posição na cadeia (2ª, 3ª, ... tentativa). */
+    @Column(name = "numero_tentativa", nullable = false)
+    private int numeroTentativa = 1;
 
     @Version
     private Long version;
@@ -216,6 +236,51 @@ public class Avaliacao {
 
     public Ciclo getCiclo() {
         return ciclo;
+    }
+
+    public boolean isAtiva() {
+        return ativa;
+    }
+
+    public Long getRefeitaDeId() {
+        return refeitaDeId;
+    }
+
+    public void setRefeitaDeId(Long refeitaDeId) {
+        this.refeitaDeId = refeitaDeId;
+    }
+
+    public int getNumeroTentativa() {
+        return numeroTentativa;
+    }
+
+    public void setNumeroTentativa(int numeroTentativa) {
+        this.numeroTentativa = numeroTentativa;
+    }
+
+    /** Nome da avaliação programada de origem; {@code null} em avaliações avulsas. */
+    public String getNomeAvaliacao() {
+        return programada == null ? null : programada.getNome();
+    }
+
+    public int getMaxRefazeres() {
+        return maxRefazeres;
+    }
+
+    public void setMaxRefazeres(int maxRefazeres) {
+        this.maxRefazeres = maxRefazeres;
+    }
+
+    public void inativar() {
+        this.ativa = false;
+    }
+
+    public AvaliacaoProgramada getProgramada() {
+        return programada;
+    }
+
+    public void setProgramada(AvaliacaoProgramada programada) {
+        this.programada = programada;
     }
 
     public TipoLeituraCodigo getTipoLeitura() {

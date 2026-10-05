@@ -43,9 +43,18 @@ public record AvaliacaoResponse(
         Fase fase,
         Integer nivel,
         boolean classificacaoPendente,
+        boolean ativa,
+        Integer refeitas,
+        int maxRefazeres,
+        Boolean podeRefazer,
         List<PalavraAvaliacaoResponse> palavras) {
 
+    /** Sem a contagem de refeitas (ações que não a consultam): {@code refeitas} e {@code podeRefazer} vêm {@code null}. */
     public static AvaliacaoResponse from(Avaliacao avaliacao) {
+        return from(avaliacao, null);
+    }
+
+    public static AvaliacaoResponse from(Avaliacao avaliacao, Integer refeitas) {
         boolean finalizada = avaliacao.getStatus() == StatusAvaliacao.FINALIZADA;
         List<PalavraAvaliacaoResponse> palavras =
                 avaliacao.getPalavras().stream().map(PalavraAvaliacaoResponse::from).toList();
@@ -76,6 +85,10 @@ public record AvaliacaoResponse(
                 finalizada ? avaliacao.getFase() : null,
                 finalizada ? avaliacao.getNivel() : null,
                 finalizada && avaliacao.getFase() == null,
+                avaliacao.isAtiva(),
+                refeitas,
+                avaliacao.getMaxRefazeres(),
+                refeitas == null ? null : finalizada && avaliacao.isAtiva() && refeitas < avaliacao.getMaxRefazeres(),
                 palavras);
     }
 }

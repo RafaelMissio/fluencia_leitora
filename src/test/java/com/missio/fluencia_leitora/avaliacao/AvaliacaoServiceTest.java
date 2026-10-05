@@ -97,6 +97,9 @@ class AvaliacaoServiceTest {
     private AvaliacaoRepository avaliacaoRepository;
 
     @Mock
+    private AvaliacaoProgramadaRepository avaliacaoProgramadaRepository;
+
+    @Mock
     private MatriculaRepository matriculaRepository;
 
     @Mock
@@ -169,6 +172,7 @@ class AvaliacaoServiceTest {
 
         service = new AvaliacaoService(
                 avaliacaoRepository,
+                avaliacaoProgramadaRepository,
                 matriculaRepository,
                 anoLetivoRepository,
                 configuracaoAvaliacaoRepository,

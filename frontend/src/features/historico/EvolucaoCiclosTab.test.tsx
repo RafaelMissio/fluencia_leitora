@@ -5,6 +5,8 @@ import type { EvolucaoCiclosResponse, ResultadoCiclo } from '../../api/types'
 import { EvolucaoCiclosTab } from './EvolucaoCiclosTab'
 import { useEvolucaoCiclos } from './useEvolucaoCiclos'
 
+vi.mock('./TentativasSection', () => ({ TentativasSection: () => null }))
+
 vi.mock('./useEvolucaoCiclos', () => ({
   useEvolucaoCiclos: vi.fn(),
 }))
@@ -12,6 +14,8 @@ vi.mock('./useEvolucaoCiclos', () => ({
 function ciclo(overrides: Partial<ResultadoCiclo>): ResultadoCiclo {
   return {
     ciclo: 'ENTRADA',
+    nomeAvaliacao: 'Diagnóstica',
+    tentativas: 2,
     dataAvaliacao: '2026-03-01',
     quantidadeCorretas: 6,
     percentualAcerto: 30,
@@ -40,12 +44,13 @@ describe('EvolucaoCiclosTab', () => {
     const user = userEvent.setup()
     render(<EvolucaoCiclosTab alunoId={42} />)
 
-    expect(screen.getByText('Entrada')).toBeInTheDocument()
-    expect(screen.getByText('Acompanhamento')).toBeInTheDocument()
-    expect(screen.getByText('Saída')).toBeInTheDocument()
-    expect(screen.getByText('6')).toBeInTheDocument()
-    expect(screen.getByText('10')).toBeInTheDocument()
-    expect(screen.getByText('15')).toBeInTheDocument()
+    expect(within(screen.getByRole('table')).getByText('Entrada')).toBeInTheDocument()
+    expect(within(screen.getByRole('table')).getByText('Acompanhamento')).toBeInTheDocument()
+    expect(within(screen.getByRole('table')).getByText('Saída')).toBeInTheDocument()
+    expect(within(screen.getByRole('table')).getAllByText('Diagnóstica')).toHaveLength(3)
+    expect(within(screen.getByRole('table')).getByText('6')).toBeInTheDocument()
+    expect(within(screen.getByRole('table')).getByText('10')).toBeInTheDocument()
+    expect(within(screen.getByRole('table')).getByText('15')).toBeInTheDocument()
     expect(screen.getByText('Pré-Leitor Nível 3')).toBeInTheDocument()
     expect(screen.getByText('Leitor Iniciante')).toBeInTheDocument()
     expect(screen.getByText('Leitor Fluente')).toBeInTheDocument()
@@ -73,15 +78,15 @@ describe('EvolucaoCiclosTab', () => {
     render(<EvolucaoCiclosTab alunoId={42} />)
 
     // Entrada não tem ciclo anterior -> "—"
-    const linhaEntrada = screen.getByText('Entrada').closest('tr')!
+    const linhaEntrada = within(screen.getByRole('table')).getByText('Entrada').closest('tr')!
     expect(linhaEntrada).toHaveTextContent('—')
 
     // Acompanhamento (16) vs Entrada (10) -> positivo, ▲ verde
-    const linhaAcompanhamento = screen.getByText('Acompanhamento').closest('tr')!
+    const linhaAcompanhamento = within(screen.getByRole('table')).getByText('Acompanhamento').closest('tr')!
     expect(linhaAcompanhamento).toHaveTextContent('▲ +6')
 
     // Saída (12) vs Acompanhamento (16) -> negativo, ▼ vermelho
-    const linhaSaida = screen.getByText('Saída').closest('tr')!
+    const linhaSaida = within(screen.getByRole('table')).getByText('Saída').closest('tr')!
     expect(linhaSaida).toHaveTextContent('▼ -4')
   })
 
@@ -102,17 +107,18 @@ describe('EvolucaoCiclosTab', () => {
 
     render(<EvolucaoCiclosTab alunoId={42} />)
 
-    const linhaAcompanhamento = screen.getByText('Acompanhamento').closest('tr')!
+    const linhaAcompanhamento = within(screen.getByRole('table')).getByText('Acompanhamento').closest('tr')!
     const celulasAcompanhamento = within(linhaAcompanhamento).getAllByRole('cell')
     expect(celulasAcompanhamento.map((celula) => celula.textContent)).toEqual([
       'Acompanhamento',
       '—',
       '—',
       '—',
+      '—',
     ])
 
-    const linhaSaida = screen.getByText('Saída').closest('tr')!
+    const linhaSaida = within(screen.getByRole('table')).getByText('Saída').closest('tr')!
     const celulasSaida = within(linhaSaida).getAllByRole('cell')
-    expect(celulasSaida.map((celula) => celula.textContent)).toEqual(['Saída', '—', '—', '—'])
+    expect(celulasSaida.map((celula) => celula.textContent)).toEqual(['Saída', '—', '—', '—', '—'])
   })
 })

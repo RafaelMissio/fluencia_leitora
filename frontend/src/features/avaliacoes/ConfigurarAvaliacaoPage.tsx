@@ -48,7 +48,7 @@ export function useConfiguracaoAvaliacao(serie: number | undefined) {
   })
 }
 
-function useCiclosDominio() {
+export function useCiclosDominio() {
   return useQuery({
     queryKey: ['ciclos'],
     queryFn: () => request<CicloDominio[]>('/ciclos'),
@@ -191,7 +191,7 @@ export function ConfigurarAvaliacaoPage() {
         {criarAvaliacao.error && !criarAvaliacao.error.errors ? (
           <p role="alert">
             {criarAvaliacao.error.status === 403
-              ? 'Seu perfil não pode criar avaliações. Entre como professor.'
+              ? 'Seu perfil não pode criar avaliações.'
               : (criarAvaliacao.error.detail ?? 'Não foi possível criar a avaliação')}
           </p>
         ) : null}

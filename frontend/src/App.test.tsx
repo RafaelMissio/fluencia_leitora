@@ -38,7 +38,7 @@ describe('App (composition root)', () => {
     render(<App />)
 
     expect(screen.queryByRole('heading', { name: 'Entrar' })).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Meus alunos' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Avaliação Aluno' })).toBeInTheDocument()
   })
 
   it('a 401 from the real apiClient logs out the real session and shows the LoginPage', async () => {
@@ -50,7 +50,7 @@ describe('App (composition root)', () => {
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(401, { code: 'NAO_AUTENTICADO' }))
 
     render(<App />)
-    expect(screen.getByRole('link', { name: 'Meus alunos' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Avaliação Aluno' })).toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText('Nome do aluno'), { target: { value: 'jo' } })
     await advance(300)

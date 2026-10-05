@@ -7,6 +7,7 @@ import com.missio.fluencia_leitora.avaliacao.StatusAvaliacao;
 import com.missio.fluencia_leitora.bancopalavras.TipoLeituraCodigo;
 import com.missio.fluencia_leitora.cadastros.aluno.AlunoService;
 import com.missio.fluencia_leitora.cadastros.aluno.Matricula;
+import com.missio.fluencia_leitora.cadastros.aluno.MatriculaRepository;
 import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivo;
 import com.missio.fluencia_leitora.cadastros.anoletivo.AnoLetivoRepository;
 import com.missio.fluencia_leitora.cadastros.anoletivo.SituacaoAnoLetivo;
@@ -48,6 +49,7 @@ public class HistoricoEvolucaoService {
     private final AnoLetivoRepository anoLetivoRepository;
     private final CicloRepository cicloRepository;
     private final PertencimentoProfessorGuard pertencimentoProfessorGuard;
+    private final MatriculaRepository matriculaRepository;
 
     public HistoricoEvolucaoService(
             AvaliacaoRepository avaliacaoRepository,
@@ -55,13 +57,15 @@ public class HistoricoEvolucaoService {
             AlunoService alunoService,
             AnoLetivoRepository anoLetivoRepository,
             CicloRepository cicloRepository,
-            PertencimentoProfessorGuard pertencimentoProfessorGuard) {
+            PertencimentoProfessorGuard pertencimentoProfessorGuard,
+            MatriculaRepository matriculaRepository) {
         this.avaliacaoRepository = avaliacaoRepository;
         this.avaliacaoAudioRepository = avaliacaoAudioRepository;
         this.alunoService = alunoService;
         this.anoLetivoRepository = anoLetivoRepository;
         this.cicloRepository = cicloRepository;
         this.pertencimentoProfessorGuard = pertencimentoProfessorGuard;
+        this.matriculaRepository = matriculaRepository;
     }
 
     /** HIST-22 (Verifier PASS 1, gap E4): `cicloId` numérico mas fora do domínio fixo de `ciclo` também é 400. */
@@ -85,8 +89,8 @@ public class HistoricoEvolucaoService {
 
     /**
      * HIST-07..11: os três ciclos (ENTRADA/ACOMPANHAMENTO/SAIDA) do ano
-     * informado (ou o ano ATIVO), cada um com a avaliação FINALIZADA mais
-     * recente (HIST-20) ou {@code null} quando o ciclo não tem avaliação.
+     * informado (ou o ano ATIVO), cada um com a tentativa FINALIZADA de maior
+     * número de corretas ou {@code null} quando o ciclo não tem avaliação.
      *
      * <p>Sem {@link PertencimentoProfessorGuard} de propósito: design.md,
      * Tech Decisions - RF013 é tratado como relatório gerencial, restrito só
@@ -101,7 +105,7 @@ public class HistoricoEvolucaoService {
         List<Avaliacao> finalizadas = avaliacaoRepository.buscarFinalizadasPorAnoETipo(
                 alunoId, StatusAvaliacao.FINALIZADA, anoLetivo.getId(), tipoLeitura);
         Collection<Avaliacao> maisRecentePorCiclo =
-                maisRecentePorGrupo(finalizadas, avaliacao -> avaliacao.getCiclo().getId()).values();
+                melhorPorGrupo(finalizadas, avaliacao -> avaliacao.getCiclo().getId()).values();
 
         return new EvolucaoCiclos(
                 alunoId,
@@ -117,7 +121,9 @@ public class HistoricoEvolucaoService {
      * tipo pedido, ordenadas por ano crescente (a query já ordena por {@code
      * anoLetivo.ano} - HIST-13), com a evolução absoluta/percentual de cada
      * ciclo contra a mesma linha (ano) imediatamente anterior na lista
-     * (design.md, Assumptions - "mesmo ciclo, ano a ano").
+     * (design.md, Assumptions - "mesmo ciclo, ano a ano"). Cada linha traz a
+     * turma em que o aluno estava matriculado naquele ano (ex.: 1º A em 2026,
+     * 2º B em 2027), para comparar a evolução entre turmas.
      *
      * <p>Sem {@link PertencimentoProfessorGuard}, mesmo motivo de {@link
      * #evolucaoPorCiclo}.
@@ -128,7 +134,7 @@ public class HistoricoEvolucaoService {
 
         List<Avaliacao> finalizadas =
                 avaliacaoRepository.buscarFinalizadasPorTipo(alunoId, StatusAvaliacao.FINALIZADA, tipoLeitura);
-        Collection<Avaliacao> maisRecentePorAnoECiclo = maisRecentePorGrupo(
+        Collection<Avaliacao> maisRecentePorAnoECiclo = melhorPorGrupo(
                         finalizadas,
                         avaliacao -> new GrupoAnoCiclo(avaliacao.getAnoLetivo().getId(), avaliacao.getCiclo().getId()))
                 .values();
@@ -138,6 +144,11 @@ public class HistoricoEvolucaoService {
             avaliacoesPorAno
                     .computeIfAbsent(avaliacao.getAnoLetivo().getId(), id -> new ArrayList<>())
                     .add(avaliacao);
+        }
+
+        Map<Long, String> turmaPorAno = new LinkedHashMap<>();
+        for (Matricula matricula : matriculaRepository.findByAlunoId(alunoId)) {
+            turmaPorAno.put(matricula.getAnoLetivo().getId(), matricula.getTurma().getNome());
         }
 
         List<EvolucaoAnualLinha> linhas = new ArrayList<>();
@@ -151,6 +162,7 @@ public class HistoricoEvolucaoService {
             linhas.add(new EvolucaoAnualLinha(
                     referencia.getAnoLetivo().getAno(),
                     referencia.getSerie(),
+                    turmaPorAno.get(referencia.getAnoLetivo().getId()),
                     entrada,
                     evolucao(entrada, porCicloCodigo(anoAnterior, "ENTRADA")),
                     acompanhamento,
@@ -201,16 +213,20 @@ public class HistoricoEvolucaoService {
     }
 
     /**
-     * HIST-20: para cada valor de {@code chave}, mantém só a 1ª ocorrência -
-     * a lista de entrada já vem ordenada com a mais recente primeiro dentro
-     * de cada grupo (design.md, Tech Decisions - agrupamento em Java, não SQL).
+     * Por grupo (ciclo, ou ano+ciclo), a tentativa com mais palavras corretas -
+     * inclusive as refeitas já inativadas; no empate vale a mais recente (a
+     * lista chega ordenada da mais recente para a mais antiga).
      */
-    private static <T, K> Map<K, T> maisRecentePorGrupo(List<T> ordenadosPorGrupo, Function<T, K> chave) {
-        Map<K, T> maisRecentePorChave = new LinkedHashMap<>();
-        for (T item : ordenadosPorGrupo) {
-            maisRecentePorChave.putIfAbsent(chave.apply(item), item);
+    private static <K> Map<K, Avaliacao> melhorPorGrupo(List<Avaliacao> ordenadosPorGrupo, Function<Avaliacao, K> chave) {
+        Map<K, Avaliacao> melhorPorChave = new LinkedHashMap<>();
+        for (Avaliacao item : ordenadosPorGrupo) {
+            melhorPorChave.merge(
+                    chave.apply(item),
+                    item,
+                    (atual, candidata) ->
+                            candidata.getQuantidadeCorretas() > atual.getQuantidadeCorretas() ? candidata : atual);
         }
-        return maisRecentePorChave;
+        return melhorPorChave;
     }
 
     private static Avaliacao porCicloCodigo(Collection<Avaliacao> avaliacoes, String codigoCiclo) {
@@ -252,6 +268,7 @@ public class HistoricoEvolucaoService {
     public record EvolucaoAnualLinha(
             int anoLetivo,
             int serie,
+            String turma,
             Avaliacao entrada,
             EvolucaoValor evolucaoEntrada,
             Avaliacao acompanhamento,

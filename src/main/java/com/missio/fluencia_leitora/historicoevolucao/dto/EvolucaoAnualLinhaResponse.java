@@ -6,6 +6,7 @@ import com.missio.fluencia_leitora.historicoevolucao.HistoricoEvolucaoService.Ev
 public record EvolucaoAnualLinhaResponse(
         int anoLetivo,
         int serie,
+        String turma,
         CicloAnualResponse entrada,
         CicloAnualResponse acompanhamento,
         CicloAnualResponse saida) {
@@ -14,6 +15,7 @@ public record EvolucaoAnualLinhaResponse(
         return new EvolucaoAnualLinhaResponse(
                 linha.anoLetivo(),
                 linha.serie(),
+                linha.turma(),
                 CicloAnualResponse.from(linha.entrada(), linha.evolucaoEntrada()),
                 CicloAnualResponse.from(linha.acompanhamento(), linha.evolucaoAcompanhamento()),
                 CicloAnualResponse.from(linha.saida(), linha.evolucaoSaida()));

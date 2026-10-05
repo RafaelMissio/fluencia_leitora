@@ -77,6 +77,7 @@ export function ComparacaoAnualTab({ alunoId }: { alunoId: number }) {
             <tr>
               <th>Ano letivo</th>
               <th>Ano/Série</th>
+              <th>Turma</th>
               <th>Entrada</th>
               <th>Acompanhamento</th>
               <th>Saída</th>
@@ -87,6 +88,7 @@ export function ComparacaoAnualTab({ alunoId }: { alunoId: number }) {
               <tr key={linha.anoLetivo}>
                 <td>{linha.anoLetivo}</td>
                 <td>{linha.serie}º Ano</td>
+                <td>{linha.turma ?? '—'}</td>
                 <td>
                   <CelulaCiclo cicloAnual={linha.entrada} />
                 </td>

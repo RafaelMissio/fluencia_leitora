@@ -44,6 +44,7 @@ function avaliacao(overrides: Partial<AvaliacaoResponse> = {}): AvaliacaoRespons
     fase: null,
     nivel: null,
     classificacaoPendente: false,
+    ativa: true,
     palavras: [
       { ordem: 1, palavra: 'casa', tipoPalavra: 'CANONICA', status: 'PENDENTE' },
       { ordem: 2, palavra: 'bola', tipoPalavra: 'CANONICA', status: 'PENDENTE' },

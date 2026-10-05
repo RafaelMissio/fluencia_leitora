@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react'
-import type { ApiError, TurmaResponse } from '../../../api/types'
+import type { ApiError, StatusMatricula, TurmaResponse } from '../../../api/types'
 import { useAnosLetivos } from '../anosletivos/useAnosLetivos'
 import { useProfessores } from '../professores/useProfessores'
-import { useCriarTurma, useTrocarProfessorDaTurma, useTurmas } from './useTurmas'
+import { useAlunosDaTurma, useCriarTurma, useTodasTurmas, useTrocarProfessorDaTurma } from './useTurmas'
 
 function mensagensPorCampo(error: ApiError | null | undefined): Record<string, string> {
   if (!error?.errors) return {}
@@ -24,6 +24,7 @@ function TurmaLinha({ turma, professores }: { turma: TurmaResponse; professores:
       <td>{turma.nome}</td>
       <td>{turma.serie}º ano</td>
       <td>{nomeProfessor}</td>
+      <td>{statusTurma(turma)}</td>
       <td>
         <select
           aria-label={`Professor da turma ${turma.nome}`}
@@ -47,9 +48,100 @@ function TurmaLinha({ turma, professores }: { turma: TurmaResponse; professores:
   )
 }
 
-/** Cadastro de turmas (spec.md P2, FE-26): lista, criação e troca de professor; mesmo padrão de erro de `AnoLetivoPage`. */
-export function TurmasPage() {
-  const turmasQuery = useTurmas()
+const STATUS_MATRICULA: Record<StatusMatricula, string> = {
+  CURSANDO: 'Cursando',
+  APROVADO: 'Aprovado',
+  REPROVADO: 'Reprovado',
+}
+
+const statusTurma = (turma: TurmaResponse) => (turma.ativo ? 'Ativa' : 'Inativa')
+
+export type ModoTurmas = 'cadastrar' | 'listar' | 'alunos'
+
+/** Turmas (spec.md P2, FE-26): um submenu para cadastrar, outro para listar e outro para ver os alunos de cada turma. */
+export function TurmasPage({ modo = 'cadastrar' }: { modo?: ModoTurmas }) {
+  if (modo === 'listar') return <ListarTurmas />
+  if (modo === 'alunos') return <AlunosDaTurma />
+  return <CadastrarTurma />
+}
+
+function ListarTurmas() {
+  const turmasQuery = useTodasTurmas()
+  const professoresQuery = useProfessores()
+  const professores = professoresQuery.data ?? []
+
+  return (
+    <div>
+      <h1>Listar turmas</h1>
+      <table aria-label="Turmas cadastradas">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Série</th>
+            <th>Professor</th>
+            <th>Status</th>
+            <th>Trocar professor</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(turmasQuery.data ?? []).map((turma) => (
+            <TurmaLinha key={turma.id} turma={turma} professores={professores} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function AlunosDaTurma() {
+  const turmasQuery = useTodasTurmas()
+  const [turmaId, setTurmaId] = useState('')
+  const alunosQuery = useAlunosDaTurma(turmaId ? Number(turmaId) : null)
+  const turmas = turmasQuery.data ?? []
+  const turma = turmas.find((item) => String(item.id) === turmaId)
+  const alunos = alunosQuery.data ?? []
+
+  return (
+    <div>
+      <h1>Alunos da turma</h1>
+
+      <label htmlFor="alunos-turma">Turma</label>
+      <select id="alunos-turma" value={turmaId} onChange={(event) => setTurmaId(event.target.value)}>
+        <option value="">Selecione</option>
+        {turmas.map((item) => (
+          <option key={item.id} value={item.id}>
+            {item.nome}
+          </option>
+        ))}
+      </select>
+
+      {turma ? <p>Status da turma: {statusTurma(turma)}</p> : null}
+      {alunosQuery.isError ? <p role="alert">Não foi possível carregar os alunos da turma</p> : null}
+      {turma && alunosQuery.isSuccess && alunos.length === 0 ? <p>Nenhum aluno matriculado nesta turma</p> : null}
+
+      {turma && alunos.length > 0 ? (
+        <table aria-label="Alunos da turma">
+          <thead>
+            <tr>
+              <th>Aluno</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {alunos.map((aluno) => (
+              <tr key={aluno.matriculaId}>
+                <td>{aluno.nome}</td>
+                <td>{STATUS_MATRICULA[aluno.status]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
+    </div>
+  )
+}
+
+function CadastrarTurma() {
   const professoresQuery = useProfessores()
   const anosQuery = useAnosLetivos()
   const criar = useCriarTurma()
@@ -78,7 +170,7 @@ export function TurmasPage() {
 
   return (
     <div>
-      <h1>Turmas</h1>
+      <h1>Cadastrar turma</h1>
 
       <form onSubmit={handleSubmit}>
         {topo ? <p role="alert">{topo}</p> : null}
@@ -123,22 +215,6 @@ export function TurmasPage() {
           Criar turma
         </button>
       </form>
-
-      <table aria-label="Turmas cadastradas">
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Série</th>
-            <th>Professor</th>
-            <th>Trocar professor</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(turmasQuery.data ?? []).map((turma) => (
-            <TurmaLinha key={turma.id} turma={turma} professores={professores} />
-          ))}
-        </tbody>
-      </table>
     </div>
   )
 }

@@ -5,7 +5,11 @@ import com.missio.fluencia_leitora.avaliacao.Avaliacao;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/** HIST-01..06, HIST-22: item de uma página do histórico (design.md, Data Models). */
+/**
+ * HIST-01..06, HIST-22: item de uma página do histórico (design.md, Data Models).
+ * Inclui as inativas (refeitas), sinalizadas em {@code ativa}; {@code refeitaDeId}
+ * identifica a cadeia de tentativas (id da primeira avaliação, null na original).
+ */
 public record HistoricoAvaliacaoItemResponse(
         Long avaliacaoId,
         int anoLetivo,
@@ -23,7 +27,11 @@ public record HistoricoAvaliacaoItemResponse(
         String fase,
         Integer nivel,
         Integer tempoUtilizadoSegundos,
-        boolean temAudio) {
+        boolean temAudio,
+        boolean ativa,
+        Long refeitaDeId,
+        String nomeAvaliacao,
+        int numeroTentativa) {
 
     public static HistoricoAvaliacaoItemResponse from(Avaliacao avaliacao, boolean temAudio) {
         return new HistoricoAvaliacaoItemResponse(
@@ -43,6 +51,10 @@ public record HistoricoAvaliacaoItemResponse(
                 avaliacao.getFase() == null ? null : avaliacao.getFase().name(),
                 avaliacao.getNivel(),
                 avaliacao.getTempoUtilizadoSegundos(),
-                temAudio);
+                temAudio,
+                avaliacao.isAtiva(),
+                avaliacao.getRefeitaDeId(),
+                avaliacao.getNomeAvaliacao(),
+                avaliacao.getNumeroTentativa());
     }
 }

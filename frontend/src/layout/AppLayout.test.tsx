@@ -26,10 +26,11 @@ describe('AppLayout', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(3)
+    expect(screen.getAllByRole('listitem')).toHaveLength(4)
     expect(screen.getByText('Avaliar')).toBeInTheDocument()
-    expect(screen.getByText('Meus alunos')).toBeInTheDocument()
-    expect(screen.getByText('Histórico')).toBeInTheDocument()
+    expect(screen.getByText('Alunos')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Avaliação Aluno' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Histórico' })).toHaveAttribute('href', '/historico')
     expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument()
   })
 
@@ -49,7 +50,7 @@ describe('AppLayout', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(8)
+    expect(screen.getAllByRole('listitem')).toHaveLength(21)
     for (const label of [
       'Alunos',
       'Turmas',
@@ -62,6 +63,19 @@ describe('AppLayout', () => {
     ]) {
       expect(screen.getByText(label)).toBeInTheDocument()
     }
+    expect(screen.getByRole('link', { name: 'Cadastrar aluno' })).toHaveAttribute('href', '/cadastros/alunos')
+    expect(screen.getByRole('link', { name: 'Alterar aluno' })).toHaveAttribute('href', '/cadastros/alunos/alterar')
+    expect(screen.getByRole('link', { name: 'Avaliação Aluno' })).toHaveAttribute('href', '/alunos')
+    expect(screen.getByRole('link', { name: 'Histórico' })).toHaveAttribute('href', '/historico')
+    expect(screen.getByRole('link', { name: 'Cadastrar turma' })).toHaveAttribute('href', '/cadastros/turmas/cadastrar')
+    expect(screen.getByRole('link', { name: 'Listar turmas' })).toHaveAttribute('href', '/cadastros/turmas/listar')
+    expect(screen.getByRole('link', { name: 'Alunos da turma' })).toHaveAttribute('href', '/cadastros/turmas/alunos')
+    expect(screen.getByRole('link', { name: 'Cadastrar ano letivo' })).toHaveAttribute('href', '/cadastros/anos-letivos/cadastrar')
+    expect(screen.getByRole('link', { name: 'Listar anos letivos' })).toHaveAttribute('href', '/cadastros/anos-letivos/listar')
+    expect(screen.getByRole('link', { name: 'Cadastrar lista' })).toHaveAttribute('href', '/cadastros/listas-palavras/cadastrar')
+    expect(screen.getByRole('link', { name: 'Buscar listas' })).toHaveAttribute('href', '/cadastros/listas-palavras/buscar')
+    expect(screen.getByRole('link', { name: 'Cadastrar avaliação' })).toHaveAttribute('href', '/cadastros/avaliacoes/cadastrar')
+    expect(screen.getByRole('link', { name: 'Buscar avaliações' })).toHaveAttribute('href', '/cadastros/avaliacoes/buscar')
     expect(screen.queryByText('Avaliar')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument()
   })

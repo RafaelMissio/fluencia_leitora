@@ -2,6 +2,7 @@ package com.missio.fluencia_leitora.cadastros.aluno;
 
 import com.missio.fluencia_leitora.cadastros.aluno.AlunoService.AlunoBusca;
 import com.missio.fluencia_leitora.cadastros.aluno.AlunoService.AlunoComMatricula;
+import com.missio.fluencia_leitora.cadastros.aluno.dto.AlterarSituacaoAlunoRequest;
 import com.missio.fluencia_leitora.cadastros.aluno.dto.AlunoBuscaItemResponse;
 import com.missio.fluencia_leitora.cadastros.aluno.dto.AlunoResponse;
 import com.missio.fluencia_leitora.cadastros.aluno.dto.AtualizarNomeAlunoRequest;
@@ -16,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -80,6 +82,13 @@ public class AlunoController {
     @PreAuthorize("hasRole('COORDENADOR')")
     public AlunoResponse atualizarNome(@PathVariable Long id, @Valid @RequestBody AtualizarNomeAlunoRequest request) {
         return AlunoResponse.from(alunoService.atualizarNome(id, request.nome()));
+    }
+
+    @PatchMapping("/{id}/situacao")
+    @PreAuthorize("hasRole('COORDENADOR')")
+    public AlunoResponse alterarSituacao(
+            @PathVariable Long id, @Valid @RequestBody AlterarSituacaoAlunoRequest request) {
+        return AlunoResponse.from(alunoService.alterarAtivo(id, request.ativo()));
     }
 
     @DeleteMapping("/{id}")

@@ -49,3 +49,20 @@ export function useAtualizarConfiguracao(
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['anos-letivos', anoLetivoId, 'configuracoes'] }),
   })
 }
+
+/** `PUT /anos-letivos/{id}/situacao`; invalida a lista no sucesso (ATIVO encerra o ativo anterior). */
+export function useAlterarSituacao(): UseMutationResult<
+  AnoLetivoResponse,
+  ApiError,
+  { id: number; situacao: string }
+> {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, situacao }) =>
+      request<AnoLetivoResponse>(`/anos-letivos/${id}/situacao`, {
+        method: 'PUT',
+        body: JSON.stringify({ situacao }),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['anos-letivos'] }),
+  })
+}

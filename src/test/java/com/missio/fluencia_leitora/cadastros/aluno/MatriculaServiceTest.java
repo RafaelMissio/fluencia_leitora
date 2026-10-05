@@ -130,7 +130,7 @@ class MatriculaServiceTest {
         when(professorRepository.findById(5L)).thenReturn(Optional.of(novoProfessor));
         when(matriculaRepository.save(matricula)).thenReturn(matricula);
 
-        Matricula atualizada = service().atualizar(10L, 5L, null, null);
+        Matricula atualizada = service().atualizar(10L, 5L, null, null, null);
 
         assertEquals(novoProfessor, atualizada.getProfessor());
     }
@@ -145,7 +145,7 @@ class MatriculaServiceTest {
         when(turmaRepository.findById(20L)).thenReturn(Optional.of(novaTurma));
         when(matriculaRepository.save(matricula)).thenReturn(matricula);
 
-        Matricula atualizada = service().atualizar(10L, null, 20L, null);
+        Matricula atualizada = service().atualizar(10L, null, 20L, null, null);
 
         assertEquals(novaTurma, atualizada.getTurma());
         assertEquals(4, atualizada.getSerie());
@@ -159,8 +159,34 @@ class MatriculaServiceTest {
         when(matriculaRepository.findById(10L)).thenReturn(Optional.of(matricula));
         when(matriculaRepository.save(matricula)).thenReturn(matricula);
 
-        Matricula atualizada = service().atualizar(10L, null, null, true);
+        Matricula atualizada = service().atualizar(10L, null, null, true, null);
 
         assertEquals(true, atualizada.isAnoFinalizado());
+    }
+
+    @Test
+    void atualizarStatusReprovadoFinalizaOAno() {
+        AnoLetivo anoLetivo = anoLetivo(2025, SituacaoAnoLetivo.ENCERRADO);
+        Turma turma = new Turma("Turma A", 3, anoLetivo, null);
+        Matricula matricula = new Matricula(new Aluno("Aluno"), anoLetivo, turma, 3, null);
+        when(matriculaRepository.findById(10L)).thenReturn(Optional.of(matricula));
+        when(matriculaRepository.save(matricula)).thenReturn(matricula);
+
+        Matricula atualizada = service().atualizar(10L, null, null, null, StatusMatricula.REPROVADO);
+
+        assertEquals(StatusMatricula.REPROVADO, atualizada.getStatus());
+        assertEquals(true, atualizada.isAnoFinalizado());
+    }
+
+    @Test
+    void atualizarStatusAprovadoEmAnoAtivoERejeitado() {
+        AnoLetivo anoLetivo = anoLetivo(2026, SituacaoAnoLetivo.ATIVO);
+        Turma turma = new Turma("Turma A", 3, anoLetivo, null);
+        Matricula matricula = new Matricula(new Aluno("Aluno"), anoLetivo, turma, 3, null);
+        when(matriculaRepository.findById(10L)).thenReturn(Optional.of(matricula));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                com.missio.fluencia_leitora.common.error.BusinessException.class,
+                () -> service().atualizar(10L, null, null, null, StatusMatricula.APROVADO));
     }
 }

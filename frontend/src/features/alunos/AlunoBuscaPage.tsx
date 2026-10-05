@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { HistoricoPage } from '../historico/HistoricoPage'
 import { ResumoAlunoPanel } from './ResumoAlunoPanel'
 import { useAlunoBusca } from './useAlunoBusca'
 
@@ -7,7 +8,7 @@ import { useAlunoBusca } from './useAlunoBusca'
  * o `alunoId` em estado local (spec.md P1 "Buscar aluno", AC1/AC3) e embute
  * o painel de resumo (`ResumoAlunoPanel`, T11).
  */
-export function AlunoBuscaPage() {
+export function AlunoBuscaPage({ modo = 'avaliacoes' }: { modo?: 'avaliacoes' | 'historico' } = {}) {
   const [nome, setNome] = useState('')
   const [alunoSelecionadoId, setAlunoSelecionadoId] = useState<number | null>(null)
   const { data, isLoading } = useAlunoBusca(nome)
@@ -17,7 +18,7 @@ export function AlunoBuscaPage() {
 
   return (
     <div>
-      <h1>Buscar aluno</h1>
+      <h1>{modo === 'historico' ? 'Histórico do aluno' : 'Buscar aluno'}</h1>
       <label htmlFor="busca-aluno-nome">Nome do aluno</label>
       <input
         id="busca-aluno-nome"
@@ -42,7 +43,13 @@ export function AlunoBuscaPage() {
         ))}
       </ul>
 
-      {alunoSelecionadoId !== null ? <ResumoAlunoPanel alunoId={alunoSelecionadoId} /> : null}
+      {alunoSelecionadoId !== null ? (
+        modo === 'historico' ? (
+          <HistoricoPage key={alunoSelecionadoId} alunoId={alunoSelecionadoId} />
+        ) : (
+          <ResumoAlunoPanel alunoId={alunoSelecionadoId} />
+        )
+      ) : null}
     </div>
   )
 }

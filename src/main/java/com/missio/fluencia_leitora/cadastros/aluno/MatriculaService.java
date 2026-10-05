@@ -5,6 +5,9 @@ import com.missio.fluencia_leitora.cadastros.professor.ProfessorRepository;
 import com.missio.fluencia_leitora.cadastros.turma.Turma;
 import com.missio.fluencia_leitora.cadastros.turma.TurmaRepository;
 import com.missio.fluencia_leitora.common.error.BusinessException;
+import com.missio.fluencia_leitora.cadastros.anoletivo.SituacaoAnoLetivo;
+import java.util.List;
+import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +35,15 @@ public class MatriculaService {
         this.professorRepository = professorRepository;
     }
 
+    /** Alunos matriculados na turma (com o status de cada matrícula), por nome. */
+    @Transactional(readOnly = true)
+    public List<Matricula> listarPorTurma(Long turmaId) {
+        if (!turmaRepository.existsById(turmaId)) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "TURMA_NAO_ENCONTRADA", "Turma não encontrada");
+        }
+        return matriculaRepository.findByTurmaIdOrderByAlunoNomeAsc(turmaId);
+    }
+
     @Transactional
     public Matricula matricular(Long alunoId, Long turmaId) {
         Aluno aluno = alunoRepository.findById(alunoId)
@@ -56,7 +68,7 @@ public class MatriculaService {
      * deixam o respectivo campo inalterado (atualização parcial via PATCH).
      */
     @Transactional
-    public Matricula atualizar(Long matriculaId, Long novoProfessorId, Long novaTurmaId, Boolean anoFinalizado) {
+    public Matricula atualizar(Long matriculaId, Long novoProfessorId, Long novaTurmaId, Boolean anoFinalizado, StatusMatricula status) {
         Matricula matricula = matriculaRepository.findById(matriculaId)
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND, "MATRICULA_NAO_ENCONTRADA", "Matrícula não encontrada"));
@@ -66,11 +78,33 @@ public class MatriculaService {
         }
         if (novaTurmaId != null) {
             Turma novaTurma = buscarTurmaAtiva(novaTurmaId);
+            if (!Objects.equals(novaTurma.getAnoLetivo().getId(), matricula.getAnoLetivo().getId())) {
+                throw new BusinessException(
+                        HttpStatus.UNPROCESSABLE_ENTITY,
+                        "TURMA_OUTRO_ANO_LETIVO",
+                        "A turma deve ser do mesmo ano letivo da matrícula; use nova matrícula para outro ano");
+            }
             matricula.setTurma(novaTurma);
             matricula.setSerie(novaTurma.getSerie());
         }
         if (anoFinalizado != null) {
             matricula.setAnoFinalizado(anoFinalizado);
+        }
+        if (status != null) {
+            boolean anoAtivo = matricula.getAnoLetivo().getSituacao() == SituacaoAnoLetivo.ATIVO;
+            if (anoAtivo && status != StatusMatricula.CURSANDO) {
+                throw new BusinessException(
+                        HttpStatus.UNPROCESSABLE_ENTITY,
+                        "STATUS_INVALIDO",
+                        "Em ano letivo ativo o aluno está cursando; aprovado/reprovado só após o ano deixar de ser ativo");
+            }
+            if (!anoAtivo && status == StatusMatricula.CURSANDO) {
+                throw new BusinessException(
+                        HttpStatus.UNPROCESSABLE_ENTITY,
+                        "STATUS_INVALIDO",
+                        "Em ano letivo inativo o status deve ser aprovado ou reprovado");
+            }
+            matricula.setStatus(status);
         }
 
         return matriculaRepository.save(matricula);

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ListaPalavrasResponse } from '../../../api/types'
+import { MemoryRouter } from 'react-router-dom'
 import { ListasPalavrasPage } from './ListasPalavrasPage'
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -35,11 +36,13 @@ function mockApi(estado: Estado): void {
   })
 }
 
-function renderPage() {
+function renderPage(modo: 'cadastrar' | 'buscar' = 'cadastrar', rota = '/') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <ListasPalavrasPage />
+      <MemoryRouter initialEntries={[rota]}>
+        <ListasPalavrasPage modo={modo} />
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }
@@ -74,7 +77,7 @@ describe('ListasPalavrasPage', () => {
     expect(await screen.findByText('Salvo com sucesso')).toBeInTheDocument()
     const post = vi.mocked(fetch).mock.calls.find(([, init]) => init?.method === 'POST')
     expect(JSON.parse(String(post?.[1]?.body))).toEqual({
-      nome: 'Lista Nova', serie: 2, tipoLeitura: 'PALAVRA', tipoPalavra: 'NAO_CANONICA',
+      nome: 'Lista Nova', serie: 2, tipoLeitura: 'PALAVRA',
       itens: [{ palavra: 'gato', tipoPalavra: 'NAO_CANONICA' }, { palavra: 'bola', tipoPalavra: 'NAO_CANONICA' }],
     })
   })
@@ -117,8 +120,7 @@ describe('ListasPalavrasPage', () => {
       put: () => jsonResponse(200, DETALHE),
     })
     const user = userEvent.setup()
-    renderPage()
-    await user.click(await screen.findByRole('button', { name: 'Editar Lista A' }))
+    renderPage('cadastrar', '/?editar=1')
     expect(await screen.findByDisplayValue('gato bola')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))

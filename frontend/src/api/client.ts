@@ -147,3 +147,21 @@ export async function uploadAudio(avaliacaoId: number, blob: Blob, mimeType: str
     throw apiError
   }
 }
+
+/** `GET /api/v1/avaliacoes/{id}/audio` com o token (um `<audio src>` nativo não envia `Authorization`); devolve os bytes. */
+export async function baixarAudio(avaliacaoId: number): Promise<Blob> {
+  const headers = new Headers()
+  if (currentToken) {
+    headers.set('Authorization', `Bearer ${currentToken}`)
+  }
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE}/avaliacoes/${avaliacaoId}/audio`, { headers })
+  } catch {
+    throw networkError()
+  }
+  if (!response.ok) {
+    throw new Error('Não foi possível carregar o áudio')
+  }
+  return response.blob()
+}

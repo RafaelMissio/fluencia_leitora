@@ -1,11 +1,13 @@
 package com.missio.fluencia_leitora.cadastros.aluno;
 
+import com.missio.fluencia_leitora.cadastros.aluno.dto.AlunoDaTurmaResponse;
 import com.missio.fluencia_leitora.cadastros.aluno.dto.AtualizarMatriculaRequest;
 import com.missio.fluencia_leitora.cadastros.aluno.dto.MatriculaResponse;
 import com.missio.fluencia_leitora.cadastros.aluno.dto.NovaMatriculaRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * CAD-12/CAD-13/CAD-14/CAD-17: nova matrícula em outro ano letivo e
@@ -36,10 +40,16 @@ public class MatriculaController {
         return MatriculaResponse.from(matriculaService.matricular(alunoId, request.turmaId()));
     }
 
+    @GetMapping("/turmas/{turmaId}/alunos")
+    @PreAuthorize("hasRole('COORDENADOR')")
+    public List<AlunoDaTurmaResponse> listarAlunosDaTurma(@PathVariable Long turmaId) {
+        return matriculaService.listarPorTurma(turmaId).stream().map(AlunoDaTurmaResponse::from).toList();
+    }
+
     @PatchMapping("/matriculas/{id}")
     @PreAuthorize("hasRole('COORDENADOR')")
     public MatriculaResponse atualizar(@PathVariable Long id, @RequestBody AtualizarMatriculaRequest request) {
         return MatriculaResponse.from(
-                matriculaService.atualizar(id, request.professorId(), request.turmaId(), request.anoFinalizado()));
+                matriculaService.atualizar(id, request.professorId(), request.turmaId(), request.anoFinalizado(), request.status()));
     }
 }

@@ -30,6 +30,7 @@ const RESPOSTA: EvolucaoAnualResponse = {
     {
       anoLetivo: 2026,
       serie: 2,
+      turma: '2º A',
       entrada: cicloAnual({ quantidadeCorretas: 12 }),
       acompanhamento: cicloAnual({ ciclo: 'ACOMPANHAMENTO', quantidadeCorretas: 22 }),
       saida: cicloAnual({ ciclo: 'SAIDA', quantidadeCorretas: 32 }),
@@ -37,6 +38,7 @@ const RESPOSTA: EvolucaoAnualResponse = {
     {
       anoLetivo: 2027,
       serie: 3,
+      turma: '3º B',
       entrada: cicloAnual({ quantidadeCorretas: 25, evolucao: { absoluta: 13, percentual: 108.33 } }),
       acompanhamento: cicloAnual({
         ciclo: 'ACOMPANHAMENTO',
@@ -64,6 +66,8 @@ describe('ComparacaoAnualTab', () => {
     expect(within(linhas[1]).getByText('2027')).toBeInTheDocument()
     expect(within(linhas[0]).getByText('2º Ano')).toBeInTheDocument()
     expect(within(linhas[1]).getByText('3º Ano')).toBeInTheDocument()
+    expect(within(linhas[0]).getByText('2º A')).toBeInTheDocument()
+    expect(within(linhas[1]).getByText('3º B')).toBeInTheDocument()
   })
 
   it('shows the correct absoluta/percentual for 2 consecutive years in the same ciclo (+13 / 108,33% na Entrada)', () => {
@@ -77,7 +81,7 @@ describe('ComparacaoAnualTab', () => {
 
     const linhas = screen.getAllByRole('row').slice(1)
     const linha2027 = linhas[1]
-    const celulaEntrada = within(linha2027).getAllByRole('cell')[2]
+    const celulaEntrada = within(linha2027).getAllByRole('cell')[3]
     expect(celulaEntrada).toHaveTextContent('25 (+13 / 108,33%)')
   })
 
@@ -92,7 +96,7 @@ describe('ComparacaoAnualTab', () => {
 
     const linhas = screen.getAllByRole('row').slice(1)
     const linha2026 = linhas[0]
-    const celulaEntrada = within(linha2026).getAllByRole('cell')[2]
+    const celulaEntrada = within(linha2026).getAllByRole('cell')[3]
     expect(celulaEntrada).toHaveTextContent('12 (sem base)')
     expect(celulaEntrada).not.toHaveTextContent('0%')
   })

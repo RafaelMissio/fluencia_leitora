@@ -32,6 +32,25 @@ export interface AlunoBuscaItem {
   professor: string | null
   anoLetivo: number | null
   situacao: 'EM_ANDAMENTO' | 'FINALIZADO' | null
+  /** Status do aluno: ativo ou inativo. */
+  ativo?: boolean
+  /** Status do aluno no ano letivo ativo. */
+  status?: StatusMatricula | null
+  /** Matrículas de todos os anos (ativo e inativos), do mais recente para o mais antigo. */
+  matriculas?: MatriculaAno[]
+}
+
+export type StatusMatricula = 'CURSANDO' | 'APROVADO' | 'REPROVADO'
+export interface MatriculaAno {
+  matriculaId: number
+  anoLetivoId: number
+  anoLetivo: number
+  situacaoAnoLetivo: 'PLANEJADO' | 'ATIVO' | 'ENCERRADO'
+  turmaId: number
+  turma: string
+  serie: number
+  professorId: number | null
+  status: StatusMatricula
 }
 
 // Avaliação
@@ -71,6 +90,12 @@ export interface AvaliacaoResponse {
   fase: string | null
   nivel: number | null
   classificacaoPendente: boolean
+  /** `false` quando a avaliação foi refeita (fica só como registro). */
+  ativa: boolean
+  /** Quantas vezes já foi refeita; `null` quando a resposta não traz a contagem. */
+  refeitas: number | null
+  maxRefazeres: number
+  podeRefazer: boolean | null
   palavras: PalavraAvaliacao[]
 }
 
@@ -83,6 +108,45 @@ export interface NovaAvaliacaoRequest {
   listaPalavrasId?: number
   palavras?: { palavra: string; tipoPalavra: string }[]
   texto?: string
+}
+
+/** Avaliação que o aluno ainda precisa fazer; `avaliacaoId`/`status` nulos = configurada para a série e ainda não iniciada. */
+export interface AvaliacaoPendente {
+  programadaId: number | null
+  avaliacaoId: number | null
+  nome: string | null
+  tipoLeitura: TipoLeituraCodigo
+  cicloId: number
+  tempoSegundos: number
+  status: 'CRIADA' | 'EM_ANDAMENTO' | 'PAUSADA' | null
+}
+
+/** Avaliação configurada pelo coordenador para uma série. */
+export interface AvaliacaoProgramada {
+  id: number
+  anoLetivoId: number
+  nome: string
+  serie: number
+  cicloId: number
+  tipoLeitura: TipoLeituraCodigo
+  tempoSegundos: number
+  listaPalavrasId: number | null
+  palavras: string | null
+  texto: string | null
+  maxRefazeres: number
+}
+
+export interface NovaAvaliacaoProgramadaRequest {
+  anoLetivoId?: number
+  nome: string
+  serie: number
+  tipoLeitura: TipoLeituraCodigo
+  cicloId: number
+  tempoSegundos?: number
+  listaPalavrasId?: number
+  palavras?: string
+  texto?: string
+  maxRefazeres?: number
 }
 
 // Histórico / evolução
@@ -104,6 +168,12 @@ export interface HistoricoAvaliacaoItem {
   nivel: number | null
   tempoUtilizadoSegundos: number | null
   temAudio: boolean
+  /** `false` quando a avaliação foi refeita; aparece no histórico mas não entra na evolução. */
+  ativa: boolean
+  /** Id da primeira avaliação da cadeia de tentativas; `null` na original. */
+  refeitaDeId?: number | null
+  nomeAvaliacao?: string | null
+  numeroTentativa?: number
 }
 
 // design.md declara `ResultadoCiclo { ... } | null` - o `| null` descreve como o
@@ -112,6 +182,8 @@ export interface HistoricoAvaliacaoItem {
 // `null` na própria declaração).
 export interface ResultadoCiclo {
   ciclo: string
+  nomeAvaliacao: string | null
+  tentativas: number
   dataAvaliacao: string
   quantidadeCorretas: number
   percentualAcerto: number
@@ -136,6 +208,8 @@ export interface EvolucaoValor {
 // Mesma observação de ResultadoCiclo acima quanto ao `| null` de design.md.
 export interface CicloAnual {
   ciclo: string
+  nomeAvaliacao: string | null
+  tentativas: number
   quantidadeCorretas: number
   percentualAcerto: number
   fase: string | null
@@ -146,6 +220,7 @@ export interface CicloAnual {
 export interface EvolucaoAnualLinha {
   anoLetivo: number
   serie: number
+  turma: string | null
   entrada: CicloAnual | null
   acompanhamento: CicloAnual | null
   saida: CicloAnual | null
@@ -183,10 +258,11 @@ export interface AnoLetivoResponse {
   situacao: string
   ativo: boolean
 }
-export interface CriarAnoLetivoRequest { ano: number; dataInicio: string; dataFim: string }
+export interface CriarAnoLetivoRequest { ano: number; dataInicio: string; dataFim: string; situacao?: string }
 export interface ConfiguracaoAvaliacaoResponse { id: number; serie: number; quantidadeMinima: number; quantidadeMaxima: number }
 export interface AtualizarConfiguracaoRequest { quantidadeMinima: number; quantidadeMaxima: number }
 export interface TurmaResponse { id: number; nome: string; serie: number; anoLetivoId: number; professorId: number | null; ativo: boolean }
+export interface AlunoDaTurma { alunoId: number; nome: string; alunoAtivo: boolean; matriculaId: number; status: StatusMatricula }
 export interface CriarTurmaRequest { nome: string; serie: number; anoLetivoId: number; professorId?: number | null }
 export interface TurmaResumo { id: number; nome: string; serie: number }
 export interface ProfessorResponse { id: number; nome: string; ativo: boolean; turmas: TurmaResumo[] }
@@ -194,7 +270,7 @@ export interface CriarAlunoRequest { nome: string; turmaId: number }
 export interface CriarAlunoResponse { alunoId: number; matriculaId: number }
 export interface MatriculaResponse {
   id: number; alunoId: number; anoLetivoId: number; turmaId: number; serie: number
-  professorId: number | null; anoFinalizado: boolean
+  professorId: number | null; anoFinalizado: boolean; status: StatusMatricula
 }
 export interface UsuarioResponse { id: number; email: string; perfil: Perfil; professorId: number | null; ativo: boolean }
 export interface CriarUsuarioRequest { email: string; senha: string; perfil: Perfil; professorId?: number | null }

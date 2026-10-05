@@ -8,6 +8,8 @@ import java.math.BigDecimal;
 /** HIST-12..19: resultado + evolução de um ciclo numa linha anual (design.md, Data Models). */
 public record CicloAnualResponse(
         String ciclo,
+        String nomeAvaliacao,
+        int tentativas,
         int quantidadeCorretas,
         BigDecimal percentualAcerto,
         String fase,
@@ -21,6 +23,8 @@ public record CicloAnualResponse(
         }
         return new CicloAnualResponse(
                 avaliacao.getCiclo().getCodigo(),
+                avaliacao.getNomeAvaliacao(),
+                avaliacao.getNumeroTentativa(),
                 avaliacao.getQuantidadeCorretas(),
                 avaliacao.getPercentualAcerto(),
                 avaliacao.getFase() == null ? null : avaliacao.getFase().name(),

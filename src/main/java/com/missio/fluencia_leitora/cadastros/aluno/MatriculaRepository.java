@@ -11,5 +11,7 @@ public interface MatriculaRepository extends JpaRepository<Matricula, Long> {
 
     List<Matricula> findByAlunoId(Long alunoId);
 
+    List<Matricula> findByTurmaIdOrderByAlunoNomeAsc(Long turmaId);
+
     Optional<Matricula> findByAlunoIdAndAnoLetivoId(Long alunoId, Long anoLetivoId);
 }

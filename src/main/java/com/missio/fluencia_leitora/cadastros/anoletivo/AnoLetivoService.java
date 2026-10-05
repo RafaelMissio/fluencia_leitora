@@ -69,6 +69,19 @@ public class AnoLetivoService {
         return anoLetivoRepository.save(novoAtivo);
     }
 
+    /** Altera a situação; ATIVO delega a {@link #ativar} para manter no máximo um ativo. */
+    @Transactional
+    public AnoLetivo alterarSituacao(Long id, SituacaoAnoLetivo situacao) {
+        if (situacao == SituacaoAnoLetivo.ATIVO) {
+            return ativar(id);
+        }
+        AnoLetivo anoLetivo = anoLetivoRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "ANO_LETIVO_NAO_ENCONTRADO", "Ano letivo não encontrado"));
+        anoLetivo.setSituacao(situacao);
+        return anoLetivoRepository.save(anoLetivo);
+    }
+
     /** CAD-19/RNF006: soft-delete - seta {@code ativo=false}, nunca exclui a linha. */
     @Transactional
     public void inativar(Long id) {

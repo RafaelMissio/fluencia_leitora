@@ -3,8 +3,10 @@ package com.missio.fluencia_leitora.avaliacao;
 import com.missio.fluencia_leitora.audioavaliacao.AudioFormatoInvalidoException;
 import com.missio.fluencia_leitora.audioavaliacao.AudioStoragePort;
 import com.missio.fluencia_leitora.audioavaliacao.AudioTamanhoInvalidoException;
+import com.missio.fluencia_leitora.avaliacao.dto.AvaliacaoPendenteResponse;
 import com.missio.fluencia_leitora.avaliacao.dto.MarcarPalavrasRequest.MarcacaoItem;
 import com.missio.fluencia_leitora.avaliacao.dto.NovaAvaliacaoRequest;
+import com.missio.fluencia_leitora.avaliacao.dto.PalavraDigitadaRequest;
 import com.missio.fluencia_leitora.bancopalavras.ListaPalavras;
 import com.missio.fluencia_leitora.bancopalavras.ListaPalavrasRepository;
 import com.missio.fluencia_leitora.bancopalavras.TipoLeituraCodigo;
@@ -37,11 +39,13 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
@@ -69,6 +73,7 @@ public class AvaliacaoService {
     private static final Pattern FORMATO_PALAVRA = Pattern.compile("^[\\p{L}-]+$");
 
     private final AvaliacaoRepository avaliacaoRepository;
+    private final AvaliacaoProgramadaRepository avaliacaoProgramadaRepository;
     private final MatriculaRepository matriculaRepository;
     private final AnoLetivoRepository anoLetivoRepository;
     private final ConfiguracaoAvaliacaoRepository configuracaoAvaliacaoRepository;
@@ -83,6 +88,7 @@ public class AvaliacaoService {
 
     public AvaliacaoService(
             AvaliacaoRepository avaliacaoRepository,
+            AvaliacaoProgramadaRepository avaliacaoProgramadaRepository,
             MatriculaRepository matriculaRepository,
             AnoLetivoRepository anoLetivoRepository,
             ConfiguracaoAvaliacaoRepository configuracaoAvaliacaoRepository,
@@ -95,6 +101,7 @@ public class AvaliacaoService {
             AvaliacaoAudioRepository avaliacaoAudioRepository,
             AudioStoragePort audioStoragePort) {
         this.avaliacaoRepository = avaliacaoRepository;
+        this.avaliacaoProgramadaRepository = avaliacaoProgramadaRepository;
         this.matriculaRepository = matriculaRepository;
         this.anoLetivoRepository = anoLetivoRepository;
         this.configuracaoAvaliacaoRepository = configuracaoAvaliacaoRepository;
@@ -115,6 +122,12 @@ public class AvaliacaoService {
      */
     @Transactional
     public Avaliacao criar(NovaAvaliacaoRequest request) {
+        return criar(request, null);
+    }
+
+    /** Igual a {@link #criar(NovaAvaliacaoRequest)}, ligando a avaliação à configuração da série que a originou. */
+    @Transactional
+    public Avaliacao criar(NovaAvaliacaoRequest request, AvaliacaoProgramada programada) {
         Matricula matricula = buscarMatriculaAvaliavel(request.alunoId());
         AnoLetivo anoLetivo = matricula.getAnoLetivo();
         int serie = matricula.getSerie();
@@ -142,8 +155,125 @@ public class AvaliacaoService {
                 request.dataAvaliacao(),
                 request.tempoSegundos());
         palavras.forEach(palavra -> avaliacao.adicionarPalavra(palavra.palavra(), palavra.tipoPalavra()));
+        avaliacao.setProgramada(programada);
+        if (programada != null) {
+            avaliacao.setMaxRefazeres(programada.getMaxRefazeres());
+        }
 
         return avaliacaoRepository.save(avaliacao);
+    }
+
+    /** Quantas vezes a avaliação já foi refeita (a original conta zero). */
+    @Transactional(readOnly = true)
+    public int contarRefeitas(Avaliacao avaliacao) {
+        Long raiz = avaliacao.getRefeitaDeId() != null ? avaliacao.getRefeitaDeId() : avaliacao.getId();
+        return (int) Math.max(0, avaliacaoRepository.contarCadeia(raiz) - 1);
+    }
+
+    /**
+     * Refazer: cria uma nova avaliação (data de hoje) com as mesmas palavras,
+     * ciclo, tipo e tempo de uma já finalizada. Todas as avaliações ativas da mesma
+     * cadeia (a original e refeitas anteriores) são inativadas a cada chamada:
+     * continuam gravadas, mas saem do histórico, da evolução e das pendentes.
+     */
+    @Transactional
+    public Avaliacao refazer(Long id) {
+        Avaliacao original = carregar(id);
+        if (original.getStatus() != StatusAvaliacao.FINALIZADA) {
+            throw new BusinessException(
+                    HttpStatus.CONFLICT, "AVALIACAO_NAO_FINALIZADA", "Só é possível refazer uma avaliação finalizada");
+        }
+        if (contarRefeitas(original) >= original.getMaxRefazeres()) {
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    "LIMITE_REFAZERES_ATINGIDO",
+                    "Esta avaliação já foi refeita " + original.getMaxRefazeres() + " vezes e não pode ser refeita novamente");
+        }
+        List<PalavraDigitadaRequest> palavras = original.getPalavras().stream()
+                .map(p -> new PalavraDigitadaRequest(p.getPalavra(), p.getTipoPalavra()))
+                .toList();
+        Avaliacao nova = criar(new NovaAvaliacaoRequest(
+                original.getAluno().getId(),
+                original.getTipoLeitura(),
+                original.getCiclo().getId(),
+                LocalDate.now(),
+                original.getTempoConfiguradoSegundos(),
+                null,
+                palavras,
+                null));
+        Long raiz = original.getRefeitaDeId() != null ? original.getRefeitaDeId() : original.getId();
+        nova.setRefeitaDeId(raiz);
+        nova.setMaxRefazeres(original.getMaxRefazeres());
+        nova.setProgramada(original.getProgramada());
+        nova.setNumeroTentativa(original.getNumeroTentativa() + 1);
+        List<Avaliacao> anteriores = avaliacaoRepository.findByAtivaTrueAndIdOrAtivaTrueAndRefeitaDeId(raiz, raiz);
+        anteriores.stream().filter(a -> !a.getId().equals(nova.getId())).forEach(Avaliacao::inativar);
+        avaliacaoRepository.saveAll(anteriores);
+        return avaliacaoRepository.save(nova);
+    }
+
+    /**
+     * Aplica ao aluno uma avaliação configurada pelo coordenador para a série
+     * dele: cria a {@link Avaliacao} (data de hoje) com o conteúdo da
+     * configuração. Repetir devolve a que já está pendente; se o aluno já a
+     * concluiu, 409.
+     */
+    @Transactional
+    public Avaliacao aplicarProgramada(Long programadaId, Long alunoId) {
+        AvaliacaoProgramada programada = avaliacaoProgramadaRepository.findById(programadaId)
+                .filter(AvaliacaoProgramada::isAtiva)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "RECURSO_NAO_ENCONTRADO", "Avaliação programada não encontrada"));
+        Matricula matricula = buscarMatriculaAvaliavel(alunoId);
+        if (matricula.getSerie() != programada.getSerie()
+                || !matricula.getAnoLetivo().getId().equals(programada.getAnoLetivo().getId())) {
+            throw new BusinessException(
+                    HttpStatus.UNPROCESSABLE_ENTITY,
+                    "PROGRAMADA_OUTRA_SERIE",
+                    "A avaliação é de outra série ou de outro ano letivo");
+        }
+
+        Avaliacao existente = avaliacaoRepository
+                .findByAlunoIdAndProgramadaIdNotNullAndStatusNot(alunoId, StatusAvaliacao.CANCELADA).stream()
+                .filter(a -> a.getProgramada().getId().equals(programadaId))
+                .findFirst()
+                .orElse(null);
+        if (existente != null) {
+            if (existente.getStatus() == StatusAvaliacao.FINALIZADA) {
+                throw new BusinessException(
+                        HttpStatus.CONFLICT, "AVALIACAO_JA_REALIZADA", "O aluno já realizou esta avaliação");
+            }
+            return existente;
+        }
+
+        List<PalavraDigitadaRequest> digitadas = programada.getPalavras() == null
+                ? null
+                : TokenizadorTexto.tokenizar(programada.getPalavras()).stream()
+                        .map(p -> new PalavraDigitadaRequest(p, TipoPalavra.CANONICA))
+                        .toList();
+        NovaAvaliacaoRequest request = new NovaAvaliacaoRequest(
+                alunoId,
+                programada.getTipoLeitura(),
+                programada.getCiclo().getId(),
+                LocalDate.now(),
+                programada.getTempoSegundos(),
+                programada.getListaPalavrasId(),
+                digitadas,
+                programada.getTexto());
+        return criar(request, programada);
+    }
+
+    /**
+     * Valida a configuração da série (tempo, ciclo, fonte única de conteúdo,
+     * 1º ano sem não canônica, quantidade de palavras) com as mesmas regras
+     * da criação, sem aluno nem data.
+     */
+    void validarConfiguracaoDaSerie(AnoLetivo anoLetivo, int serie, NovaAvaliacaoRequest request) {
+        validarTempo(request.tempoSegundos());
+        cicloRepository.findById(request.cicloId()).orElseThrow(() -> referenciaInvalida("cicloId inválido"));
+        List<PalavraDados> palavras = resolverConteudo(request, serie);
+        validarSerieCanonica(serie, palavras);
+        validarQuantidade(anoLetivo.getId(), serie, palavras.size());
     }
 
     /** AVA-09: CRIADA → EM_ANDAMENTO, começa o trecho de tempo em andamento. */
@@ -350,6 +480,50 @@ public class AvaliacaoService {
         return avaliacao;
     }
 
+    /**
+     * O que o aluno ainda precisa fazer: as avaliações já criadas e não
+     * concluídas ({@code CRIADA}, {@code EM_ANDAMENTO}, {@code PAUSADA}) e as
+     * configuradas pelo coordenador para a série do aluno que ainda não foram
+     * iniciadas para ele (nem concluídas - uma cancelada volta a ficar
+     * pendente). O pertencimento (AUTH-09) é o da matrícula ativa.
+     */
+    @Transactional(readOnly = true)
+    public List<AvaliacaoPendenteResponse> listarPendentes(Long alunoId) {
+        Matricula matricula = buscarMatriculaAvaliavel(alunoId);
+
+        List<AvaliacaoPendenteResponse> pendentes = new ArrayList<>(
+                avaliacaoRepository.findByAlunoIdAndAtivaTrueAndStatusInOrderByDataAvaliacaoAscIdAsc(
+                                alunoId, List.of(StatusAvaliacao.CRIADA, StatusAvaliacao.EM_ANDAMENTO, StatusAvaliacao.PAUSADA))
+                        .stream()
+                        .map(a -> new AvaliacaoPendenteResponse(
+                                a.getProgramada() == null ? null : a.getProgramada().getId(),
+                                a.getId(),
+                                a.getProgramada() == null ? null : a.getProgramada().getNome(),
+                                a.getTipoLeitura(),
+                                a.getCiclo().getId(),
+                                a.getTempoConfiguradoSegundos(),
+                                a.getStatus()))
+                        .toList());
+
+        Set<Long> jaAplicadas = avaliacaoRepository
+                .findByAlunoIdAndProgramadaIdNotNullAndStatusNot(alunoId, StatusAvaliacao.CANCELADA).stream()
+                .map(a -> a.getProgramada().getId())
+                .collect(Collectors.toSet());
+        avaliacaoProgramadaRepository
+                .findByAnoLetivoIdAndSerieAndAtivaTrueOrderByIdAsc(matricula.getAnoLetivo().getId(), matricula.getSerie())
+                .stream()
+                .filter(programada -> !jaAplicadas.contains(programada.getId()))
+                .forEach(programada -> pendentes.add(new AvaliacaoPendenteResponse(
+                        programada.getId(),
+                        null,
+                        programada.getNome(),
+                        programada.getTipoLeitura(),
+                        programada.getCiclo().getId(),
+                        programada.getTempoSegundos(),
+                        null)));
+        return pendentes;
+    }
+
     /** AVA-26: registros de auditoria da avaliação, em ordem cronológica. */
     @Transactional(readOnly = true)
     public List<AvaliacaoAuditoria> consultarAuditoria(Long id) {
@@ -516,6 +690,9 @@ public class AvaliacaoService {
                 .filter(palavra -> palavra.getStatus() == StatusPalavra.PENDENTE)
                 .forEach(palavra -> palavra.setStatus(StatusPalavra.NAO_LIDA));
         recalcularResultado(avaliacao);
+        // A tentativa só é numerada ao finalizar: refeitas abandonadas não deixam buracos na sequência.
+        Long raiz = avaliacao.getRefeitaDeId() != null ? avaliacao.getRefeitaDeId() : avaliacao.getId();
+        avaliacao.setNumeroTentativa((int) avaliacaoRepository.contarFinalizadasCadeia(raiz) + 1);
     }
 
     /**

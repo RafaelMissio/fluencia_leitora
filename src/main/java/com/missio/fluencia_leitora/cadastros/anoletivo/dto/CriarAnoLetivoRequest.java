@@ -1,5 +1,6 @@
 package com.missio.fluencia_leitora.cadastros.anoletivo.dto;
 
+import com.missio.fluencia_leitora.cadastros.anoletivo.SituacaoAnoLetivo;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -11,5 +12,6 @@ import java.time.LocalDate;
 public record CriarAnoLetivoRequest(
         @Min(2000) @Max(2100) int ano,
         @NotNull LocalDate dataInicio,
-        @NotNull LocalDate dataFim) {
+        @NotNull LocalDate dataFim,
+        SituacaoAnoLetivo situacao) {
 }

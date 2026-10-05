@@ -1,5 +1,7 @@
 package com.missio.fluencia_leitora.cadastros.aluno;
 
+import java.util.Comparator;
+import java.util.List;
 import com.missio.fluencia_leitora.cadastros.anoletivo.SituacaoAnoLetivo;
 import com.missio.fluencia_leitora.cadastros.turma.Turma;
 import com.missio.fluencia_leitora.cadastros.turma.TurmaRepository;
@@ -70,7 +72,7 @@ public class AlunoService {
                 ? alunoRepository.buscarPorNomeEProfessor(termo, contexto.professorIdAtual(), pageable)
                 : alunoRepository.buscarPorNome(termo, pageable);
 
-        return pagina.map(aluno -> new AlunoBusca(aluno, matriculaAtivaDe(aluno.getId())));
+        return pagina.map(aluno -> comMatriculas(aluno));
     }
 
     /**
@@ -80,14 +82,18 @@ public class AlunoService {
     @Transactional(readOnly = true)
     public AlunoBusca buscarPorId(Long id) {
         Aluno aluno = buscarAlunoExistente(id);
-        return new AlunoBusca(aluno, matriculaAtivaDe(id));
+        return comMatriculas(aluno);
     }
 
-    private Matricula matriculaAtivaDe(Long alunoId) {
-        return matriculaRepository.findByAlunoId(alunoId).stream()
+    private AlunoBusca comMatriculas(Aluno aluno) {
+        List<Matricula> matriculas = matriculaRepository.findByAlunoId(aluno.getId()).stream()
+                .sorted(Comparator.comparingInt((Matricula m) -> m.getAnoLetivo().getAno()).reversed())
+                .toList();
+        Matricula ativa = matriculas.stream()
                 .filter(matricula -> matricula.getAnoLetivo().getSituacao() == SituacaoAnoLetivo.ATIVO)
                 .findFirst()
                 .orElse(null);
+        return new AlunoBusca(aluno, ativa, matriculas);
     }
 
     /**
@@ -138,6 +144,14 @@ public class AlunoService {
         alunoRepository.save(aluno);
     }
 
+    /** Ativa ou inativa o aluno (soft-delete reversível). */
+    @Transactional
+    public Aluno alterarAtivo(Long id, boolean ativo) {
+        Aluno aluno = buscarAlunoExistente(id);
+        aluno.setAtivo(ativo);
+        return alunoRepository.save(aluno);
+    }
+
     private Aluno buscarAlunoExistente(Long id) {
         return alunoRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "ALUNO_NAO_ENCONTRADO", "Aluno não encontrado"));
@@ -151,6 +165,10 @@ public class AlunoService {
      * CAD-16: item de resultado de {@link #buscar}. {@code matriculaAtiva} é
      * {@code null} quando o aluno não tem matrícula no ano letivo ATIVO.
      */
-    public record AlunoBusca(Aluno aluno, Matricula matriculaAtiva) {
+    public record AlunoBusca(Aluno aluno, Matricula matriculaAtiva, List<Matricula> matriculas) {
+
+        public AlunoBusca(Aluno aluno, Matricula matriculaAtiva) {
+            this(aluno, matriculaAtiva, matriculaAtiva == null ? List.of() : List.of(matriculaAtiva));
+        }
     }
 }

@@ -38,11 +38,11 @@ function mockApi(estado: Estado): void {
   })
 }
 
-function renderPage() {
+function renderPage(modo: 'cadastrar' | 'listar' = 'listar') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <AnoLetivoPage />
+      <AnoLetivoPage modo={modo} />
     </QueryClientProvider>,
   )
 }
@@ -71,13 +71,11 @@ describe('AnoLetivoPage', () => {
     }
     mockApi(estado)
     const user = userEvent.setup()
-    renderPage()
-    await screen.findByText('2025')
+    renderPage('cadastrar')
 
     await preencherEEnviar(user)
 
     expect(await screen.findByText('Salvo com sucesso')).toBeInTheDocument()
-    expect(await screen.findByText('PLANEJADO')).toBeInTheDocument()
   })
 
   it('shows the 409 code message at the top of the form', async () => {
@@ -86,8 +84,7 @@ describe('AnoLetivoPage', () => {
       post: () => jsonResponse(409, { code: 'ANO_LETIVO_DUPLICADO', detail: 'Ano letivo 2026 já cadastrado' }),
     })
     const user = userEvent.setup()
-    renderPage()
-    await screen.findByText('2025')
+    renderPage('cadastrar')
 
     await preencherEEnviar(user)
 
@@ -102,8 +99,7 @@ describe('AnoLetivoPage', () => {
         jsonResponse(422, { errors: [{ field: 'ano', message: 'deve ser maior ou igual a 2000' }] }),
     })
     const user = userEvent.setup()
-    renderPage()
-    await screen.findByText('2025')
+    renderPage('cadastrar')
 
     await preencherEEnviar(user)
 

@@ -10,5 +10,7 @@ public interface TurmaRepository extends JpaRepository<Turma, Long> {
 
     List<Turma> findByAtivoTrueOrderByNomeAsc();
 
+    List<Turma> findAllByOrderByNomeAsc();
+
     List<Turma> findByProfessorIdAndAtivoTrue(Long professorId);
 }

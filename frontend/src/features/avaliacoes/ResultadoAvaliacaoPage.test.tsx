@@ -37,6 +37,7 @@ function avaliacao(overrides: Partial<AvaliacaoResponse> = {}): AvaliacaoRespons
     fase: 'FLUENTE',
     nivel: 4,
     classificacaoPendente: false,
+    ativa: true,
     palavras: [],
     ...overrides,
   }

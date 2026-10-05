@@ -49,6 +49,12 @@ public class TurmaService {
         return turmaRepository.findByAtivoTrueOrderByNomeAsc();
     }
 
+    /** Listagem completa (ativas e inativas) para a tela de turmas. */
+    @Transactional(readOnly = true)
+    public List<Turma> listarTodas() {
+        return turmaRepository.findAllByOrderByNomeAsc();
+    }
+
     @Transactional
     public Turma criar(String nome, int serie, Long anoLetivoId, Long professorId) {
         AnoLetivo anoLetivo = buscarAnoLetivoAtivo(anoLetivoId);

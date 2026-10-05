@@ -59,6 +59,7 @@ import java.util.function.Consumer;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -211,6 +212,22 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
         return mockMvc.perform(post("/api/v1/avaliacoes").header("Authorization", bearer)
                 .contentType("application/json")
                 .content(objectMapper.writeValueAsString(payload)));
+    }
+
+    @Test
+    void getPendentesListaTodasAsAvaliacoesNaoConcluidasDoAluno() throws Exception {
+        Professor professor = novoProfessor();
+        Matricula matricula = novaMatricula(1, professor);
+        Long alunoId = matricula.getAluno().getId();
+        String bearer = bearerProfessor(professor);
+        postar(bearer, payloadComPalavras(alunoId, palavras(15))).andExpect(status().isCreated());
+        postar(bearer, payloadComPalavras(alunoId, palavras(15))).andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/v1/avaliacoes/pendentes").param("alunoId", alunoId.toString())
+                        .header("Authorization", bearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].status").value("CRIADA"));
     }
 
     // ---- AVA-01: caminho feliz -----------------------------------------
@@ -481,11 +498,11 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
     // ---- Autorização / autenticação ------------------------------------
 
     @Test
-    void postComoCoordenadorRetorna403() throws Exception {
+    void postComoCoordenadorFunciona() throws Exception {
         Matricula matricula = novaMatricula(1, novoProfessor());
 
         postar(bearerCoordenador(), payloadComPalavras(matricula.getAluno().getId(), palavras(15)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isCreated());
     }
 
     @Test
@@ -637,14 +654,14 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
     }
 
     @Test
-    void cancelarComoCoordenadorRetorna403() throws Exception {
+    void cancelarComoCoordenadorFunciona() throws Exception {
         Professor professor = novoProfessor();
         Long id = avaliacaoNoStatus(bearerProfessor(professor), professor, StatusAvaliacao.CRIADA);
 
         cancelar(bearerCoordenador(), id, "Avaliação aplicada por engano, cancelando.")
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
 
-        assertEquals(StatusAvaliacao.CRIADA, avaliacaoRepository.findById(id).orElseThrow().getStatus());
+        assertEquals(StatusAvaliacao.CANCELADA, avaliacaoRepository.findById(id).orElseThrow().getStatus());
     }
 
     @Test
@@ -853,15 +870,54 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"iniciar", "pausar", "continuar", "resetar", "finalizar"})
-    void transicaoComoCoordenadorRetorna403(String acao) throws Exception {
+    @Test
+    void iniciarComoCoordenadorFunciona() throws Exception {
         Professor professor = novoProfessor();
         Long id = avaliacaoNoStatus(bearerProfessor(professor), professor, StatusAvaliacao.CRIADA);
 
-        acao(bearerCoordenador(), id, acao).andExpect(status().isForbidden());
+        acao(bearerCoordenador(), id, "iniciar").andExpect(status().isOk());
 
-        assertEquals(StatusAvaliacao.CRIADA, avaliacaoRepository.findById(id).orElseThrow().getStatus());
+        assertEquals(StatusAvaliacao.EM_ANDAMENTO, avaliacaoRepository.findById(id).orElseThrow().getStatus());
+    }
+
+    @Test
+    void refazerCriaNovaAvaliacaoComAsMesmasPalavras() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.FINALIZADA);
+
+        MvcResult result = acao(bearer, id, "refazer").andExpect(status().isCreated()).andReturn();
+        Long novoId = objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
+
+        assertNotEquals(id, novoId);
+        assertEquals(StatusAvaliacao.CRIADA, avaliacaoRepository.findById(novoId).orElseThrow().getStatus());
+        assertEquals(false, avaliacaoRepository.findById(id).orElseThrow().isAtiva());
+        assertEquals(true, avaliacaoRepository.findById(novoId).orElseThrow().isAtiva());
+    }
+
+    @Test
+    void refazerDeNovoInativaAnteriorEMantemUmaAtiva() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.FINALIZADA);
+        MvcResult r1 = acao(bearer, id, "refazer").andExpect(status().isCreated()).andReturn();
+        Long primeiraCopia = objectMapper.readTree(r1.getResponse().getContentAsString()).get("id").asLong();
+
+        MvcResult r2 = acao(bearer, id, "refazer").andExpect(status().isCreated()).andReturn();
+        Long segundaCopia = objectMapper.readTree(r2.getResponse().getContentAsString()).get("id").asLong();
+
+        assertEquals(false, avaliacaoRepository.findById(id).orElseThrow().isAtiva());
+        assertEquals(false, avaliacaoRepository.findById(primeiraCopia).orElseThrow().isAtiva());
+        assertEquals(true, avaliacaoRepository.findById(segundaCopia).orElseThrow().isAtiva());
+    }
+
+    @Test
+    void refazerAvaliacaoNaoFinalizadaRetorna409() throws Exception {
+        Professor professor = novoProfessor();
+        String bearer = bearerProfessor(professor);
+        Long id = avaliacaoNoStatus(bearer, professor, StatusAvaliacao.CRIADA);
+
+        acao(bearer, id, "refazer").andExpect(status().isConflict());
     }
 
     @ParameterizedTest
@@ -1113,15 +1169,15 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
     }
 
     @Test
-    void putPalavrasComoCoordenadorRetorna403NasDuasRotas() throws Exception {
+    void putPalavrasComoCoordenadorFuncionaNasDuasRotas() throws Exception {
         Professor professor = novoProfessor();
         Long id = avaliacaoNoStatus(bearerProfessor(professor), professor, StatusAvaliacao.EM_ANDAMENTO);
 
-        marcar(bearerCoordenador(), id, 1, "CORRETA").andExpect(status().isForbidden());
+        marcar(bearerCoordenador(), id, 1, "CORRETA").andExpect(status().isOk());
         marcarLote(bearerCoordenador(), id, List.of(Map.of("ordem", 1, "status", "CORRETA")))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
 
-        assertEquals(StatusPalavra.PENDENTE, statusGravados(id).get(0));
+        assertEquals(StatusPalavra.CORRETA, statusGravados(id).get(0));
     }
 
     @Test
@@ -1476,12 +1532,12 @@ class AvaliacaoControllerIT extends IntegrationTestBase {
     }
 
     @Test
-    void enviarAudioComoCoordenadorRetorna403() throws Exception {
+    void enviarAudioComoCoordenadorFunciona() throws Exception {
         Professor professor = novoProfessor();
         Long id = avaliacaoNoStatus(bearerProfessor(professor), professor, StatusAvaliacao.FINALIZADA);
 
         enviarAudio(bearerCoordenador(), id, "conteudo".getBytes(), "audio/wav")
-                .andExpect(status().isForbidden());
+                .andExpect(status().isCreated());
     }
 
     @Test

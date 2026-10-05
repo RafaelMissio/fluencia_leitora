@@ -21,6 +21,7 @@ function item(ciclo: string): HistoricoAvaliacaoItem {
     nivel: 2,
     tempoUtilizadoSegundos: 55,
     temAudio: true,
+    ativa: true,
   }
 }
 

@@ -7,6 +7,7 @@ import { AlunoBuscaPage } from '../features/alunos/AlunoBuscaPage'
 import { ConfigurarAvaliacaoPage } from '../features/avaliacoes/ConfigurarAvaliacaoPage'
 import { ExecutarAvaliacaoPage } from '../features/avaliacoes/ExecutarAvaliacaoPage'
 import { ResultadoAvaliacaoPage } from '../features/avaliacoes/ResultadoAvaliacaoPage'
+import { ProgramarAvaliacoesPage } from '../features/cadastros/avaliacoes/ProgramarAvaliacoesPage'
 import { AnoLetivoPage } from '../features/cadastros/anosletivos/AnoLetivoPage'
 import { TurmasPage } from '../features/cadastros/turmas/TurmasPage'
 import { ProfessoresPage } from '../features/cadastros/professores/ProfessoresPage'
@@ -75,12 +76,28 @@ export function AppRouter() {
         <Route path="/alunos" element={<AlunoBuscaPage />} />
         {/* Itens de menu que partem da busca de aluno (escolhe o aluno e segue para avaliar/ver histórico) */}
         <Route path="/avaliar" element={<AlunoBuscaPage />} />
-        <Route path="/historico" element={<AlunoBuscaPage />} />
-        <Route path="/cadastros/avaliacoes" element={<AlunoBuscaPage />} />
+        <Route path="/historico" element={<AlunoBuscaPage modo="historico" />} />
+        <Route path="/cadastros/avaliacoes" element={<Navigate to="/cadastros/avaliacoes/cadastrar" replace />} />
+        <Route
+          path="/cadastros/avaliacoes/cadastrar"
+          element={
+            <RoleGate allow={['COORDENADOR']} fallback={<Navigate to="/alunos" replace />}>
+              <ProgramarAvaliacoesPage modo="cadastrar" />
+            </RoleGate>
+          }
+        />
+        <Route
+          path="/cadastros/avaliacoes/buscar"
+          element={
+            <RoleGate allow={['COORDENADOR']} fallback={<Navigate to="/alunos" replace />}>
+              <ProgramarAvaliacoesPage modo="buscar" />
+            </RoleGate>
+          }
+        />
         <Route
           path="/avaliacoes/nova"
           element={
-            <RoleGate allow={['PROFESSOR']} fallback={<Navigate to="/alunos" replace />}>
+            <RoleGate allow={['PROFESSOR', 'COORDENADOR']} fallback={<Navigate to="/alunos" replace />}>
               <ConfigurarAvaliacaoPage />
             </RoleGate>
           }
@@ -88,7 +105,7 @@ export function AppRouter() {
         <Route
           path="/avaliacoes/:id/executar"
           element={
-            <RoleGate allow={['PROFESSOR']} fallback={<Navigate to="/alunos" replace />}>
+            <RoleGate allow={['PROFESSOR', 'COORDENADOR']} fallback={<Navigate to="/alunos" replace />}>
               <ExecutarAvaliacaoPage />
             </RoleGate>
           }
@@ -103,11 +120,20 @@ export function AppRouter() {
             </RoleGate>
           }
         />
+        <Route path="/cadastros/listas-palavras" element={<Navigate to="/cadastros/listas-palavras/cadastrar" replace />} />
         <Route
-          path="/cadastros/listas-palavras"
+          path="/cadastros/listas-palavras/cadastrar"
           element={
             <RoleGate allow={['COORDENADOR']}>
-              <ListasPalavrasPage />
+              <ListasPalavrasPage modo="cadastrar" />
+            </RoleGate>
+          }
+        />
+        <Route
+          path="/cadastros/listas-palavras/buscar"
+          element={
+            <RoleGate allow={['COORDENADOR']}>
+              <ListasPalavrasPage modo="buscar" />
             </RoleGate>
           }
         />
@@ -123,7 +149,15 @@ export function AppRouter() {
           path="/cadastros/alunos"
           element={
             <RoleGate allow={['COORDENADOR']}>
-              <AlunosCadastroPage />
+              <AlunosCadastroPage modo="cadastrar" />
+            </RoleGate>
+          }
+        />
+        <Route
+          path="/cadastros/alunos/alterar"
+          element={
+            <RoleGate allow={['COORDENADOR']}>
+              <AlunosCadastroPage modo="alterar" />
             </RoleGate>
           }
         />
@@ -135,19 +169,45 @@ export function AppRouter() {
             </RoleGate>
           }
         />
+        <Route path="/cadastros/turmas" element={<Navigate to="/cadastros/turmas/cadastrar" replace />} />
         <Route
-          path="/cadastros/turmas"
+          path="/cadastros/turmas/cadastrar"
           element={
             <RoleGate allow={['COORDENADOR']}>
-              <TurmasPage />
+              <TurmasPage modo="cadastrar" />
             </RoleGate>
           }
         />
         <Route
-          path="/cadastros/anos-letivos"
+          path="/cadastros/turmas/listar"
           element={
             <RoleGate allow={['COORDENADOR']}>
-              <AnoLetivoPage />
+              <TurmasPage modo="listar" />
+            </RoleGate>
+          }
+        />
+        <Route
+          path="/cadastros/turmas/alunos"
+          element={
+            <RoleGate allow={['COORDENADOR']}>
+              <TurmasPage modo="alunos" />
+            </RoleGate>
+          }
+        />
+        <Route path="/cadastros/anos-letivos" element={<Navigate to="/cadastros/anos-letivos/cadastrar" replace />} />
+        <Route
+          path="/cadastros/anos-letivos/cadastrar"
+          element={
+            <RoleGate allow={['COORDENADOR']}>
+              <AnoLetivoPage modo="cadastrar" />
+            </RoleGate>
+          }
+        />
+        <Route
+          path="/cadastros/anos-letivos/listar"
+          element={
+            <RoleGate allow={['COORDENADOR']}>
+              <AnoLetivoPage modo="listar" />
             </RoleGate>
           }
         />

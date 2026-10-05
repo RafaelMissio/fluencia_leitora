@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import type { ResultadoCiclo, TipoLeituraCodigo } from '../../api/types'
+import { EvolucaoEntreCiclosChart } from './EvolucaoEntreCiclosChart'
+import { TentativasSection } from './TentativasSection'
 import { useEvolucaoCiclos } from './useEvolucaoCiclos'
 
 const TIPOS_LEITURA: TipoLeituraCodigo[] = ['PALAVRA', 'PSEUDOPALAVRA', 'TEXTO_CURTO']
@@ -18,7 +20,10 @@ interface EvolucaoValorLocal {
  * falta um dos dois lados; 0/0 quando os dois são zero; percentual null
  * quando o anterior é zero e o atual é maior que zero.
  */
-function calcularEvolucao(atual: ResultadoCiclo | null, anterior: ResultadoCiclo | null): EvolucaoValorLocal {
+function calcularEvolucao(
+  atual: ResultadoCiclo | null,
+  anterior: ResultadoCiclo | null,
+): EvolucaoValorLocal {
   if (!atual || !anterior) return { absoluta: null, percentual: null }
   const absoluta = atual.quantidadeCorretas - anterior.quantidadeCorretas
   let percentual: number | null
@@ -58,7 +63,11 @@ export function EvolucaoCiclosTab({ alunoId }: { alunoId: number }) {
   const [tipoLeitura, setTipoLeitura] = useState<TipoLeituraCodigo>('PALAVRA')
   const { data, isLoading } = useEvolucaoCiclos(alunoId, undefined, tipoLeitura)
 
-  const ciclos: { rotulo: string; atual: ResultadoCiclo | null; anterior: ResultadoCiclo | null }[] = data
+  const ciclos: {
+    rotulo: string
+    atual: ResultadoCiclo | null
+    anterior: ResultadoCiclo | null
+  }[] = data
     ? [
         { rotulo: 'Entrada', atual: data.entrada, anterior: null },
         { rotulo: 'Acompanhamento', atual: data.acompanhamento, anterior: data.entrada },
@@ -81,32 +90,50 @@ export function EvolucaoCiclosTab({ alunoId }: { alunoId: number }) {
         ))}
       </select>
 
-      {isLoading ? (
-        <p>Carregando evolução…</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Ciclo</th>
-              <th>Corretas</th>
-              <th>Classificação</th>
-              <th>Evolução</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ciclos.map(({ rotulo, atual, anterior }) => (
-              <tr key={rotulo}>
-                <td>{rotulo}</td>
-                <td>{atual ? atual.quantidadeCorretas : '—'}</td>
-                <td>{atual ? (atual.fase ?? '—') : '—'}</td>
-                <td>
-                  <IndicadorEvolucao evolucao={calcularEvolucao(atual, anterior)} />
-                </td>
+      <TentativasSection alunoId={alunoId} tipoLeitura={tipoLeitura} />
+
+      <section aria-label="Comparação entre ciclos">
+        <h3>Evolução entre ciclos</h3>
+        {isLoading ? (
+          <p>Carregando evolução…</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Ciclo</th>
+                <th>Avaliação</th>
+                <th>Corretas</th>
+                <th>Classificação</th>
+                <th>Evolução</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {ciclos.map(({ rotulo, atual, anterior }) => (
+                <tr key={rotulo}>
+                  <td>{rotulo}</td>
+                  <td>{atual?.nomeAvaliacao ?? '—'}</td>
+                  <td>{atual ? atual.quantidadeCorretas : '—'}</td>
+                  <td>{atual ? (atual.fase ?? '—') : '—'}</td>
+                  <td>
+                    <IndicadorEvolucao evolucao={calcularEvolucao(atual, anterior)} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {data ? (
+          <>
+            <EvolucaoEntreCiclosChart
+              pontos={ciclos.map(({ rotulo, atual }) => ({
+                rotulo,
+                corretas: atual ? atual.quantidadeCorretas : null,
+              }))}
+            />
+          </>
+        ) : null}
+      </section>
     </section>
   )
 }

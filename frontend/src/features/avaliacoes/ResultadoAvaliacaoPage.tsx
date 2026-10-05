@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useLocation, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { request } from '../../api/client'
 import type { AvaliacaoResponse } from '../../api/types'
 import { useAuth } from '../../auth/AuthContext'
 import { useEnvioAudio } from './useEnvioAudio'
+import { useRefazerAvaliacao } from './useRefazerAvaliacao'
 
 const MENSAGEM_AUDIO_NAO_ENVIADO = 'O áudio não foi enviado'
 const MENSAGEM_CLASSIFICACAO_PENDENTE = 'Classificação pendente: nenhuma regra cobre este resultado'
@@ -66,6 +67,7 @@ export function ResultadoAvaliacaoPage() {
   const location = useLocation()
   const blob = (location.state as { blob?: Blob } | null)?.blob ?? null
   const { token } = useAuth()
+  const navigate = useNavigate()
 
   const avaliacaoQuery = useQuery({
     queryKey: ['avaliacao', avaliacaoId],
@@ -78,6 +80,7 @@ export function ResultadoAvaliacaoPage() {
   const audioUrl = useAudioObjectUrl(avaliacaoId, audioDisponivel, token)
 
   const avaliacao = avaliacaoQuery.data
+  const refazer = useRefazerAvaliacao(avaliacao?.alunoId ?? 0)
   if (!avaliacao) {
     return <p>Carregando resultado…</p>
   }
@@ -117,6 +120,30 @@ export function ResultadoAvaliacaoPage() {
           </button>
         </div>
       )}
+
+      {avaliacao.status === 'FINALIZADA' && avaliacao.ativa && avaliacao.podeRefazer !== false && (
+        <div>
+          <button
+            type="button"
+            disabled={refazer.isPending}
+            onClick={() =>
+              void refazer.mutateAsync(avaliacaoId).then(
+                (nova) => navigate(`/avaliacoes/${nova.id}/executar?modo=refazer`),
+                () => {},
+              )
+            }
+          >
+            Refazer avaliação
+          </button>
+          <p>Ao refazer, esta avaliação fica inativa e deixa de contar no histórico.</p>
+          {refazer.error ? <p role="alert">{refazer.error.detail ?? 'Não foi possível refazer a avaliação'}</p> : null}
+        </div>
+      )}
+      {avaliacao.status === 'FINALIZADA' && avaliacao.ativa && avaliacao.podeRefazer === false && (
+        <p role="note">Limite de refazer atingido: esta avaliação já foi refeita {avaliacao.refeitas} de {avaliacao.maxRefazeres} vezes e não pode mais ser refeita.</p>
+      )}
+      {avaliacao.refeitas != null ? <p>Refeita {avaliacao.refeitas} de {avaliacao.maxRefazeres} vezes</p> : null}
+      {!avaliacao.ativa && <p role="note">Esta avaliação foi refeita e está inativa.</p>}
 
       {audioDisponivel && audioUrl && (
         <div>
