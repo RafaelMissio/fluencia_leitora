@@ -1,0 +1,3 @@
+ALTER TABLE avaliacao
+    ADD COLUMN ativa BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN refeita_de_id BIGINT NULL;
